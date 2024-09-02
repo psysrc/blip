@@ -38,7 +38,7 @@ class Tokenizer:
         """
         Return the next token in the source stream.
 
-        If `end_of_stream() == True`, a sentinel `PROGRAM_END` token is returned.
+        If `end_of_stream() == True`, a sentinel `EOF` token is returned.
 
         If no valid token can be found, a SyntaxError is raised.
         """
@@ -53,16 +53,18 @@ class Tokenizer:
         token_regexes = {
             r"^\s": None,  # Whitespace (ignore)
             r"^//.*": None,  # Single-line comments (ignore)
-            r"^INPUT\b": "INPUT",
-            r"^OUTPUT\b": "OUTPUT",
-            r"^:=": "EQUALS",
-            r"^\|": "OR",
-            r'^"[^"]*"': "STRING",
+            r"^IN\b": "IN",
+            r"^OUT\b": "OUT",
+            r"^->": "->",
+            r"^<-": "<-",
+            r"^:=": ":=",
+            r"^\|": "|",
+            r'^"[^"]*"': "LITERAL",
             r"^[a-z][a-z0-9_]*\b": "IDENTIFIER",
         }
 
         if self.__source_is_empty():
-            return Token(type="PROGRAM_END", value="")
+            return Token(type="EOF", value="")
 
         for regexp, token_type in token_regexes.items():
             match = re.search(regexp, self.source)
@@ -83,7 +85,7 @@ class Tokenizer:
     def end_of_stream(self) -> bool:
         """Returns whether the end of the stream has been reached."""
 
-        return self.current_token.type == "PROGRAM_END"
+        return self.current_token.type == "EOF"
 
     def __source_is_empty(self) -> bool:
         return not bool(self.source)
