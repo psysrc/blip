@@ -16,6 +16,10 @@ class Token:
         return f"{self.type}[{self.value}]"
 
 
+class TokenizerError(Exception):
+    pass
+
+
 class Tokenizer:
     """
     The BLiP Tokenizer.
@@ -50,10 +54,11 @@ class Tokenizer:
             r"^\s": None,  # Whitespace (ignore)
             r"^//.*": None,  # Single-line comments (ignore)
             r"^INPUT\b": "INPUT",
-            r"^[a-z][a-z0-9_]*\b": "IDENTIFIER",
-            r'^"[^"]*"': "STRING",
+            r"^OUTPUT\b": "OUTPUT",
             r"^:=": "EQUALS",
             r"^\|": "OR",
+            r'^"[^"]*"': "STRING",
+            r"^[a-z][a-z0-9_]*\b": "IDENTIFIER",
         }
 
         if self.__source_is_empty():
@@ -73,7 +78,7 @@ class Tokenizer:
 
                 return self.__get_next_token_from_stream()
 
-        raise SyntaxError(f"Unknown syntax near characters '{self.source[:10]}'")
+        raise TokenizerError(f"Unknown syntax near characters '{self.source[:10]}'")
 
     def end_of_stream(self) -> bool:
         """Returns whether the end of the stream has been reached."""

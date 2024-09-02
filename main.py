@@ -1,6 +1,7 @@
 import argparse
+import json
 from pathlib import Path
-from blip.tokenizer import Tokenizer
+from blip.parser import Parser
 
 
 def main():
@@ -12,12 +13,10 @@ def main():
 
     parse_code = parse_code_path.read_text()
 
-    tokenizer = Tokenizer(parse_code)
+    parser = Parser(parse_code)
+    ast = parser.parse()
 
-    while not tokenizer.end_of_stream():
-        print(f"{tokenizer.next_token()}  ", end="")
-
-    print()
+    print(json.dumps(ast, indent=4))
 
 
 if __name__ == "__main__":
