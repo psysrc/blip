@@ -2,6 +2,10 @@
 
 BLiP code is a Domain Specific Language (DSL) for parsing and manipulating string data.
 
+BLiP is currently under construction! Please be patient.
+
+## Design
+
 Using the BLiP parser program, BLiP code can be parsed into a BLiP AST (Abstract Syntax Tree):
 
 ```mermaid
