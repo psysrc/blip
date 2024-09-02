@@ -1,11 +1,51 @@
 # BLiP
 
-BLiP intends to be a simple program for parsing string manipulation code in a DSL (Domain Specific Language).
+BLiP code is a Domain Specific Language (DSL) for parsing and manipulating string data.
 
-Using this program, the DSL can be parsed into an AST (Abstract Syntax Tree).
-This AST can then either be directly interpreted, or compiled into a target language such as Python.
+Using the BLiP parser program, BLiP code can be parsed into a BLiP AST (Abstract Syntax Tree):
 
-The DSL is syntactically inspired by BNF (Backus-Naur Form) but does not behave the same.
+```mermaid
+flowchart LR
+    blip(.blip)
+    blipast(.blipast)
+    parser[BLiP Parser]
+
+    blip --> parser
+    parser --> blipast
+```
+
+BLiP AST code can then either be directly run using a BLiP interpreter...
+
+```mermaid
+flowchart LR
+    i(Input Strings)
+    o(Output Strings)
+    blipast(.blipast)
+    interpreter[BLiP Interpreter]
+
+    i --> interpreter
+    blipast --> interpreter --> o
+```
+
+...or be transpiled into a target language of choice (such as Python)...
+
+```mermaid
+flowchart LR
+    blipast(.blipast)
+    t[Target Code]
+    transpiler[BLiP Transpiler]
+
+    i(Input Strings)
+    o(Output Strings)
+
+    blipast --> transpiler --> t
+
+    i --> t --> o
+```
+
+## Name history
+
+The DSL is syntactically inspired by BNF (Backus-Naur Form) but is functionally different.
 This is where BLiP originally derived its name: BNF Lite Parser.
-However, because the BLiP DSL grammar is functionally different from BNF, this is a misnomer.
+Because the BLiP DSL grammar is functionally different from BNF, however, this acronym is a misnomer.
 Therefore, officially, BLiP is a standalone name and is not an acronym.

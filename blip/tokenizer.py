@@ -16,7 +16,7 @@ class Token:
         return f"{self.type}[{self.value}]"
 
 
-class TokenizerError(Exception):
+class TokenizerError(RuntimeError):
     pass
 
 
