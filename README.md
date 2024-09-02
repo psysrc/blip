@@ -1,8 +1,11 @@
-# BLiP: BNF Lite Parser
+# BLiP
 
-This is intended to be a simple parsing program which takes "BNF Lite" syntax and produces an AST.
-This AST can then be used either by an interpreter or to be compiled into a target language.
+BLiP intends to be a simple program for parsing string manipulation code in a DSL (Domain Specific Language).
 
-"BNF Lite" is an approximation of (BNF)[https://en.wikipedia.org/wiki/Backus%E2%80%93Naur_form] with slightly different syntax.
+Using this program, the DSL can be parsed into an AST (Abstract Syntax Tree).
+This AST can then either be directly interpreted, or compiled into a target language such as Python.
 
-The intention of BLiP is to be able to write in a Domain-Specific Language (DSL) which is useful and convenient for string parsing.
+The DSL is syntactically inspired by BNF (Backus-Naur Form) but does not behave the same.
+This is where BLiP originally derived its name: BNF Lite Parser.
+However, because the BLiP DSL grammar is functionally different from BNF, this is a misnomer.
+Therefore, officially, BLiP is a standalone name and is not an acronym.
