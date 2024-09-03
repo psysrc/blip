@@ -45,14 +45,14 @@ class Parser:
 
     def __parse_program(self) -> dict:
         input = self.__parse_input()
-        rules = self.__parse_program_rules()
+        statement = self.__parse_program_statements()
         output = self.__parse_output()
 
         return {
             "type": "program",
             "input": input,
             "output": output,
-            "rules": rules,
+            "statements": statement,
         }
 
     def __parse_input(self) -> dict:
@@ -60,7 +60,7 @@ class Parser:
             "type": "input",
         }
 
-    def __parse_program_rules(self) -> list[dict]:
+    def __parse_program_statements(self) -> list[dict]:
         return []
 
     def __parse_output(self) -> dict:

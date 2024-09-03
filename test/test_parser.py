@@ -12,5 +12,5 @@ def test_dummy():
         "output": {
             "type": "output",
         },
-        "rules": [],
+        "statements": [],
     }
