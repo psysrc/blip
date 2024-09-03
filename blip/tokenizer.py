@@ -22,7 +22,7 @@ class TokenizerError(RuntimeError):
 
 class Tokenizer:
     """
-    The BLiP Tokenizer.
+    The Blip Tokenizer.
 
     Performs lexical analysis of the input DSL to produce a stream of tokens.
     The tokens can then be parsed by the `Parser` class.

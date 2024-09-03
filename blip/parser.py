@@ -11,7 +11,7 @@ class ParserError(RuntimeError):
 
 class Parser:
     """
-    The BLiP Parser.
+    The Blip Parser.
 
     Performs syntactic analysis of the tokenized source code to produce an Abstract Syntax Tree (AST).
     The AST can then be compiled into a target language, or interpreted.
