@@ -1,0 +1,12 @@
+// Removes the surrounding "foo" and "bar"
+// Adds angle brackets < >
+
+// Example: "fooquazzlebar" --> "<quazzle>
+
+INPUT input
+
+input --> "foo" content "bar"
+
+content <-- "<" content ">"
+
+OUTPUT content

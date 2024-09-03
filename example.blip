@@ -1,6 +1,0 @@
-INPUT foostring
-
-foostring := "foo" | "bar" | other
-
-other := "foo" | "foo" other
-
