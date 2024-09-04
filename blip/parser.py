@@ -44,26 +44,24 @@ class Parser:
         self.__current_token = self.__tokenizer.next_token()
 
     def __parse_program(self) -> dict:
-        input = self.__parse_input()
-        statement = self.__parse_program_statements()
-        output = self.__parse_output()
+        statements = self.__parse_program_statements()
 
         return {
-            "type": "program",
-            "input": input,
-            "output": output,
-            "statements": statement,
-        }
-
-    def __parse_input(self) -> dict:
-        return {
-            "type": "input",
-        }
+        "type": "program",
+        "statements": statements,
+    }
 
     def __parse_program_statements(self) -> list[dict]:
-        return []
-
-    def __parse_output(self) -> dict:
-        return {
-            "type": "output",
-        }
+        return [
+            {
+                "type": "into",
+                "source_identifier": {
+                    "type": "identifier",
+                    "name": "IN",
+                },
+                "expression": {
+                    "type": "identifier",
+                    "name": "OUT",
+                }
+            }
+        ]

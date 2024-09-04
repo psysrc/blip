@@ -1,16 +1,22 @@
 from blip.parser import Parser
 
 
-def test_dummy():
-    parser = Parser("")
+def test_identity_program():
+    parser = Parser("IN -> OUT")
 
     assert parser.parse() == {
         "type": "program",
-        "input": {
-            "type": "input",
-        },
-        "output": {
-            "type": "output",
-        },
-        "statements": [],
+        "statements": [
+            {
+                "type": "into",
+                "source_identifier": {
+                    "type": "identifier",
+                    "name": "IN",
+                },
+                "expression": {
+                    "type": "identifier",
+                    "name": "OUT",
+                }
+            }
+        ],
     }
