@@ -47,12 +47,6 @@ flowchart LR
     i --> t --> o
 ```
 
-## For Developers
-
-To run the unit tests:
-1. Create a Python virtual environment and install `pytest`
-2. From the root project directory, run `python -m pytest`
-
 ## Name history
 
 Blip is syntactically inspired by BNF (Backus-Naur Form) but is functionally different.
