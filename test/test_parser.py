@@ -21,6 +21,7 @@ def test_identity_program():
         ],
     }
 
+
 def test_alternative_identity_program():
     parser = Parser("OUT <- IN")
 
@@ -36,6 +37,27 @@ def test_alternative_identity_program():
                 "expression": {
                     "type": "identifier",
                     "name": "IN",
+                }
+            }
+        ],
+    }
+
+
+def test_hardcoded_string():
+    parser = Parser('OUT <- "foo"')
+
+    assert parser.parse() == {
+        "type": "program",
+        "statements": [
+            {
+                "type": "from",
+                "target_identifier": {
+                    "type": "identifier",
+                    "name": "OUT",
+                },
+                "expression": {
+                    "type": "literal",
+                    "value": "foo",
                 }
             }
         ],
