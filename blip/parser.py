@@ -60,6 +60,7 @@ class Parser:
         match self.__current_token:
             case Token(type="IDENTIFIER"):
                 statement = self.__parse_ambiguous_identifier_statement()
+                self.__consume_token(";")
 
             case _:
                 raise ParserError(f"Unexpected token {self.__current_token.type} '{self.__current_token.value}'"

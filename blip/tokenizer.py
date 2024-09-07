@@ -53,6 +53,7 @@ class Tokenizer:
         token_regexes = {
             r"^\s": None,  # Whitespace (ignore)
             r"^//.*": None,  # Single-line comments (ignore)
+            r"^;": ";",
             r"^->": "->",
             r"^<-": "<-",
             r"^:=": ":=",

@@ -1,8 +1,9 @@
-from blip.parser import Parser
+import pytest
+from blip.parser import Parser, ParserError
 
 
 def test_identity_program():
-    parser = Parser("IN -> OUT")
+    parser = Parser("IN -> OUT;")
 
     assert parser.parse() == {
         "type": "program",
@@ -23,7 +24,7 @@ def test_identity_program():
 
 
 def test_alternative_identity_program():
-    parser = Parser("OUT <- IN")
+    parser = Parser("OUT <- IN;")
 
     assert parser.parse() == {
         "type": "program",
@@ -44,7 +45,7 @@ def test_alternative_identity_program():
 
 
 def test_hardcoded_string():
-    parser = Parser('OUT <- "foo"')
+    parser = Parser('OUT <- "foo";')
 
     assert parser.parse() == {
         "type": "program",
@@ -62,3 +63,10 @@ def test_hardcoded_string():
             }
         ],
     }
+
+
+def test_missing_semicolon_causes_error():
+    parser = Parser("IN -> OUT")
+
+    with pytest.raises(ParserError):
+        parser.parse()
