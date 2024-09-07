@@ -70,7 +70,7 @@ class Parser:
         ]
 
     def __parse_ambiguous_identifier_statement(self) -> dict:
-        identifier = self.__consume_token("IDENTIFIER")
+        identifier = self.__parse_identifier()
 
         match self.__current_token:
             case Token(type="->"):
@@ -83,45 +83,49 @@ class Parser:
                 raise ParserError(f"Unexpected token {self.__current_token.type} '{self.__current_token.value}'"
                                   " while parsing identifier statement")
 
-    def __parse_into_statement(self, target_identifier: str) -> dict:
+    def __parse_identifier(self) -> dict:
+        identifier_name = self.__consume_token("IDENTIFIER")
+
+        return {
+            "type": "identifier",
+            "name": identifier_name,
+        }
+
+    def __parse_literal(self) -> dict:
+        literal_text = self.__consume_token("LITERAL")
+
+        return {
+            "type": "literal",
+            "value": literal_text[1:-1],
+        }
+
+    def __parse_into_statement(self, target_identifier: dict) -> dict:
         self.__consume_token("->")
         expression = self.__parse_expression()
 
         return {
             "type": "into",
-            "source_identifier": {
-                "type": "identifier",
-                "name": target_identifier,
-            },
+            "source_identifier": target_identifier,
             "expression": expression,
         }
 
-    def __parse_from_statement(self, source_identifier: str) -> dict:
+    def __parse_from_statement(self, source_identifier: dict) -> dict:
         self.__consume_token("<-")
         expression = self.__parse_expression()
 
         return {
             "type": "from",
-            "target_identifier": {
-                "type": "identifier",
-                "name": source_identifier,
-            },
+            "target_identifier": source_identifier,
             "expression": expression,
         }
 
     def __parse_expression(self) -> dict:
         match self.__current_token:
             case Token(type="IDENTIFIER"):
-                return {
-                    "type": "identifier",
-                    "name": self.__consume_token("IDENTIFIER")
-                }
+                return self.__parse_identifier()
 
             case Token(type="LITERAL"):
-                return {
-                    "type": "literal",
-                    "value": self.__consume_token("LITERAL")[1:-1]
-                }
+                return self.__parse_literal()
 
             case _:
                 raise ParserError(f"Unexpected token {self.__current_token.type} '{self.__current_token.value}'"
