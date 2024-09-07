@@ -40,7 +40,7 @@ class Tokenizer:
 
         If `end_of_stream() == True`, a sentinel `EOF` token is returned.
 
-        If no valid token can be found, a SyntaxError is raised.
+        If no valid token can be found, a TokenizerError is raised.
         """
 
         token_to_return = self.current_token

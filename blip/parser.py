@@ -26,7 +26,7 @@ class Parser:
         """
         Parse the source and return the AST.
 
-        If parsing fails at any point, a SyntaxError will be raised.
+        If parsing fails at any point, a ParserError will be raised.
         """
 
         return self.__parse_program()
