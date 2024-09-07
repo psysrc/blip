@@ -53,14 +53,12 @@ class Tokenizer:
         token_regexes = {
             r"^\s": None,  # Whitespace (ignore)
             r"^//.*": None,  # Single-line comments (ignore)
-            r"^IN\b": "IN",
-            r"^OUT\b": "OUT",
             r"^->": "->",
             r"^<-": "<-",
             r"^:=": ":=",
             r"^\|": "|",
             r'^"[^"]*"': "LITERAL",
-            r"^[a-z][a-z0-9_]*\b": "IDENTIFIER",
+            r"^[a-zA-Z][a-zA-Z0-9_]*\b": "IDENTIFIER",
         }
 
         if self.__source_is_empty():
