@@ -16,3 +16,10 @@ def test_identity_code_returns_the_input():
 
     assert interpreter.run("foo") == "foo"
     assert interpreter.run("bar") == "bar"
+
+
+def test_alternative_identity_code_returns_the_input():
+    interpreter = Interpreter("OUT <- IN")
+
+    assert interpreter.run("foo") == "foo"
+    assert interpreter.run("bar") == "bar"
