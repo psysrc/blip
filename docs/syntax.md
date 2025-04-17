@@ -1,4 +1,4 @@
-# Blip Features
+# Blip Syntax
 
 ## String Literals
 
