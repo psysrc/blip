@@ -4,10 +4,22 @@
 
 A literal string defined in the program.
 
-## Identifiers
+Example:
 
-An arbitrary number of identifiers can be used in a Blip program to help organise data.
-They're just like variables in a traditional programming language.
+```plaintext
+"A literal string"
+```
+
+## Variables
+
+An arbitrary number of variables can be used in a Blip program to help organise data, just like any other programming
+language.
+
+Example:
+
+```plaintext
+name = "John"
+```
 
 ## IN and OUT
 
