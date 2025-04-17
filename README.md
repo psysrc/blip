@@ -2,54 +2,14 @@
 
 Blip is a Domain Specific Language (DSL) for parsing and manipulating string data.
 
+It's intended to be easy to write, easy to understand, and intuitive.
+It can be interpreted or transpiled into various languages.
+
 *Blip is currently under construction! Please be patient.*
 
-## Design
+## Name etymology
 
-Using the Blip parser, Blip code can be parsed into a Blip AST (Abstract Syntax Tree):
-
-```mermaid
-flowchart LR
-    blip(.blip)
-    blipast(.blipast)
-    parser[Blip Parser]
-
-    blip --> parser
-    parser --> blipast
-```
-
-Blip AST code can then either be directly run using a Blip interpreter...
-
-```mermaid
-flowchart LR
-    i(Input Strings)
-    o(Output Strings)
-    blipast(.blipast)
-    interpreter[Blip Interpreter]
-
-    i --> interpreter
-    blipast --> interpreter --> o
-```
-
-...or be transpiled into a target language of choice (such as Python)...
-
-```mermaid
-flowchart LR
-    blipast(.blipast)
-    t[Target Code]
-    transpiler[Blip Transpiler]
-
-    i(Input Strings)
-    o(Output Strings)
-
-    blipast --> transpiler --> t
-
-    i --> t --> o
-```
-
-## Name history
-
-Blip is syntactically inspired by BNF (Backus-Naur Form) but is functionally different.
+Blip was originally inspired by BNF (Backus-Naur Form).
 This is where Blip originally derived its name: **B**NF **Li**te **P**arser.
-Because Blip behaves differently from BNF, however, this acronym is a misnomer.
-Therefore, officially, Blip is a standalone name and is not an acronym.
+However, because Blip is functionally and syntactically different from BNF, this acronym was abandoned.
+Blip is now a standalone name and is not an acronym.
