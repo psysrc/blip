@@ -7,6 +7,12 @@ It can be interpreted or transpiled into various languages.
 
 *Blip is currently under construction! Please be patient.*
 
+## Further Documentation
+
+More documentation is available in the `docs/` directory, including detailed explanation of Blip code syntax.
+
+In the `examples/` directory you'll find examples of valid Blip programs.
+
 ## Name etymology
 
 Blip was originally inspired by BNF (Backus-Naur Form).
