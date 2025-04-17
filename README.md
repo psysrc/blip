@@ -13,3 +13,8 @@ Blip was originally inspired by BNF (Backus-Naur Form).
 This is where Blip originally derived its name: **B**NF **Li**te **P**arser.
 However, because Blip is functionally and syntactically different from BNF, this acronym was abandoned.
 Blip is now a standalone name and is not an acronym.
+
+## Special Thanks
+
+Thanks to [Dmitry Soshnikov](https://www.youtube.com/c/DmitrySoshnikov-education)
+for his YouTube videos on parsing!
