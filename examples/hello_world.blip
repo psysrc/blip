@@ -1,0 +1,7 @@
+# Comments start with a hash/pound character
+// Comments can also start with a double-slash
+
+// This Blip program simply returns the hard-coded string "Hello, World!"
+// The `ret` keyword is used to return the expression.
+
+ret "Hello, World!"
