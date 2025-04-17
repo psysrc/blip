@@ -1,7 +1,11 @@
 # For Developers
 
+## Poetry
+
+Poetry is used to manage this repo.
+
 ## Unit tests
 
-To run the unit tests:
-1. Create a Python virtual environment and install `pytest`
-2. From the root project directory, run `python -m pytest`
+Pytest is used for unit testing.
+
+To run the unit tests, run `poetry run pytest`.
