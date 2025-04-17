@@ -1,72 +1,18 @@
-import pytest
-from blip.parser import Parser, ParserError
+from blip.parser import Parser
 
 
-def test_identity_program():
-    parser = Parser("IN -> OUT;")
-
-    assert parser.parse() == {
-        "type": "program",
-        "statements": [
-            {
-                "type": "into",
-                "source_identifier": {
-                    "type": "identifier",
-                    "name": "IN",
-                },
-                "expression": {
-                    "type": "identifier",
-                    "name": "OUT",
-                }
-            }
-        ],
-    }
-
-
-def test_alternative_identity_program():
-    parser = Parser("OUT <- IN;")
+def test_hello_world_program():
+    parser = Parser('ret "Hello, World!"')
 
     assert parser.parse() == {
         "type": "program",
         "statements": [
             {
-                "type": "from",
-                "target_identifier": {
-                    "type": "identifier",
-                    "name": "OUT",
-                },
-                "expression": {
-                    "type": "identifier",
-                    "name": "IN",
-                }
-            }
-        ],
-    }
-
-
-def test_hardcoded_string():
-    parser = Parser('OUT <- "foo";')
-
-    assert parser.parse() == {
-        "type": "program",
-        "statements": [
-            {
-                "type": "from",
-                "target_identifier": {
-                    "type": "identifier",
-                    "name": "OUT",
-                },
+                "type": "return",
                 "expression": {
                     "type": "literal",
-                    "value": "foo",
+                    "value": "Hello, World!",
                 }
             }
         ],
     }
-
-
-def test_missing_semicolon_causes_error():
-    parser = Parser("IN -> OUT")
-
-    with pytest.raises(ParserError):
-        parser.parse()
