@@ -20,6 +20,10 @@ flowchart LR
 
     blip --> parser
     parser --> blipir
+
+    style blip fill:#55f,color:#fff,stroke:#333
+    style blipir fill:#85f,color:#fff,stroke:#333
+    style parser fill:#555,color:#fff,stroke:#333
 ```
 
 BlipIR (and hence the parser) is used for both transpiling and direct interpretation.
@@ -46,6 +50,11 @@ flowchart LR
 
     i --> interpreter
     blip --> interpreter --> o
+
+    style blip fill:#55f,color:#fff,stroke:#333
+    style interpreter fill:#555,color:#fff,stroke:#333
+    style i fill:#ddd,color:#000,stroke:#333
+    style o fill:#ddd,color:#000,stroke:#333
 ```
 
 ## Transpile Blip code into a target language
@@ -60,4 +69,12 @@ flowchart LR
     transpiler[Blip Transpiler]
 
     blip --> transpiler --> t
+
+    style blip fill:#55f,color:#fff,stroke:#333
+    style transpiler fill:#555,color:#fff,stroke:#333
+    style t fill:#333,color:#fff,stroke:#333
 ```
+
+From there, of course, you can take the target code output and do what you need to with it.
+If it's an interpreted language like Python, it should run as-is.
+If it's a compiled language like C, you'll need to run it through a C compiler to get an executable program.
