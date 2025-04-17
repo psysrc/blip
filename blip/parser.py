@@ -49,47 +49,40 @@ class Parser:
         return token_value
 
     def __parse_program(self) -> dict:
-        statements = self.__parse_program_statements()
+        statements = self.__parse_statements()
 
         return {
             "type": "program",
             "statements": statements,
         }
 
-    def __parse_program_statements(self) -> list[dict]:
-        match self.__current_token:
-            case Token(type="IDENTIFIER"):
-                statement = self.__parse_ambiguous_identifier_statement()
-                self.__consume_token(";")
+    def __parse_statements(self) -> list:
+        statements = []
 
-            case _:
-                raise ParserError(f"Unexpected token {self.__current_token.type} '{self.__current_token.value}'"
-                                  " while parsing statement")
+        while self.__current_token.type != "EOF":
+            if self.__current_token.type == "RETURN":
+                statements.append(self.__parse_return_statement())
 
-        return [
-            statement
-        ]
+            elif self.__current_token.type == "EOL":
+                self.__consume_token("EOL")
 
-    def __parse_ambiguous_identifier_statement(self) -> dict:
-        identifier = self.__parse_identifier()
+            else:
+                raise ParserError(f"Unexpected token '{self.__current_token}' while parsing program statements (expected 'RETURN' or 'EOL')")
 
-        match self.__current_token:
-            case Token(type="->"):
-                return self.__parse_into_statement(identifier)
+        return statements
 
-            case Token(type="<-"):
-                return self.__parse_from_statement(identifier)
+    def __parse_return_statement(self) -> dict:
+        self.__consume_token("RETURN")
+        expression = self.__parse_literal()
 
-            case _:
-                raise ParserError(f"Unexpected token {self.__current_token.type} '{self.__current_token.value}'"
-                                  " while parsing identifier statement")
-
-    def __parse_identifier(self) -> dict:
-        identifier_name = self.__consume_token("IDENTIFIER")
+        if self.__current_token.type == "EOF":
+            self.__consume_token("EOF")
+        else:
+            self.__consume_token("EOL")
 
         return {
-            "type": "identifier",
-            "name": identifier_name,
+            "type": "return",
+            "expression": expression,
         }
 
     def __parse_literal(self) -> dict:
@@ -99,35 +92,3 @@ class Parser:
             "type": "literal",
             "value": literal_text[1:-1],
         }
-
-    def __parse_into_statement(self, target_identifier: dict) -> dict:
-        self.__consume_token("->")
-        expression = self.__parse_expression()
-
-        return {
-            "type": "into",
-            "source_identifier": target_identifier,
-            "expression": expression,
-        }
-
-    def __parse_from_statement(self, source_identifier: dict) -> dict:
-        self.__consume_token("<-")
-        expression = self.__parse_expression()
-
-        return {
-            "type": "from",
-            "target_identifier": source_identifier,
-            "expression": expression,
-        }
-
-    def __parse_expression(self) -> dict:
-        match self.__current_token:
-            case Token(type="IDENTIFIER"):
-                return self.__parse_identifier()
-
-            case Token(type="LITERAL"):
-                return self.__parse_literal()
-
-            case _:
-                raise ParserError(f"Unexpected token {self.__current_token.type} '{self.__current_token.value}'"
-                                  " while parsing expression")

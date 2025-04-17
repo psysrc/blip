@@ -1,8 +1,0 @@
-// Removes the surrounding "foo" and "bar"
-// Adds angle brackets < >
-
-// Example: "fooquazzlebar" --> "<quazzle>"
-
-IN -> "foo" content "bar";
-
-OUT <- "<" content ">";

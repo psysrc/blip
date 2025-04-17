@@ -51,13 +51,16 @@ class Tokenizer:
 
     def __get_next_token_from_stream(self) -> Token:
         token_regexes = {
-            r"^\s": None,  # Whitespace (ignore)
+            r"^#.*": None,  # Single-line comments (ignore)
             r"^//.*": None,  # Single-line comments (ignore)
-            r"^;": ";",
+            r"^\n": "EOL",
+            r"^;": "EOL",
+            r"^\s": None,  # Non-EOL Whitespace (ignore)
             r"^->": "->",
             r"^<-": "<-",
             r"^:=": ":=",
             r"^\|": "|",
+            r"^ret": "RETURN",
             r'^"[^"]*"': "LITERAL",
             r"^[a-zA-Z][a-zA-Z0-9_]*\b": "IDENTIFIER",
         }
