@@ -138,7 +138,7 @@ def test_string_concatenation():
                     "name": "text",
                 },
                 "value": {
-                    "type": "concatenation",
+                    "type": "expression",
                     "operands": [
                         {
                             "type": "literal",
@@ -151,6 +151,40 @@ def test_string_concatenation():
                         {
                             "type": "literal",
                             "value": "baz",
+                        },
+                    ],
+                },
+            }
+        ],
+    }
+
+
+def test_string_decomposition():
+    parser = Parser("input -> '[' text ']'")
+
+    assert parser.parse() == {
+        "type": "program",
+        "statements": [
+            {
+                "type": "decomposition",
+                "variable": {
+                    "type": "identifier",
+                    "name": "input",
+                },
+                "pattern": {
+                    "type": "expression",
+                    "operands": [
+                        {
+                            "type": "literal",
+                            "value": "[",
+                        },
+                        {
+                            "type": "identifier",
+                            "name": "text",
+                        },
+                        {
+                            "type": "literal",
+                            "value": "]",
                         },
                     ],
                 },

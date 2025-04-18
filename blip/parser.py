@@ -65,7 +65,7 @@ class Parser:
                     self.__consume_token("EOL")
 
                 case "IDENTIFIER":
-                    statements.append(self.__parse_assignment_statement())
+                    statements.append(self.__parse_ambiguous_identifier_statement())
 
                 case "RETURN":
                     statements.append(self.__parse_return_statement())
@@ -75,6 +75,31 @@ class Parser:
                     raise ParserError(err)
 
         return statements
+
+    def __parse_ambiguous_identifier_statement(self) -> dict:
+        identifier = self.__parse_identifier()
+
+        match self.__current_token.type:
+            case "=":
+                return self.__parse_assignment_statement(identifier)
+            case "->":
+                return self.__parse_decomposition_statement(identifier)
+            case _:
+                err = f"Unexpected token '{self.__current_token}' while parsing ambiguous identifier statement"
+                raise ParserError(err)
+
+    def __parse_decomposition_statement(self, identifier: dict) -> dict:
+        self.__consume_token("->")
+
+        expression = self.__parse_expression()
+
+        self.__consume_token("EOL", "EOF")
+
+        return {
+            "type": "decomposition",
+            "variable": identifier,
+            "pattern": expression,
+        }
 
     def __parse_identifier(self) -> dict:
         identifier = self.__consume_token("IDENTIFIER")
@@ -94,7 +119,7 @@ class Parser:
             return primary_expressions[0]
 
         return {
-            "type": "concatenation",
+            "type": "expression",
             "operands": primary_expressions,
         }
 
@@ -108,9 +133,7 @@ class Parser:
                 err = f"Unexpected token '{self.__current_token}' while parsing primary expression"
                 raise ParserError(err)
 
-    def __parse_assignment_statement(self) -> dict:
-        identifier = self.__parse_identifier()
-
+    def __parse_assignment_statement(self, identifier: dict) -> dict:
         self.__consume_token("=")
 
         expression = self.__parse_expression()
