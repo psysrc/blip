@@ -1,0 +1,20 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff check
+        name: Ruff Check
+        language: system
+        entry: poetry run ruff check --fix
+        types: [python]
+
+      - id: ruff format
+        name: Ruff Format
+        language: system
+        entry: poetry run ruff format
+        types: [python]
+
+      - id: pytest
+        name: pytest
+        language: system
+        entry: poetry run pytest
+        types: [python]
