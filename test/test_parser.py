@@ -91,3 +91,35 @@ def test_return_variable():
             },
         ],
     }
+
+
+def test_variable_with_variable():
+    parser = Parser("myname = 'John'; username = myname")
+
+    assert parser.parse() == {
+        "type": "program",
+        "statements": [
+            {
+                "type": "assignment",
+                "variable": {
+                    "type": "identifier",
+                    "name": "myname",
+                },
+                "value": {
+                    "type": "literal",
+                    "value": "John",
+                },
+            },
+            {
+                "type": "assignment",
+                "variable": {
+                    "type": "identifier",
+                    "name": "username",
+                },
+                "value": {
+                    "type": "identifier",
+                    "name": "myname",
+                },
+            },
+        ],
+    }

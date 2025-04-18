@@ -84,31 +84,33 @@ class Parser:
             "name": identifier,
         }
 
+    def __parse_expression(self) -> dict:
+        match self.__current_token.type:
+            case "IDENTIFIER":
+                return self.__parse_identifier()
+            case "LITERAL":
+                return self.__parse_literal()
+            case _:
+                err = f"Unexpected token '{self.__current_token}' while parsing expression"
+                raise ParserError(err)
+
     def __parse_assignment_statement(self) -> dict:
         identifier = self.__parse_identifier()
 
-        if self.__current_token.type != "=":
-            raise ParserError(f"Unexpected token '{self.__current_token}' while parsing assignment (expected '=')")
-
         self.__consume_token("=")
 
-        value = self.__parse_literal()
+        expression = self.__parse_expression()
 
         return {
             "type": "assignment",
             "variable": identifier,
-            "value": value,
+            "value": expression,
         }
 
     def __parse_return_statement(self) -> dict:
         self.__consume_token("RETURN")
 
-        if self.__current_token.type == "IDENTIFIER":
-            expression = self.__parse_identifier()
-        elif self.__current_token.type == "LITERAL":
-            expression = self.__parse_literal()
-        else:
-            raise ParserError(f"Unexpected token '{self.__current_token}' while parsing return statement")
+        expression = self.__parse_expression()
 
         return {
             "type": "return",
