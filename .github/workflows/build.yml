@@ -31,7 +31,7 @@ jobs:
       run: poetry run ruff check
 
     - name: Run ruff format
-      run: poetry run ruff format
+      run: poetry run ruff format --check
 
     - name: Test with pytest
       run: poetry run pytest
