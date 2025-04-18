@@ -48,7 +48,7 @@ flowchart LR
 
 From there, of course, you can take the target code output and do what you need to with it.
 If it's an interpreted language like Python, it should run as-is.
-If it's a compiled language like C, you'll need to run it through a C compiler to get an executable program.
+If it's a compiled language like C, you'll need to run it through a compiler to get an executable program.
 
 ## Intermediate representation - BlipIR
 

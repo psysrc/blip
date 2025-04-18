@@ -36,10 +36,10 @@ validating that strings match particular patterns, or meet certain criteria.
 Programs that terminate with an error do not provide normal string output.
 They will instead return a single string containing an error message describing the failure.
 
-Stand-alone interpreters will handle these error cases by exiting with a non-zero error code, and printing the
+Stand-alone interpreters will handle program errors by exiting with a non-zero error code, and printing the
 error string to the standard error stream.
 
-Transpiled Blip code will handle this in a manner that is appropriate for the target language.
+Transpiled Blip code will handle errors in a manner that is appropriate for the target language.
 Exceptions will typically be used for languages that support them.
 For languages that do not support exceptions (like C), a special return code will be used instead to distinguish
 it from successful output.
