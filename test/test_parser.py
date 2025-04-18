@@ -42,3 +42,24 @@ def test_identity_program():
         "type": "program",
         "statements": [],
     }
+
+
+def test_variable_with_literal():
+    parser = Parser("myname = 'John'")
+
+    assert parser.parse() == {
+        "type": "program",
+        "statements": [
+            {
+                "type": "assignment",
+                "variable": {
+                    "type": "identifier",
+                    "name": "myname",
+                },
+                "value": {
+                    "type": "literal",
+                    "value": "John",
+                },
+            }
+        ],
+    }

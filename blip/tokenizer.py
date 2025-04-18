@@ -58,7 +58,7 @@ class Tokenizer:
             r"^\s": None,  # Non-EOL Whitespace (ignore)
             r"^->": "->",
             r"^<-": "<-",
-            r"^:=": ":=",
+            r"^=": "=",
             r"^\|": "|",
             r"^ret": "RETURN",
             r'^"[^"]*"': "LITERAL",

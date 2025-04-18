@@ -60,18 +60,40 @@ class Parser:
         statements = []
 
         while self.__current_token.type != "EOF":
-            if self.__current_token.type == "RETURN":
-                statements.append(self.__parse_return_statement())
+            match self.__current_token.type:
+                case "EOL":
+                    self.__consume_token("EOL")
 
-            elif self.__current_token.type == "EOL":
-                self.__consume_token("EOL")
+                case "IDENTIFIER":
+                    statements.append(self.__parse_assignment_statement())
 
-            else:
-                raise ParserError(
-                    f"Unexpected token '{self.__current_token}' while parsing program statements (expected 'RETURN' or 'EOL')"
-                )
+                case "RETURN":
+                    statements.append(self.__parse_return_statement())
+
+                case _:
+                    err = f"Unexpected token '{self.__current_token}' while parsing program statements"
+                    raise ParserError(err)
 
         return statements
+
+    def __parse_assignment_statement(self):
+        identifier = self.__consume_token("IDENTIFIER")
+
+        if self.__current_token.type != "=":
+            raise ParserError(f"Unexpected token '{self.__current_token}' while parsing assignment (expected '=')")
+
+        self.__consume_token("=")
+
+        value = self.__parse_literal()
+
+        return {
+            "type": "assignment",
+            "variable": {
+                "type": "identifier",
+                "name": identifier,
+            },
+            "value": value,
+        }
 
     def __parse_return_statement(self) -> dict:
         self.__consume_token("RETURN")
