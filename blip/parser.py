@@ -76,8 +76,16 @@ class Parser:
 
         return statements
 
-    def __parse_assignment_statement(self):
+    def __parse_identifier(self) -> dict:
         identifier = self.__consume_token("IDENTIFIER")
+
+        return {
+            "type": "identifier",
+            "name": identifier,
+        }
+
+    def __parse_assignment_statement(self) -> dict:
+        identifier = self.__parse_identifier()
 
         if self.__current_token.type != "=":
             raise ParserError(f"Unexpected token '{self.__current_token}' while parsing assignment (expected '=')")
@@ -88,21 +96,19 @@ class Parser:
 
         return {
             "type": "assignment",
-            "variable": {
-                "type": "identifier",
-                "name": identifier,
-            },
+            "variable": identifier,
             "value": value,
         }
 
     def __parse_return_statement(self) -> dict:
         self.__consume_token("RETURN")
-        expression = self.__parse_literal()
 
-        if self.__current_token.type == "EOF":
-            self.__consume_token("EOF")
+        if self.__current_token.type == "IDENTIFIER":
+            expression = self.__parse_identifier()
+        elif self.__current_token.type == "LITERAL":
+            expression = self.__parse_literal()
         else:
-            self.__consume_token("EOL")
+            raise ParserError(f"Unexpected token '{self.__current_token}' while parsing return statement")
 
         return {
             "type": "return",
