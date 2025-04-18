@@ -27,11 +27,11 @@ jobs:
     - name: Install dependencies
       run: poetry install
 
+    - name: Test with pytest
+      run: poetry run pytest --cov=blip --cov-report=term-missing
+
     - name: Run ruff check
       run: poetry run ruff check
 
     - name: Run ruff format
       run: poetry run ruff format --check
-
-    - name: Test with pytest
-      run: poetry run pytest
