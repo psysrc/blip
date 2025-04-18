@@ -2,7 +2,7 @@
 Implements the Parser class.
 """
 
-from .tokenizer import Tokenizer, Token
+from .tokenizer import Tokenizer
 
 
 class ParserError(RuntimeError):
@@ -67,7 +67,9 @@ class Parser:
                 self.__consume_token("EOL")
 
             else:
-                raise ParserError(f"Unexpected token '{self.__current_token}' while parsing program statements (expected 'RETURN' or 'EOL')")
+                raise ParserError(
+                    f"Unexpected token '{self.__current_token}' while parsing program statements (expected 'RETURN' or 'EOL')"
+                )
 
         return statements
 

@@ -76,7 +76,11 @@ class Tokenizer:
                 self.source = self.source[len(token_value) :]
 
                 if token_type:
-                    logging.debug("Tokenizer matched token '%s' of type '%s'", token_value, token_type)
+                    logging.debug(
+                        "Tokenizer matched token '%s' of type '%s'",
+                        token_value,
+                        token_type,
+                    )
 
                     return Token(type=token_type, value=token_value)
 

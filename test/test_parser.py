@@ -12,7 +12,7 @@ def test_hello_world_program():
                 "expression": {
                     "type": "literal",
                     "value": "Hello, World!",
-                }
+                },
             }
         ],
     }
