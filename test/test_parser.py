@@ -123,3 +123,37 @@ def test_variable_with_variable():
             },
         ],
     }
+
+
+def test_string_concatenation():
+    parser = Parser("text = 'foo' 'bar' 'baz'")
+
+    assert parser.parse() == {
+        "type": "program",
+        "statements": [
+            {
+                "type": "assignment",
+                "variable": {
+                    "type": "identifier",
+                    "name": "text",
+                },
+                "value": {
+                    "type": "concatenation",
+                    "operands": [
+                        {
+                            "type": "literal",
+                            "value": "foo",
+                        },
+                        {
+                            "type": "literal",
+                            "value": "bar",
+                        },
+                        {
+                            "type": "literal",
+                            "value": "baz",
+                        },
+                    ],
+                },
+            }
+        ],
+    }

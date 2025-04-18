@@ -85,13 +85,27 @@ class Parser:
         }
 
     def __parse_expression(self) -> dict:
+        primary_expressions = []
+
+        while self.__current_token.type in {"IDENTIFIER", "LITERAL"}:
+            primary_expressions.append(self.__parse_primary_expression())
+
+        if len(primary_expressions) == 1:
+            return primary_expressions[0]
+
+        return {
+            "type": "concatenation",
+            "operands": primary_expressions,
+        }
+
+    def __parse_primary_expression(self) -> dict:
         match self.__current_token.type:
             case "IDENTIFIER":
                 return self.__parse_identifier()
             case "LITERAL":
                 return self.__parse_literal()
             case _:
-                err = f"Unexpected token '{self.__current_token}' while parsing expression"
+                err = f"Unexpected token '{self.__current_token}' while parsing primary expression"
                 raise ParserError(err)
 
     def __parse_assignment_statement(self) -> dict:
