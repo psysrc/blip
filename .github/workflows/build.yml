@@ -1,0 +1,34 @@
+name: Blip
+
+on:
+  push:
+    branches: [ "main", "development" ]
+  pull_request:
+    branches: [ "main", "development" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.12"
+
+    - name: Install dependencies
+      run: poetry install
+
+    - name: Run ruff check
+      run: poetry run ruff check . --exit-code 1 --max-line-length=127
+
+    - name: Run ruff format
+      run: poetry run ruff formnat . --exit-code 1 --max-line-length=127
+
+    - name: Test with pytest
+      run: poetry run pytest
