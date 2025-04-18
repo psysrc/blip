@@ -16,5 +16,5 @@ repos:
       - id: pytest
         name: pytest
         language: system
-        entry: poetry run pytest
+        entry: poetry run pytest test/
         types: [python]

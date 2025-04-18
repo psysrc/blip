@@ -31,16 +31,16 @@ class Parser:
 
         return self.__parse_program()
 
-    def __consume_token(self, expected_token_type: str) -> str:
+    def __consume_token(self, *token_types: str) -> str:
         """
-        Consumes the next token in the stream.
-        If the token type does not match the provided token_type, an exception is raised.
+        Consume the next token in the stream.
+        If the token type does not match one of the provided token types, a `ParserError` is raised.
         Returns the value of the consumed token.
         """
 
-        if self.__current_token.type != expected_token_type:
+        if self.__current_token.type not in token_types:
             actual_token_type = self.__current_token.type
-            raise ParserError(f"Failed to consume token (expected '{expected_token_type}', got '{actual_token_type}')")
+            raise ParserError(f"Failed to consume token (expected one of '{token_types}', got '{actual_token_type}')")
 
         token_value = self.__current_token.value
 
@@ -101,6 +101,8 @@ class Parser:
 
         expression = self.__parse_expression()
 
+        self.__consume_token("EOL", "EOF")
+
         return {
             "type": "assignment",
             "variable": identifier,
@@ -111,6 +113,8 @@ class Parser:
         self.__consume_token("RETURN")
 
         expression = self.__parse_expression()
+
+        self.__consume_token("EOL", "EOF")
 
         return {
             "type": "return",
