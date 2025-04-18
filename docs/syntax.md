@@ -28,14 +28,36 @@ This exists because it looks like the logical opposite to a decomposition statem
 "John" -> name
 ```
 
+## String Concatenation
+
+Blip automatically concatenates any strings that appear side by side, similar to Python.
+
+```plaintext
+text = "foo" "bar" "baz"  // Result: "foobarbaz"
+```
+
+However, this doesn't just apply to string literals. Concatenation also works with variables!
+
+```plaintext
+myname = "John"
+text = "<<" myname ">>"  // Result: "<<John>>"
+```
+
+This is the standard way to combine multiple strings in Blip.
+
 ## String Decomposition
 
-Decomposition is a core language feature that allows you to extract substrings and assert that a string follows an
-expected pattern. Decomposition uses the `->` operator.
+String decomposition is the opposite of string concatenation. It's a core language feature that allows you to decompose
+a string to assert that it follows an expected pattern, and to extract substrings from it.
+Decomposition uses the `->` operator.
 
 ```plaintext
 // This example extracts the first part of an email (everything before the '@' character).
-// It also uses the wildcard character '*' to ignore everything after the '@'.
+
+// Blip will decompose the string into the right-hand side expression.
+// The literal "@" means Blip will look for this substring and match it.
+// The wildcard "*" matches anything.
+// The variable "name" also matches anything, while also capturing the text in the variable.
 
 email = "bob.john@gmail.com"
 email -> name "@" *  // The 'name' variable now contains "bob.john"
@@ -48,12 +70,11 @@ xml = "<foo>Bar</foo>"
 xml -> "<foo>" content "</foo>"  // The 'content' variable now contains "Bar"
 ```
 
-
 If decomposition fails because the provided string doesn't fit the pattern, an error is automatically raised.
 As a result, decomposition can be used as a convenient pattern matching syntax.
 
 ```
-// This example simply validates that the string is surrounded by square brackets, without extracting any text:
+// This example validates that the string is surrounded by square brackets, without extracting any text into a variable:
 
 data = "[good]"
 data = "bad"
