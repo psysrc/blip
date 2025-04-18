@@ -16,3 +16,12 @@ def test_hello_world_program():
             }
         ],
     }
+
+
+def test_identity_program():
+    parser = Parser('')
+
+    assert parser.parse() == {
+        "type": "program",
+        "statements": [],
+    }
