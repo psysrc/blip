@@ -7,5 +7,6 @@ Here is a to-do list of things, in no particular order, that are currently on th
 - Basic parser to convert to BlipIR
 - Basic interpreter written in Python to execute Blip programs
 - Basic transpiler to convert Blip to native Python code
-- Basic transpiler to convert Blip to native C or C++ code
+- Basic transpiler to convert Blip to native C code
+- Basic transpiler to convert Blip to native C++ code
 - Improved tokenizer/parser/interpreter/transpiler error reporting
