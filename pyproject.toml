@@ -1,7 +1,7 @@
 [project]
 name = "blip"
 version = "0.1.0"
-description = "Blip is a Domain Specific Language (DSL) for parsing and manipulating string data."
+description = "A Domain Specific Language for parsing and manipulating string data."
 authors = [
     {name = "psysrc"}
 ]
