@@ -13,7 +13,10 @@ More documentation is available in the `docs/` directory, including detailed exp
 
 In the `examples/` directory you'll find examples of valid Blip programs.
 
-## Name etymology
+## Nomenclature & Etymology
+
+Blip is both the name of the language and the name of the CLI tool (similar to Python!).
+To avoid this potential confusion in this repo's documentation, "Blip" refers to the language, and `blip` refers to the CLI tool.
 
 Blip was originally inspired by BNF (Backus-Naur Form).
 This is where Blip originally derived its name: **B**NF **Li**te **P**arser.
@@ -22,5 +25,4 @@ Blip is now a standalone name and is not an acronym.
 
 ## Special Thanks
 
-Thanks to [Dmitry Soshnikov](https://www.youtube.com/c/DmitrySoshnikov-education)
-for his YouTube videos on parsing!
+Thanks to [Dmitry Soshnikov](https://www.youtube.com/c/DmitrySoshnikov-education) for his YouTube videos on parsing!

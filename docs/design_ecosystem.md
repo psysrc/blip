@@ -5,6 +5,8 @@ Blip can be used in a few different ways:
 1. Directly execute Blip code using an interpreter
 2. Transpile Blip code into a target language, like Python or C
 
+The `blip` CLI tool provides both of these capabilities.
+
 ## Intermediate representation - BlipIR
 
 Blip code is first parsed into an intermediate representation (IR) that is more convenient for computers to handle.
@@ -26,7 +28,7 @@ flowchart LR
     style parser fill:#555,color:#fff,stroke:#333
 ```
 
-You can use IR Mode with the `--ir` flag to see the BlipIR of a Blip program.
+You can run `blip` in IR Mode with the `--ir` flag to see the BlipIR of a Blip program.
 BlipIR code is an Abstract Syntax Tree (AST) encoded in JSON.
 
 BlipIR and the Blip parser are used for both transpiling and direct interpretation.
@@ -53,7 +55,7 @@ flowchart LR
     style o fill:#ddd,color:#000,stroke:#333
 ```
 
-You can use Interpret Mode with the `-i` / `--interpret` flag to run a Blip program directly.
+You can run `blip` in Interpret Mode with the `-i` / `--interpret` flag to run a Blip program directly.
 The CLI output will be the result of the Blip program's execution.
 
 To run a Blip program, the interpreter needs to be given any string inputs that the program has to process.
@@ -76,7 +78,7 @@ flowchart LR
     style t fill:#c33,color:#fff,stroke:#333
 ```
 
-You can use Transpile Mode with the `-t` / `--transpile` flag to convert Blip to a target language.
+You can run `blip` in Transpile Mode with the `-t` / `--transpile` flag to convert Blip to a target language.
 For example, `--transpile python` will convert a Blip program to native Python code.
 
 Transpile Mode will produce a function/submodule in the target language which accepts native string types and
