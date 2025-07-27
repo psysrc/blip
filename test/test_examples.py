@@ -1,4 +1,4 @@
-from blip.parser import Parser
+from bliplib.parser import Parser
 from pathlib import Path
 
 

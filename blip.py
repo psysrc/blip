@@ -2,7 +2,7 @@ import argparse
 import json
 from pathlib import Path
 import sys
-from blip.parser import Parser
+from bliplib.parser import Parser
 
 
 def main():
