@@ -1,22 +1,47 @@
 import argparse
 import json
 from pathlib import Path
+import sys
 from blip.parser import Parser
 
 
 def main():
     argument_parser = argparse.ArgumentParser()
-    argument_parser.add_argument("-f", "--file", required=True, help="The path to the file to parse")
+    argument_parser.add_argument("file", help="Path of the Blip file to use")
+
+    mode_group = argument_parser.add_argument_group("Run Mode", "How Blip should handle the input file")
+    mode_args = mode_group.add_mutually_exclusive_group()
+    mode_args.add_argument(
+        "-i",
+        "--interpret",
+        action="store_true",
+        help="Execute the program using the Blip Interpreter (this is the default)",
+    )
+    mode_args.add_argument("-t", "--transpile", metavar="LANG", help="Transpile the program into another language")
+    mode_args.add_argument("--ir", action="store_true", help="Output the program's Intermediate Representation")
 
     args = argument_parser.parse_args()
+
     file_path = Path(args.file)
 
-    blip_code = file_path.read_text()
+    if not any([args.ir, args.transpile, args.interpret]):
+        args.interpret = True
 
-    parser = Parser(blip_code)
-    blipir = parser.parse()
+    blip_ir = Parser(file_path.read_text()).parse()
 
-    print(json.dumps(blipir, indent=4))
+    if args.interpret:
+        raise NotImplementedError("Interpreting is not supported yet.")
+
+    if args.transpile:
+        raise NotImplementedError("Transpiling is not supported yet.")
+
+    if args.ir:
+        print(json.dumps(blip_ir, indent=4))
+        sys.exit(0)
+
+    print("Error: Program called with unexpected arguments.")
+    print(f"{args}")
+    sys.exit(1)
 
 
 if __name__ == "__main__":
