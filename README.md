@@ -7,11 +7,12 @@ It can be directly interpreted or transpiled into various other languages.
 
 *Blip is currently under construction! Please be patient.*
 
-## Further Documentation
+## Documentation
 
-More documentation is available in the `docs/` directory, including detailed explanation of Blip code syntax.
+An index of Blip documentation can be found [in the `docs/` folder](docs/README.md).
 
-In the `examples/` directory you'll find examples of valid Blip programs.
+Example Blip code can be found in the `examples/` directory.
+We have unit tests to verify that all example code in this folder parses correctly and is therefore syntactically valid.
 
 ## Nomenclature & Etymology
 
