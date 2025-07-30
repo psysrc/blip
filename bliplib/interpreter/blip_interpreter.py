@@ -27,5 +27,19 @@ class Interpreter:
             }:
                 return [the_string]
 
+            case {
+                "type": "program",
+                "statements": [
+                    {
+                        "type": "return",
+                        "expression": {
+                            "type": "identifier",
+                            "name": "input",
+                        },
+                    }
+                ],
+            }:
+                return input_strings
+
             case _:
                 raise InterpreterError("Unexpected code")

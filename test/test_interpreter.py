@@ -28,3 +28,23 @@ def test_unexpected_code_causes_interpreter_error():
 
     with pytest.raises(InterpreterError):
         Interpreter(code).run([])
+
+
+def test_identity_program():
+    interpreter = Interpreter(
+        {
+            "type": "program",
+            "statements": [
+                {
+                    "type": "return",
+                    "expression": {
+                        "type": "identifier",
+                        "name": "input",
+                    },
+                },
+            ],
+        }
+    )
+
+    assert interpreter.run([]) == []
+    assert interpreter.run(["Hello", "World"]) == ["Hello", "World"]
