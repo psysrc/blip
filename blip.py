@@ -2,6 +2,7 @@ import argparse
 import json
 from pathlib import Path
 import sys
+from bliplib.interpreter import Interpreter
 from bliplib.parser import Parser
 
 
@@ -30,7 +31,11 @@ def main():
     blip_ir = Parser(file_path.read_text()).parse()
 
     if args.interpret:
-        raise NotImplementedError("Interpreting is not supported yet.")
+        interpreter = Interpreter(blip_ir)
+        input_strings: list[str] = []
+        output_strings: list[str] = interpreter.run(input_strings)
+        print(output_strings)
+        sys.exit(0)
 
     if args.transpile:
         raise NotImplementedError("Transpiling is not supported yet.")
