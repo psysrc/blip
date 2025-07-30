@@ -2,6 +2,8 @@
 Implements the Interpreter class.
 """
 
+from typing import Optional
+
 
 class InterpreterError(RuntimeError):
     pass
@@ -21,31 +23,34 @@ class Interpreter:
         self.__variables["input"] = input_strings
 
         match self.__code:
+            case {"type": "program", "statements": [*statements]}:
+                for statement in statements:
+                    result = self.__interpret_statement(statement)
+                    if result is not None:
+                        return result
+
+            case _:
+                raise InterpreterError("Unexpected program code")
+
+        raise InterpreterError("Program halted without returning a value")
+
+    def __interpret_statement(self, statement: dict) -> Optional[list[str]]:
+        match statement:
             case {
-                "type": "program",
-                "statements": [
-                    {
-                        "type": "return",
-                        "expression": {
-                            "type": "literal",
-                            "value": the_string,
-                        },
-                    }
-                ],
+                "type": "return",
+                "expression": {
+                    "type": "literal",
+                    "value": the_string,
+                },
             }:
                 return [the_string]
 
             case {
-                "type": "program",
-                "statements": [
-                    {
-                        "type": "return",
-                        "expression": {
-                            "type": "identifier",
-                            "name": "input",
-                        },
-                    }
-                ],
+                "type": "return",
+                "expression": {
+                    "type": "identifier",
+                    "name": "input",
+                },
             }:
                 data = self.__variables["input"]
                 match data:
