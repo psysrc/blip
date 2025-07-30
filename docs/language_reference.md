@@ -92,43 +92,43 @@ Alternative decompositions can be provided. If a decomposition fails, subsequent
 user_data -> "user: " name | "email: " name "@" *
 ```
 
-## Input and Output
+## Input and Output Directives
 
-Blip programs can support zero or more input strings, and zero or more output strings.
+By default, Blip programs are permissive and allow any number of input strings and any number of output strings.
+You can use input and output directives to be more restrictive depending on what your program does.
 
-By default, all Blip programs are permissive and allow any number of inputs and outputs.
-This means even if your program only ever uses the first input string, there's nothing stopping the caller
-from providing you with a bunch more. There is also nothing stopping the caller from providing you with no strings
-at all! (Though this would almost certainly result in an error.)
-This also means by default, any return statements in a Blip program are free to return whatever they want.
-They can return an empty list, a single string, or a thousand strings.
-
-For simple Blip programs, this permissiveness is probably okay. However, for more complicated programs, it is
-recommended to use input/output declarations.
-
-An input declaration uses the `!in` keyword. This declares how many inputs the program supports.
-An output declaration uses the `!out` keyword. This declares how many outputs the program may provide.
+Input directives use the `!in` keyword. This declares how many inputs the program supports.
+Output directives use the `!out` keyword. This declares how many outputs the program will provide.
 
 ```plaintext
 !in 1   // Exactly one string as input
 !out 2  // Exactly two strings as output
 ```
 
-These declarations are independent - you can provide an input declaration without an output declaration and vice versa.
+It is recommended to always provide explicit input and output directives for your program.
+By doing so it helps catch problems earlier than would otherwise be possible. This is especially true if you are using Blip
+programs in a larger software ecosystem (this applies to both interpreted Blip programs as well as transpiled programs).
 
-Input/output declarations also support value ranges.
+For example, if your program expects three strings as input, but at runtime is only invoked with two,
+it might take your program a long time before it tries to access the third string before it throws a strange error.
+In this situation if you had provided an input directive, the problem would have been caught before the program even started running.
+Likewise, if your program always
+
+Only one input directive can be provided per program, and likewise with the output directive.
+Input and output directives are independent from one another; you can provide an input directive without an output directive and vice versa.
+
+Input/output directives support value ranges if your program supports a variable number of inputs/outputs.
 
 ```plaintext
-!in 1..3   // Accepts 1, 2, or 3
-!in 1..    // Accepts 1 or more
-
-!out ..2   // Outputs up to 2
+!in 1..3    // Accepts 1, 2, or 3 inputs
+!in 1..     // Accepts 1 or more inputs
+!out ..2    // Provides up to 2 outputs
+!out ..     // Provides any number of outputs (same as having no output directive)
 ```
 
-With the input declaration `!in`, you have some optional flexibility.
-By default, input strings are provided via the built-in variable `input`. This is a list containing all input strings.
-However, if you know exactly how many strings your program takes, you can provide named variables to the input
-declaration to automatically populate them.
+The input directive has some additional flexibility if the number of input strings is fixed.
+Input strings are always accessible using the built-in variable `input`.
+However, with a fixed number of inputs you can also directly populate variables from the input strings using the following syntax:
 
 ```plaintext
 !in username email  // Exactly 2 strings as input: First string becomes 'username', second string becomes 'email'
