@@ -1,6 +1,15 @@
 from bliplib.parser import Parser
 
 
+def test_nothing_program():
+    parser = Parser("")
+
+    assert parser.parse() == {
+        "type": "program",
+        "statements": [],
+    }
+
+
 def test_hello_world_program():
     parser = Parser('ret "Hello, World!"')
 
@@ -13,7 +22,7 @@ def test_hello_world_program():
                     "type": "literal",
                     "value": "Hello, World!",
                 },
-            }
+            },
         ],
     }
 
@@ -30,17 +39,8 @@ def test_hello_world_program_single_quotes():
                     "type": "literal",
                     "value": "Hello, World!",
                 },
-            }
+            },
         ],
-    }
-
-
-def test_identity_program():
-    parser = Parser("")
-
-    assert parser.parse() == {
-        "type": "program",
-        "statements": [],
     }
 
 
@@ -60,7 +60,7 @@ def test_variable_with_literal():
                     "type": "literal",
                     "value": "John",
                 },
-            }
+            },
         ],
     }
 
@@ -154,7 +154,7 @@ def test_string_concatenation():
                         },
                     ],
                 },
-            }
+            },
         ],
     }
 
@@ -188,6 +188,23 @@ def test_string_decomposition():
                         },
                     ],
                 },
-            }
+            },
+        ],
+    }
+
+
+def test_identity_program():
+    parser = Parser("ret input")
+
+    assert parser.parse() == {
+        "type": "program",
+        "statements": [
+            {
+                "type": "return",
+                "expression": {
+                    "type": "identifier",
+                    "name": "input",
+                },
+            },
         ],
     }
