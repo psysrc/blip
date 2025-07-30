@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import sys
 from bliplib.interpreter import Interpreter, InterpreterError
-from bliplib.parser import Parser
+from bliplib.parser import Parser, ParserError
 
 
 def main():
@@ -28,7 +28,16 @@ def main():
     if not any([args.ir, args.transpile, args.interpret]):
         args.interpret = True
 
-    blip_ir = Parser(file_path.read_text()).parse()
+    try:
+        blip_ir = Parser(file_path.read_text()).parse()
+
+    except ParserError as err:
+        print(f"Error encountered while parsing program: {err}")
+        sys.exit(1)
+
+    except Exception as err:
+        print(f"Unknown error encountered while parsing program: {err}")
+        sys.exit(2)
 
     if args.interpret:
         try:
