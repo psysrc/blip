@@ -1,3 +1,3 @@
-from .blip_interpreter import Interpreter
+from .blip_interpreter import Interpreter, InterpreterError
 
-__all__ = ["Interpreter"]
+__all__ = ["Interpreter", "InterpreterError"]

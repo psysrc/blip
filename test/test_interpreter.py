@@ -1,4 +1,5 @@
-from bliplib.interpreter import Interpreter
+import pytest
+from bliplib.interpreter import Interpreter, InterpreterError
 
 
 def test_interpreter_hello_world():
@@ -20,3 +21,10 @@ def test_interpreter_hello_world():
 
     assert len(output_strings) == 1
     assert output_strings[0] == "Hello, World!"
+
+
+def test_unexpected_code_causes_interpreter_error():
+    code = {"type": "huh?"}
+
+    with pytest.raises(InterpreterError):
+        Interpreter(code).run([])
