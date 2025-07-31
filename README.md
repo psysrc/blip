@@ -9,7 +9,9 @@ It can be directly interpreted or transpiled into various other languages.
 
 ## Documentation
 
-An index of Blip documentation can be found [in the `docs/` folder](docs/README.md).
+All Blip documentation can be found [in the `docs/` folder](docs/README.md).
+
+This includes a [to-do list](docs/todo.md) which shows a summary of what has been implemented in Blip so far, and what still needs doing.
 
 Example Blip code can be found in the `examples/` directory.
 We have unit tests to verify that all example code in this folder parses correctly and is therefore syntactically valid.
