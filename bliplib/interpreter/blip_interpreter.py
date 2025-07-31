@@ -9,16 +9,16 @@ class InterpreterError(RuntimeError):
     pass
 
 
-type BlipType = str | list[str] | int
+type BlipType = str | list[str]
 
 
 class Interpreter:
     def __init__(self, blip_ir: dict) -> None:
         self.__code = blip_ir
-        self.__variables: dict[str, str | list[str]]
+        self.__variables: dict[str, BlipType]
 
     def run(self, input_strings: list[str]) -> list[str]:
-        self.__variables: dict[str, str | list[str]] = {}
+        self.__variables = {}
 
         return self.__interpret_program(input_strings)
 
@@ -46,8 +46,21 @@ class Interpreter:
             case {"type": "return"}:
                 return self.__interpret_return(statement)
 
+            case {"type": "assignment"}:
+                return self.__interpret_assignment(statement)
+
             case _:
                 raise InterpreterError(f"Unexpected statement '{statement}'")
+
+    def __interpret_assignment(self, code: dict) -> None:
+        self.__ensure_code_type(code, "assignment")
+
+        variable_name: str = code["identifier"]["name"]
+        expression = code["expression"]
+
+        value: BlipType = self.__interpret_expression(expression)
+
+        self.__variables[variable_name] = value
 
     def __interpret_return(self, code: dict) -> list[str]:
         self.__ensure_code_type(code, "return")
@@ -69,7 +82,7 @@ class Interpreter:
         value = code["value"]
 
         match value:
-            case {"type": "literal"}:
+            case {"type": "string_literal"}:
                 return [self.__interpret_literal(value)]
 
             case {"type": "identifier"}:
@@ -87,7 +100,7 @@ class Interpreter:
                 raise InterpreterError(f"Unexpected expression in return statement '{value}'")
 
     def __interpret_literal(self, code: dict) -> str:
-        self.__ensure_code_type(code, "literal")
+        self.__ensure_code_type(code, "string_literal")
 
         value = code["value"]
 
