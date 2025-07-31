@@ -2,26 +2,31 @@
 
 There are lots of things that need to be done to make Blip a useful piece of software.
 
-In no particular order, here are the things currently on the roadmap:
+# Design
 
-- Basic language syntax/behaviour defined
-- Basic parser to convert to BlipIR
-- Basic interpreter written in Python to execute Blip programs
-- Basic transpiler to convert Blip to native Python code
-- Basic transpiler to convert Blip to native C code
-- Basic transpiler to convert Blip to native C++ code
-- Improved tokenizer/parser/interpreter/transpiler error reporting
+Before a feature can be implemented, it has to be properly designed.
+In no particular order, here are the ideas that still need to be fleshed out.
 
-## Implementation Table
+- Functions
+- Static analysis and semantic checks after parsing
+- Optimisations
+- Improved error messages
 
-Once a particular design aspect is finalised, it's time to implement it in the `blip` tool.
-This table shows each feature and which parts of the `blip` tool support it.
+## Implementation
+
+Once a feature has been fully defined, it needs to be implemented.
 
 :white_check_mark: means it is implemented.
 :x: means it's still to do.
 
-|Feature|Parser|Interpreter|Transpile (Python)|Transpile (C)|Transpile (C++)|
-|-------|------|-----------|------------------|-------------|---------------|
+|Feature|Parser|Interpreter|Transpiler (Python)|Transpiler (C)|Transpiler (C++)|
+|-------|:----:|:---------:|:-----------------:|:------------:|:--------------:|
+|Return statement|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:|
+|Concatenation|:white_check_mark:|:x:|:x:|:x:|:x:|
+|Decomposition|:white_check_mark:|:x:|:x:|:x:|:x:|
+|Variables|:white_check_mark:|:x:|:x:|:x:|:x:|
+|String type|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:|
+|Integer type|:x:|:x:|:x:|:x:|:x:|
+|List type|:x:|:x:|:x:|:x:|:x:|
 |Input directives|:x:|:x:|:x:|:x:|:x:|
 |Output directives|:x:|:x:|:x:|:x:|:x:|
-|Return statement|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:|
