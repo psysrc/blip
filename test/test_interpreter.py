@@ -9,8 +9,11 @@ def test_interpreter_hello_world():
             {
                 "type": "return",
                 "expression": {
-                    "type": "literal",
-                    "value": "Hello, World!",
+                    "type": "expression",
+                    "value": {
+                        "type": "literal",
+                        "value": "Hello, World!",
+                    },
                 },
             }
         ],
@@ -38,10 +41,13 @@ def test_identity_program():
                 {
                     "type": "return",
                     "expression": {
-                        "type": "identifier",
-                        "name": "input",
+                        "type": "expression",
+                        "value": {
+                            "type": "identifier",
+                            "name": "input",
+                        },
                     },
-                },
+                }
             ],
         }
     )

@@ -19,8 +19,11 @@ def test_hello_world_program():
             {
                 "type": "return",
                 "expression": {
-                    "type": "string_literal",
-                    "value": "Hello, World!",
+                    "type": "expression",
+                    "value": {
+                        "type": "string_literal",
+                        "value": "Hello, World!",
+                    },
                 },
             },
         ],
@@ -36,8 +39,11 @@ def test_hello_world_program_single_quotes():
             {
                 "type": "return",
                 "expression": {
-                    "type": "string_literal",
-                    "value": "Hello, World!",
+                    "type": "expression",
+                    "value": {
+                        "type": "string_literal",
+                        "value": "Hello, World!",
+                    },
                 },
             },
         ],
@@ -52,13 +58,16 @@ def test_variable_with_string_literal():
         "statements": [
             {
                 "type": "assignment",
-                "variable": {
+                "identifier": {
                     "type": "identifier",
                     "name": "myname",
                 },
-                "value": {
-                    "type": "string_literal",
-                    "value": "John",
+                "expression": {
+                    "type": "expression",
+                    "value": {
+                        "type": "string_literal",
+                        "value": "John",
+                    },
                 },
             },
         ],
@@ -73,20 +82,26 @@ def test_return_variable():
         "statements": [
             {
                 "type": "assignment",
-                "variable": {
+                "identifier": {
                     "type": "identifier",
                     "name": "myname",
                 },
-                "value": {
-                    "type": "string_literal",
-                    "value": "John",
+                "expression": {
+                    "type": "expression",
+                    "value": {
+                        "type": "string_literal",
+                        "value": "John",
+                    },
                 },
             },
             {
                 "type": "return",
                 "expression": {
-                    "type": "identifier",
-                    "name": "myname",
+                    "type": "expression",
+                    "value": {
+                        "type": "identifier",
+                        "name": "myname",
+                    },
                 },
             },
         ],
@@ -101,24 +116,30 @@ def test_variable_with_variable():
         "statements": [
             {
                 "type": "assignment",
-                "variable": {
+                "identifier": {
                     "type": "identifier",
                     "name": "myname",
                 },
-                "value": {
-                    "type": "string_literal",
-                    "value": "John",
+                "expression": {
+                    "type": "expression",
+                    "value": {
+                        "type": "string_literal",
+                        "value": "John",
+                    },
                 },
             },
             {
                 "type": "assignment",
-                "variable": {
+                "identifier": {
                     "type": "identifier",
                     "name": "username",
                 },
-                "value": {
-                    "type": "identifier",
-                    "name": "myname",
+                "expression": {
+                    "type": "expression",
+                    "value": {
+                        "type": "identifier",
+                        "name": "myname",
+                    },
                 },
             },
         ],
@@ -133,26 +154,29 @@ def test_string_concatenation():
         "statements": [
             {
                 "type": "assignment",
-                "variable": {
+                "identifier": {
                     "type": "identifier",
                     "name": "text",
                 },
-                "value": {
+                "expression": {
                     "type": "expression",
-                    "operands": [
-                        {
-                            "type": "string_literal",
-                            "value": "foo",
-                        },
-                        {
-                            "type": "string_literal",
-                            "value": "bar",
-                        },
-                        {
-                            "type": "string_literal",
-                            "value": "baz",
-                        },
-                    ],
+                    "value": {
+                        "type": "concatenation",
+                        "operands": [
+                            {
+                                "type": "string_literal",
+                                "value": "foo",
+                            },
+                            {
+                                "type": "string_literal",
+                                "value": "bar",
+                            },
+                            {
+                                "type": "string_literal",
+                                "value": "baz",
+                            },
+                        ],
+                    },
                 },
             },
         ],
@@ -167,27 +191,24 @@ def test_string_decomposition():
         "statements": [
             {
                 "type": "decomposition",
-                "variable": {
+                "identifier": {
                     "type": "identifier",
                     "name": "input",
                 },
-                "pattern": {
-                    "type": "expression",
-                    "operands": [
-                        {
-                            "type": "string_literal",
-                            "value": "[",
-                        },
-                        {
-                            "type": "identifier",
-                            "name": "text",
-                        },
-                        {
-                            "type": "string_literal",
-                            "value": "]",
-                        },
-                    ],
-                },
+                "pattern": [
+                    {
+                        "type": "string_literal",
+                        "value": "[",
+                    },
+                    {
+                        "type": "identifier",
+                        "name": "text",
+                    },
+                    {
+                        "type": "string_literal",
+                        "value": "]",
+                    },
+                ],
             },
         ],
     }
@@ -202,8 +223,11 @@ def test_identity_program():
             {
                 "type": "return",
                 "expression": {
-                    "type": "identifier",
-                    "name": "input",
+                    "type": "expression",
+                    "value": {
+                        "type": "identifier",
+                        "name": "input",
+                    },
                 },
             },
         ],

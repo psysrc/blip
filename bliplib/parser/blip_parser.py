@@ -91,14 +91,16 @@ class Parser:
     def __parse_decomposition_statement(self, identifier: dict) -> dict:
         self.__consume_token("->")
 
-        expression = self.__parse_expression()
+        operands = []
+        while self.__current_token.type in {"IDENTIFIER", "STRING_LITERAL"}:
+            operands.append(self.__parse_primary_expression())
 
         self.__consume_token("EOL", "EOF")
 
         return {
             "type": "decomposition",
-            "variable": identifier,
-            "pattern": expression,
+            "identifier": identifier,
+            "pattern": operands,
         }
 
     def __parse_identifier(self) -> dict:
@@ -116,11 +118,16 @@ class Parser:
             primary_expressions.append(self.__parse_primary_expression())
 
         if len(primary_expressions) == 1:
-            return primary_expressions[0]
+            value = primary_expressions[0]
+        else:
+            value = {
+                "type": "concatenation",
+                "operands": primary_expressions,
+            }
 
         return {
             "type": "expression",
-            "operands": primary_expressions,
+            "value": value,
         }
 
     def __parse_primary_expression(self) -> dict:
@@ -142,8 +149,8 @@ class Parser:
 
         return {
             "type": "assignment",
-            "variable": identifier,
-            "value": expression,
+            "identifier": identifier,
+            "expression": expression,
         }
 
     def __parse_return_statement(self) -> dict:

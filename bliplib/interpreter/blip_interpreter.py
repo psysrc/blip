@@ -52,13 +52,28 @@ class Interpreter:
     def __interpret_return(self, code: dict) -> list[str]:
         self.__ensure_code_type(code, "return")
 
-        expression = code["expression"]
-        match expression:
+        expression: dict = code["expression"]
+        value: BlipType = self.__interpret_expression(expression)
+
+        match value:
+            case string if isinstance(string, str):
+                return [string]
+            case [*items] if all(isinstance(item, str) for item in items):
+                return items
+            case _:
+                raise InterpreterError(f"Unexpected expression type in return statement: '{type(value)}'")
+
+    def __interpret_expression(self, code: dict) -> BlipType:
+        self.__ensure_code_type(code, "expression")
+
+        value = code["value"]
+
+        match value:
             case {"type": "literal"}:
-                return [self.__interpret_literal(expression)]
+                return [self.__interpret_literal(value)]
 
             case {"type": "identifier"}:
-                data = self.__interpret_identifier(expression)
+                data = self.__interpret_identifier(value)
 
                 match data:
                     case string if isinstance(string, str):
@@ -69,7 +84,7 @@ class Interpreter:
                         raise InterpreterError(f"Unexpected expression type in return statement: '{type(data)}'")
 
             case _:
-                raise InterpreterError(f"Unexpected expression in return statement '{expression}'")
+                raise InterpreterError(f"Unexpected expression in return statement '{value}'")
 
     def __interpret_literal(self, code: dict) -> str:
         self.__ensure_code_type(code, "literal")
