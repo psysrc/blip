@@ -112,7 +112,7 @@ class Parser:
     def __parse_expression(self) -> dict:
         primary_expressions = []
 
-        while self.__current_token.type in {"IDENTIFIER", "LITERAL"}:
+        while self.__current_token.type in {"IDENTIFIER", "STRING_LITERAL"}:
             primary_expressions.append(self.__parse_primary_expression())
 
         if len(primary_expressions) == 1:
@@ -127,8 +127,8 @@ class Parser:
         match self.__current_token.type:
             case "IDENTIFIER":
                 return self.__parse_identifier()
-            case "LITERAL":
-                return self.__parse_literal()
+            case "STRING_LITERAL":
+                return self.__parse_string_literal()
             case _:
                 err = f"Unexpected token '{self.__current_token}' while parsing primary expression"
                 raise ParserError(err)
@@ -158,10 +158,10 @@ class Parser:
             "expression": expression,
         }
 
-    def __parse_literal(self) -> dict:
-        literal_text = self.__consume_token("LITERAL")
+    def __parse_string_literal(self) -> dict:
+        literal_text = self.__consume_token("STRING_LITERAL")
 
         return {
-            "type": "literal",
+            "type": "string_literal",
             "value": literal_text[1:-1],
         }

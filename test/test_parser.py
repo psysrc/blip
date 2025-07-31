@@ -19,7 +19,7 @@ def test_hello_world_program():
             {
                 "type": "return",
                 "expression": {
-                    "type": "literal",
+                    "type": "string_literal",
                     "value": "Hello, World!",
                 },
             },
@@ -36,7 +36,7 @@ def test_hello_world_program_single_quotes():
             {
                 "type": "return",
                 "expression": {
-                    "type": "literal",
+                    "type": "string_literal",
                     "value": "Hello, World!",
                 },
             },
@@ -44,7 +44,7 @@ def test_hello_world_program_single_quotes():
     }
 
 
-def test_variable_with_literal():
+def test_variable_with_string_literal():
     parser = Parser("myname = 'John'")
 
     assert parser.parse() == {
@@ -57,7 +57,7 @@ def test_variable_with_literal():
                     "name": "myname",
                 },
                 "value": {
-                    "type": "literal",
+                    "type": "string_literal",
                     "value": "John",
                 },
             },
@@ -78,7 +78,7 @@ def test_return_variable():
                     "name": "myname",
                 },
                 "value": {
-                    "type": "literal",
+                    "type": "string_literal",
                     "value": "John",
                 },
             },
@@ -106,7 +106,7 @@ def test_variable_with_variable():
                     "name": "myname",
                 },
                 "value": {
-                    "type": "literal",
+                    "type": "string_literal",
                     "value": "John",
                 },
             },
@@ -141,15 +141,15 @@ def test_string_concatenation():
                     "type": "expression",
                     "operands": [
                         {
-                            "type": "literal",
+                            "type": "string_literal",
                             "value": "foo",
                         },
                         {
-                            "type": "literal",
+                            "type": "string_literal",
                             "value": "bar",
                         },
                         {
-                            "type": "literal",
+                            "type": "string_literal",
                             "value": "baz",
                         },
                     ],
@@ -175,7 +175,7 @@ def test_string_decomposition():
                     "type": "expression",
                     "operands": [
                         {
-                            "type": "literal",
+                            "type": "string_literal",
                             "value": "[",
                         },
                         {
@@ -183,7 +183,7 @@ def test_string_decomposition():
                             "name": "text",
                         },
                         {
-                            "type": "literal",
+                            "type": "string_literal",
                             "value": "]",
                         },
                     ],
