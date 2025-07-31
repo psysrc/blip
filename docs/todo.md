@@ -26,7 +26,11 @@ Once a feature has been fully defined, it needs to be implemented.
 |Decomposition|:white_check_mark:|:x:|:x:|:x:|:x:|
 |Variables|:white_check_mark:|:x:|:x:|:x:|:x:|
 |String type|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:|
+|Boolean type|:x:|:x:|:x:|:x:|:x:|
 |Integer type|:x:|:x:|:x:|:x:|:x:|
 |List type|:x:|:x:|:x:|:x:|:x:|
 |Input directives|:x:|:x:|:x:|:x:|:x:|
 |Output directives|:x:|:x:|:x:|:x:|:x:|
+|If-conditionals|:x:|:x:|:x:|:x:|:x:|
+|For-loops|:x:|:x:|:x:|:x:|:x:|
+|While-loops|:x:|:x:|:x:|:x:|:x:|
