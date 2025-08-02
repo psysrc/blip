@@ -87,17 +87,10 @@ class Interpreter:
 
             case {"type": "identifier"}:
                 data = self.__interpret_identifier(value)
-
-                match data:
-                    case string if isinstance(string, str):
-                        return [string]
-                    case [*items] if all(isinstance(item, str) for item in items):
-                        return data
-                    case _:
-                        raise InterpreterError(f"Unexpected expression type in return statement: '{type(data)}'")
+                return data
 
             case _:
-                raise InterpreterError(f"Unexpected expression in return statement '{value}'")
+                raise InterpreterError(f"Unexpected codetype in expression: {value}")
 
     def __interpret_literal(self, code: dict) -> str:
         self.__ensure_code_type(code, "string_literal")
