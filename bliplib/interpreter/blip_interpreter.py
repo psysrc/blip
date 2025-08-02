@@ -81,16 +81,36 @@ class Interpreter:
 
         value = code["value"]
 
-        match value:
+        return self.__interpret_expression_value(value)
+
+    def __interpret_expression_value(self, code: dict) -> BlipType:
+        match code:
             case {"type": "string_literal"}:
-                return [self.__interpret_literal(value)]
+                return self.__interpret_literal(code)
 
             case {"type": "identifier"}:
-                data = self.__interpret_identifier(value)
-                return data
+                return self.__interpret_identifier(code)
+
+            case {"type": "concatenation"}:
+                return self.__interpret_concatenation(code)
 
             case _:
-                raise InterpreterError(f"Unexpected codetype in expression: {value}")
+                raise InterpreterError(f"Unexpected codetype in expression value: {code}")
+
+    def __interpret_concatenation(self, code: dict) -> str:
+        self.__ensure_code_type(code, "concatenation")
+
+        string = ""
+
+        for operand_code in code["operands"]:
+            operand_value = self.__interpret_expression_value(operand_code)
+
+            if isinstance(operand_value, str):
+                string += operand_value
+            else:
+                raise InterpreterError(f"Unexpected type in string concatenation: {type(operand_value)}")
+
+        return string
 
     def __interpret_literal(self, code: dict) -> str:
         self.__ensure_code_type(code, "string_literal")

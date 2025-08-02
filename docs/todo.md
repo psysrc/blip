@@ -23,7 +23,7 @@ Once a feature has been fully defined, it needs to be implemented.
 |Feature|Parser|Interpreter|Transpiler (Python)|Transpiler (C)|Transpiler (C++)|
 |-------|:----:|:---------:|:-----------------:|:------------:|:--------------:|
 |Return statement|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:|
-|Concatenation|:white_check_mark:|:x:|:x:|:x:|:x:|
+|Concatenation|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:|
 |Decomposition|:white_check_mark:|:x:|:x:|:x:|:x:|
 |Variables|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:|
 |String type|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:|

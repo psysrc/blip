@@ -90,3 +90,38 @@ def test_variables():
     )
 
     assert interpreter.run([]) == ["John"]
+
+
+def test_string_concatenation():
+    interpreter = Interpreter(
+        {
+            "type": "program",
+            "statements": [
+                {
+                    "type": "return",
+                    "expression": {
+                        "type": "expression",
+                        "value": {
+                            "type": "concatenation",
+                            "operands": [
+                                {
+                                    "type": "string_literal",
+                                    "value": "foo",
+                                },
+                                {
+                                    "type": "string_literal",
+                                    "value": "bar",
+                                },
+                                {
+                                    "type": "string_literal",
+                                    "value": "baz",
+                                },
+                            ],
+                        },
+                    },
+                },
+            ],
+        }
+    )
+
+    assert interpreter.run([]) == ["foobarbaz"]
