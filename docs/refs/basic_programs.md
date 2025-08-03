@@ -1,8 +1,4 @@
-# Reference Programs
-
-This document contains example Blip programs, along with their Blip Intermediate Representation (Blip IR), and example program executions with string inputs and outputs.
-
-This document is also the core Blip test suite! The information on this page is parsed automatically and executed in the unit tests, meaning it remains up to date as the code changes.
+# Basic Programs
 
 ## Hello World
 
