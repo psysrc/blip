@@ -59,7 +59,8 @@ class Interpreter:
         self.__ensure_code_type(code, "decomposition")
 
         identifier_name = code["identifier"]["name"]
-        string = self.__variables[identifier_name]
+        original_string = self.__variables[identifier_name]
+        string = original_string
 
         if not isinstance(string, str):
             raise InterpreterError(f"Decomposition failure: Only strings can be decomposed (variable is of type '{type(string)}')")
@@ -76,7 +77,7 @@ class Interpreter:
                     idx = string.find(op_value)
                     if idx == -1:
                         raise InterpreterError(
-                            f"Decomposition failed: Operand '{op_value}' not found in '{identifier_name}' (which has value '{string}')"
+                            f"Decomposition failed: Operand '{op_value}' not found in '{identifier_name}' (which has value '{original_string}')"
                         )
 
                     string = string[idx + len(op_value) :]  # Skip ahead in the string to get past the first operand
@@ -88,14 +89,14 @@ class Interpreter:
 
                         if next_operand["type"] != "string_literal":
                             raise InterpreterError(
-                                "Decomposition semantic error: Variable was followed by something other than a string literal"
+                                f"Decomposition semantic error: Variable was followed by something other than a string literal ({next_operand['type']})"
                             )
 
                         next_op_value = next_operand["value"]
                         idx = string.find(next_op_value)
                         if idx == -1:
                             raise InterpreterError(
-                                f"Decomposition failed: Operand '{next_op_value}' not found in '{identifier_name}' (which has value '{string}')"
+                                f"Decomposition failed: Operand '{next_op_value}' not found in '{identifier_name}' (which has value '{original_string}')"
                             )
 
                         self.__variables[current_operand["name"]] = string[:idx]
@@ -104,6 +105,28 @@ class Interpreter:
 
                     else:
                         self.__variables[current_operand["name"]] = string
+                        current_operand_idx += 1
+
+                case {"type": "decomposition_wildcard"}:
+                    if current_operand_idx + 1 < len(pattern):
+                        next_operand = pattern[current_operand_idx + 1]
+
+                        if next_operand["type"] != "string_literal":
+                            raise InterpreterError(
+                                f"Decomposition semantic error: Wildcard was followed by something other than a string literal ({next_operand['type']})"
+                            )
+
+                        next_op_value = next_operand["value"]
+                        idx = string.find(next_op_value)
+                        if idx == -1:
+                            raise InterpreterError(
+                                f"Decomposition failed: Operand '{next_op_value}' not found in '{identifier_name}' (which has value '{original_string}')"
+                            )
+
+                        string = string[idx + len(next_op_value) :]
+                        current_operand_idx += 2
+
+                    else:
                         current_operand_idx += 1
 
                 case _:

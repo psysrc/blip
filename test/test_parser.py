@@ -214,6 +214,36 @@ def test_string_decomposition_square_brackets():
     }
 
 
+def test_string_decomposition_email():
+    parser = Parser("email -> name '@' *")
+
+    assert parser.parse() == {
+        "type": "program",
+        "statements": [
+            {
+                "type": "decomposition",
+                "identifier": {
+                    "type": "identifier",
+                    "name": "email",
+                },
+                "pattern": [
+                    {
+                        "type": "identifier",
+                        "name": "name",
+                    },
+                    {
+                        "type": "string_literal",
+                        "value": "@",
+                    },
+                    {
+                        "type": "decomposition_wildcard",
+                    },
+                ],
+            },
+        ],
+    }
+
+
 def test_identity_program():
     parser = Parser("ret input")
 

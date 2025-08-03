@@ -217,8 +217,7 @@ def test_decomposition_email():
                             "value": "@",
                         },
                         {
-                            "type": "identifier",
-                            "name": "dont_care",
+                            "type": "decomposition_wildcard",
                         },
                     ],
                 },

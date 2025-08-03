@@ -92,8 +92,16 @@ class Parser:
         self.__consume_token("->")
 
         operands = []
-        while self.__current_token.type in {"IDENTIFIER", "STRING_LITERAL"}:
-            operands.append(self.__parse_primary_expression())
+
+        while self.__current_token.type not in {"EOL", "EOF"}:
+            match self.__current_token.type:
+                case "IDENTIFIER" | "STRING_LITERAL":
+                    operands.append(self.__parse_primary_expression())
+                case "*":
+                    operands.append(self.__parse_decomposition_wildcard())
+
+                case _:
+                    raise ParserError(f"Unexpected token '{self.__current_token.type}' while parsing decomposition statement")
 
         self.__consume_token("EOL", "EOF")
 
@@ -102,6 +110,10 @@ class Parser:
             "identifier": identifier,
             "pattern": operands,
         }
+
+    def __parse_decomposition_wildcard(self) -> dict:
+        self.__consume_token("*")
+        return {"type": "decomposition_wildcard"}
 
     def __parse_identifier(self) -> dict:
         identifier = self.__consume_token("IDENTIFIER")
