@@ -48,30 +48,32 @@ This is the standard way to combine multiple strings in Blip.
 ## String Decomposition
 
 String decomposition is the opposite of string concatenation. It's a core language feature that allows you to decompose
-a string to assert that it follows an expected pattern, and to extract substrings from it.
-Decomposition uses the `->` operator.
+a string into component parts whilst also asserting that the string follows an expected pattern.
+
+Decomposition is achieved using the `->` operator.
 
 ```plaintext
 // This example extracts the first part of an email (everything before the '@' character).
 
 // Blip will decompose the string into the right-hand side expression.
-// The literal "@" means Blip will look for this substring and match it.
+// The literal "@" must match exactly.
 // The wildcard "*" matches anything.
-// The variable "name" also matches anything, while also capturing the text in the variable.
+// The variable "name" also matches anything, and also captures the text in the variable to be used later.
 
 email = "bob.john@gmail.com"
-email -> name "@" *  // The 'name' variable now contains "bob.john"
+email -> name "@" *  // name == "bob.john"
 ```
 
 ```
 // This example extracts the content from an XML node.
 
 xml = "<foo>Bar</foo>"
-xml -> "<foo>" content "</foo>"  // The 'content' variable now contains "Bar"
+xml -> "<foo>" content "</foo>"  // content == "Bar"
 ```
 
-If decomposition fails because the provided string doesn't fit the pattern, an error is automatically raised.
+If decomposition fails because the string doesn't fit the pattern, an error is automatically raised.
 As a result, decomposition can be used as a convenient pattern matching syntax.
+
 
 ```
 // This example validates that the string is surrounded by square brackets, without extracting any text into a variable:
@@ -79,7 +81,7 @@ As a result, decomposition can be used as a convenient pattern matching syntax.
 data = "[good]"
 data = "bad"
 
-data -> "[" * "]"  // No-op if decomposition succeeds; causes an error on failure
+data -> "[" * "]"  // Throws an error if 'data' doesn't fit the pattern
 ```
 
 Alternative decompositions can be provided. If a decomposition fails, subsequent alternatives will be tried.
