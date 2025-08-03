@@ -1,6 +1,6 @@
 import pytest
 import warnings
-from bliplib.parser import Parser
+from bliplib.parser import Parser, ParserError
 from bliplib.interpreter import Interpreter, InterpreterError
 from test.reference_parser import ReferenceParser
 from test.reference_program import ReferenceProgram
@@ -10,7 +10,11 @@ def __test_reference_program(ref: ReferenceProgram):
     """Given a `ReferenceProgram`, perform all necessary testing."""
 
     parser = Parser(ref.blip_code)
-    blip_ir = parser.parse()
+
+    try:
+        blip_ir = parser.parse()
+    except ParserError as err:
+        pytest.fail(f"Program reference '{ref.name}': Parser error: {err}")
 
     assert blip_ir == ref.blip_ir, f"Program reference '{ref.name}': Incorrect Blip IR"
 
