@@ -183,8 +183,8 @@ def test_string_concatenation():
     }
 
 
-def test_string_decomposition():
-    parser = Parser("input -> '[' text ']'")
+def test_string_decomposition_square_brackets():
+    parser = Parser("text -> '[' content ']'")
 
     assert parser.parse() == {
         "type": "program",
@@ -193,7 +193,7 @@ def test_string_decomposition():
                 "type": "decomposition",
                 "identifier": {
                     "type": "identifier",
-                    "name": "input",
+                    "name": "text",
                 },
                 "pattern": [
                     {
@@ -202,7 +202,7 @@ def test_string_decomposition():
                     },
                     {
                         "type": "identifier",
-                        "name": "text",
+                        "name": "content",
                     },
                     {
                         "type": "string_literal",
