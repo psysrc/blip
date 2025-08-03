@@ -49,8 +49,65 @@ class Interpreter:
             case {"type": "assignment"}:
                 return self.__interpret_assignment(statement)
 
+            case {"type": "decomposition"}:
+                return self.__interpret_decomposition(statement)
+
             case _:
                 raise InterpreterError(f"Unexpected statement '{statement}'")
+
+    def __interpret_decomposition(self, code: dict) -> None:
+        self.__ensure_code_type(code, "decomposition")
+
+        identifier_name = code["identifier"]["name"]
+        string = self.__variables[identifier_name]
+
+        if not isinstance(string, str):
+            raise InterpreterError(f"Decomposition failure: Only strings can be decomposed (variable is of type '{type(string)}')")
+
+        pattern: list[dict] = code["pattern"]
+        current_operand_idx = 0
+
+        while current_operand_idx < len(pattern):
+            current_operand = pattern[current_operand_idx]
+
+            match current_operand:
+                case {"type": "string_literal"}:
+                    op_value = current_operand["value"]
+                    idx = string.find(op_value)
+                    if idx == -1:
+                        raise InterpreterError(
+                            f"Decomposition failed: Operand '{op_value}' not found in '{identifier_name}' (which has value '{string}')"
+                        )
+
+                    string = string[idx + len(op_value) :]  # Skip ahead in the string to get past the first operand
+                    current_operand_idx += 1
+
+                case {"type": "identifier"}:
+                    if current_operand_idx + 1 < len(pattern):
+                        next_operand = pattern[current_operand_idx + 1]
+
+                        if next_operand["type"] != "string_literal":
+                            raise InterpreterError(
+                                "Decomposition semantic error: Variable was followed by something other than a string literal"
+                            )
+
+                        next_op_value = next_operand["value"]
+                        idx = string.find(next_op_value)
+                        if idx == -1:
+                            raise InterpreterError(
+                                f"Decomposition failed: Operand '{next_op_value}' not found in '{identifier_name}' (which has value '{string}')"
+                            )
+
+                        self.__variables[current_operand["name"]] = string[:idx]
+                        string = string[idx + len(next_op_value) :]
+                        current_operand_idx += 2
+
+                    else:
+                        self.__variables[current_operand["name"]] = string
+                        current_operand_idx += 1
+
+                case _:
+                    raise InterpreterError(f"Unexpected operand in decomposition: '{current_operand}'")
 
     def __interpret_assignment(self, code: dict) -> None:
         self.__ensure_code_type(code, "assignment")

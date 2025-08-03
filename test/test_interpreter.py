@@ -123,3 +123,117 @@ def test_string_concatenation():
     )
 
     assert interpreter.run([]) == ["foobarbaz"]
+
+
+def test_decomposition_square_brackets():
+    interpreter = Interpreter(
+        {
+            "type": "program",
+            "statements": [
+                {
+                    "type": "assignment",
+                    "identifier": {
+                        "type": "identifier",
+                        "name": "text",
+                    },
+                    "expression": {
+                        "type": "expression",
+                        "value": {
+                            "type": "string_literal",
+                            "value": "[fudge]",
+                        },
+                    },
+                },
+                {
+                    "type": "decomposition",
+                    "identifier": {
+                        "type": "identifier",
+                        "name": "text",
+                    },
+                    "pattern": [
+                        {
+                            "type": "string_literal",
+                            "value": "[",
+                        },
+                        {
+                            "type": "identifier",
+                            "name": "content",
+                        },
+                        {
+                            "type": "string_literal",
+                            "value": "]",
+                        },
+                    ],
+                },
+                {
+                    "type": "return",
+                    "expression": {
+                        "type": "expression",
+                        "value": {
+                            "type": "identifier",
+                            "name": "content",
+                        },
+                    },
+                },
+            ],
+        }
+    )
+
+    assert interpreter.run([]) == ["fudge"]
+
+
+def test_decomposition_email():
+    interpreter = Interpreter(
+        {
+            "type": "program",
+            "statements": [
+                {
+                    "type": "assignment",
+                    "identifier": {
+                        "type": "identifier",
+                        "name": "email",
+                    },
+                    "expression": {
+                        "type": "expression",
+                        "value": {
+                            "type": "string_literal",
+                            "value": "bob.john@gmail.com",
+                        },
+                    },
+                },
+                {
+                    "type": "decomposition",
+                    "identifier": {
+                        "type": "identifier",
+                        "name": "email",
+                    },
+                    "pattern": [
+                        {
+                            "type": "identifier",
+                            "name": "name",
+                        },
+                        {
+                            "type": "string_literal",
+                            "value": "@",
+                        },
+                        {
+                            "type": "identifier",
+                            "name": "dont_care",
+                        },
+                    ],
+                },
+                {
+                    "type": "return",
+                    "expression": {
+                        "type": "expression",
+                        "value": {
+                            "type": "identifier",
+                            "name": "name",
+                        },
+                    },
+                },
+            ],
+        }
+    )
+
+    assert interpreter.run([]) == ["bob.john"]
