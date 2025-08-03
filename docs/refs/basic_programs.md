@@ -42,6 +42,9 @@ ret "Hello, World!"
 
 ## Empty Program
 
+Empty programs are not valid because they halt without producing any output.
+Programs in Blip must either explicitly return valid output, or produce an error.
+
 #### Blip code
 
 ```blip
