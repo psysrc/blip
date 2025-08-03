@@ -1,3 +1,4 @@
+from typing import Optional
 import pytest
 import warnings
 from bliplib.parser import Parser, ParserError
@@ -6,7 +7,21 @@ from test.reference_parser import ReferenceParser
 from test.reference_program import ReferenceProgram
 
 
-def __test_reference_program(ref: ReferenceProgram):
+__reference_programs: Optional[list[ReferenceProgram]] = None
+
+
+def get_reference_programs() -> list[ReferenceProgram]:
+    if __reference_programs is not None:
+        return __reference_programs
+
+    with open("test/reference.md") as file:
+        markdown_text = file.read()
+
+    return ReferenceParser(markdown_text).get_reference_programs()
+
+
+@pytest.mark.parametrize("ref", get_reference_programs())
+def test_reference_program(ref: ReferenceProgram):
     """Given a `ReferenceProgram`, perform all necessary testing."""
 
     parser = Parser(ref.blip_code)
@@ -38,20 +53,16 @@ def __test_reference_program(ref: ReferenceProgram):
                 pytest.fail(f"Program reference '{ref.name}': Execution #{i + 1}: Did not throw error, output was {output}")
 
 
-def test_references():
-    with open("test/reference.md") as file:
-        markdown_text = file.read()
+def test_number_of_reference_programs():
+    """
+    Test that the correct number of reference programs were executed
+    This is a belts-and-braces test to make sure the test suite is functioning correctly
+    """
 
-    reference_programs = ReferenceParser(markdown_text).get_reference_programs()
-
-    # Test all of the reference programs
-    for prog in reference_programs:
-        __test_reference_program(prog)
-
-    # Test that the correct number of reference programs were executed
-    # This is belts-and-braces to make sure the test suite is functioning correctly
     expected_programs = 2
-    actual_programs = len(reference_programs)
+
+    actual_programs = len(get_reference_programs())
+
     if actual_programs != expected_programs:
         warnings.warn(
             f"Expected to run {expected_programs} reference program tests but actually ran {actual_programs}"
