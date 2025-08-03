@@ -1,8 +1,8 @@
 # Reference Programs
 
-This document contains example Blip programs, along with their Blip Intermediate Representation (Blip IR), and example runs with string inputs and outputs.
+This document contains example Blip programs, along with their Blip Intermediate Representation (Blip IR), and example program executions with string inputs and outputs.
 
-These references are automatically executed by the Blip test suite so they're always up to date!
+This document is also the core Blip test suite! The information on this page is parsed automatically and executed in the unit tests, meaning it remains up to date as the code changes.
 
 ## Hello World
 
@@ -43,3 +43,31 @@ ret "Hello, World!"
 |-----|------|
 |`[]`|`["Hello, World!"]`|
 |`["input isn't used"]`|`["Hello, World!"]`|
+
+## Empty Program
+
+#### Blip code
+
+```blip
+// Nothing
+```
+
+#### Blip IR
+
+<details>
+<summary><i>Expand...</i></summary>
+
+```json
+{
+    "type": "program",
+    "statements": []
+}
+```
+
+</details>
+
+#### Execution
+
+|Input|Output|
+|-----|------|
+|`[]`|`Error`|
