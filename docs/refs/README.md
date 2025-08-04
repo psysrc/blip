@@ -6,3 +6,5 @@ as you can expose yourself to lots of example programs and see exactly what the 
 
 The documents here are also the core Blip test suite!
 They are parsed automatically and executed in the unit tests, meaning they remain up to date as the code changes.
+
+If you're not sure where to start, check out [Basic Programs](basic_programs.md) first.

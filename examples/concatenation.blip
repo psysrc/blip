@@ -1,7 +1,0 @@
-# Strings next to one another are concatenated together
-value = "he" "llo"  # value == "hello"
-
-# It works for string literals and string variables, and a mix of both
-start = ">>"
-end = "<<"
-value2 = "(" start value end ")"    # value2 == "(>>hello<<)"

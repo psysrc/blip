@@ -11,20 +11,20 @@ It can be directly interpreted or transpiled into various other languages.
 
 All Blip documentation can be found [in the `docs/` folder](docs/README.md).
 
-This includes a [to-do list](docs/todo.md) which shows a summary of what has been implemented in Blip so far, and what still needs doing.
+If you're just getting started, the [Reference Programs](docs/refs/README.md) documentation is a good place to start. It contains example Blip programs plus each program's expected output when executed.
+The Reference Programs documentation also functions as the core Blip test suite - all examples are parsed and executed by the unit tests, so the documentation is always up-to-date and accurate!
 
-Example Blip code can be found in the `examples/` directory.
-We have unit tests to verify that all example code in this folder parses correctly and is therefore syntactically valid.
+Blip also has a [to-do list](docs/todo.md) which shows a summary of what has been implemented so far, and what still needs doing.
 
 ## Nomenclature & Etymology
 
 Blip is both the name of the language and the name of the CLI tool (similar to Python!).
-To avoid this potential confusion in this repo's documentation, "Blip" refers to the language, and `blip` refers to the CLI tool.
+To avoid this potential confusion, "Blip" refers to the language, and `blip` refers to the CLI tool.
 
 Blip was originally inspired by BNF (Backus-Naur Form).
 This is where Blip originally derived its name: **B**NF **Li**te **P**arser.
 However, because Blip is functionally and syntactically different from BNF, this acronym was abandoned.
-Blip is now a standalone name and is not an acronym.
+Blip is now a standalone name.
 
 ## Special Thanks
 

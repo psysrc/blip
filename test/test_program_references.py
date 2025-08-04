@@ -3,10 +3,10 @@ This unit test runs through all of the example programs in the `docs/refs/` dire
 This involves taking the Blip code, parsing it, then interpreting it with all of the inputs and asserting the correct outputs.
 """
 
+from pathlib import Path
 from typing import Optional
 import pytest
 import warnings
-import os
 from bliplib.parser import Parser, ParserError
 from bliplib.interpreter import Interpreter, InterpreterError
 from test.reference_parser import ReferenceParser
@@ -19,21 +19,14 @@ __reference_programs: Optional[list[ReferenceProgram]] = None
 def get_reference_programs() -> list[ReferenceProgram]:
     global __reference_programs
     if __reference_programs is None:
-        ref_program_dir = "docs/refs"
-        ref_program_files = [
-            f"{ref_program_dir}/{f}" for f in os.listdir(ref_program_dir) if os.path.isfile(os.path.join(ref_program_dir, f))
-        ]
-
-        print(f"Found files: {ref_program_files}")
-
         __reference_programs = []
 
-        for ref_prog_file in ref_program_files:
-            if ref_prog_file == "docs/refs/README.md":
+        ref_program_dir = Path("docs/refs")
+        for ref_prog_file in ref_program_dir.glob("*.md"):
+            if ref_prog_file.name == "README.md":
                 continue
 
-            with open(ref_prog_file) as file:
-                markdown_text = file.read()
+            markdown_text = ref_prog_file.read_text()
 
             found_programs = ReferenceParser(markdown_text).get_reference_programs()
 

@@ -5,6 +5,12 @@
 #### Blip code
 
 ```blip
+// Comments start with a double-slash
+# Comments can also start with a hash
+
+// This Blip program simply returns the hard-coded string "Hello, World!"
+// The `ret` keyword is used to return the expression from the program.
+
 ret "Hello, World!"
 ```
 
@@ -40,13 +46,12 @@ ret "Hello, World!"
 |`[]`|`["Hello, World!"]`|
 |`["input isn't used"]`|`["Hello, World!"]`|
 
-## Hello World (alternative with comments)
+## Hello World (alternative)
 
 #### Blip code
 
 ```blip
-# This version of Hello World uses single-quotes ' instead of double quotes "
-// Comments can be made with either a hash (#) or double slashes (//)
+// This version of Hello World uses single-quotes ' instead of double quotes "
 
 ret 'Hello, World!'
 ```
