@@ -165,14 +165,14 @@ class Parser:
     def __parse_index(self, identifier: dict) -> dict:
         self.__consume_token("[")
 
-        index = self.__consume_token("INTEGER_LITERAL")
+        index = self.__parse_integer_literal()
 
         self.__consume_token("]")
 
         return {
             "type": "index",
             "identifier": identifier,
-            "index": int(index),
+            "index": index,
         }
 
     def __parse_integer_literal(self) -> dict:

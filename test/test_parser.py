@@ -102,7 +102,10 @@ def test_variable_index_with_integer_literal():
                             "type": "identifier",
                             "name": "input",
                         },
-                        "index": 0,
+                        "index": {
+                            "type": "integer_literal",
+                            "value": 0,
+                        },
                     },
                 },
             },
