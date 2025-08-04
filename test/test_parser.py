@@ -84,3 +84,27 @@ def test_int_variable():
             },
         ],
     }
+
+
+def test_variable_index_with_integer_literal():
+    parser = Parser("ret input[0]")
+
+    assert parser.parse() == {
+        "type": "program",
+        "statements": [
+            {
+                "type": "return",
+                "expression": {
+                    "type": "expression",
+                    "value": {
+                        "type": "index",
+                        "identifier": {
+                            "type": "identifier",
+                            "name": "input",
+                        },
+                        "index": 0,
+                    },
+                },
+            },
+        ],
+    }

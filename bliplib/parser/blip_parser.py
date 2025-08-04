@@ -145,7 +145,7 @@ class Parser:
     def __parse_primary_expression(self) -> dict:
         match self.__current_token.type:
             case "IDENTIFIER":
-                return self.__parse_identifier()
+                return self.__parse_ambiguous_identifier_or_index_primary_expression()
             case "STRING_LITERAL":
                 return self.__parse_string_literal()
             case "INTEGER_LITERAL":
@@ -153,6 +153,27 @@ class Parser:
             case _:
                 err = f"Unexpected token '{self.__current_token}' while parsing primary expression"
                 raise ParserError(err)
+
+    def __parse_ambiguous_identifier_or_index_primary_expression(self) -> dict:
+        identifier = self.__parse_identifier()
+
+        if self.__current_token.type == "[":
+            return self.__parse_index(identifier)
+        else:
+            return identifier
+
+    def __parse_index(self, identifier: dict) -> dict:
+        self.__consume_token("[")
+
+        index = self.__consume_token("INTEGER_LITERAL")
+
+        self.__consume_token("]")
+
+        return {
+            "type": "index",
+            "identifier": identifier,
+            "index": int(index),
+        }
 
     def __parse_integer_literal(self) -> dict:
         literal_int = self.__consume_token("INTEGER_LITERAL")
