@@ -113,7 +113,9 @@ class Parser:
 
     def __parse_decomposition_wildcard(self) -> dict:
         self.__consume_token("*")
-        return {"type": "decomposition_wildcard"}
+        return {
+            "type": "decomposition_wildcard",
+        }
 
     def __parse_identifier(self) -> dict:
         identifier = self.__consume_token("IDENTIFIER")
