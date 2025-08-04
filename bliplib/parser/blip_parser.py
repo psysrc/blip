@@ -126,7 +126,7 @@ class Parser:
     def __parse_expression(self) -> dict:
         primary_expressions = []
 
-        while self.__current_token.type in {"IDENTIFIER", "STRING_LITERAL"}:
+        while self.__current_token.type in {"IDENTIFIER", "STRING_LITERAL", "INTEGER_LITERAL"}:
             primary_expressions.append(self.__parse_primary_expression())
 
         if len(primary_expressions) == 1:
@@ -148,9 +148,19 @@ class Parser:
                 return self.__parse_identifier()
             case "STRING_LITERAL":
                 return self.__parse_string_literal()
+            case "INTEGER_LITERAL":
+                return self.__parse_integer_literal()
             case _:
                 err = f"Unexpected token '{self.__current_token}' while parsing primary expression"
                 raise ParserError(err)
+
+    def __parse_integer_literal(self) -> dict:
+        literal_int = self.__consume_token("INTEGER_LITERAL")
+
+        return {
+            "type": "integer_literal",
+            "value": int(literal_int),
+        }
 
     def __parse_assignment_statement(self, identifier: dict) -> dict:
         self.__consume_token("=")

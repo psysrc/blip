@@ -60,3 +60,27 @@ def test_string_decomposition_email():
             },
         ],
     }
+
+
+def test_int_variable():
+    parser = Parser("num = 5")
+
+    assert parser.parse() == {
+        "type": "program",
+        "statements": [
+            {
+                "type": "assignment",
+                "identifier": {
+                    "type": "identifier",
+                    "name": "num",
+                },
+                "expression": {
+                    "type": "expression",
+                    "value": {
+                        "type": "integer_literal",
+                        "value": 5,
+                    },
+                },
+            },
+        ],
+    }

@@ -64,6 +64,7 @@ class Tokenizer:
             r"^ret": "RETURN",
             r'^"[^"]*"': "STRING_LITERAL",
             r"^'[^']*'": "STRING_LITERAL",
+            r"^[0-9]+": "INTEGER_LITERAL",
             r"^[a-zA-Z][a-zA-Z0-9_]*\b": "IDENTIFIER",
         }
 
