@@ -111,3 +111,44 @@ def test_variable_index_with_integer_literal():
             },
         ],
     }
+
+
+def test_variable_index_with_integer_variable():
+    parser = Parser("idx = 0; ret input[idx]")
+
+    assert parser.parse() == {
+        "type": "program",
+        "statements": [
+            {
+                "type": "assignment",
+                "identifier": {
+                    "type": "identifier",
+                    "name": "idx",
+                },
+                "expression": {
+                    "type": "expression",
+                    "value": {
+                        "type": "integer_literal",
+                        "value": 0,
+                    },
+                },
+            },
+            {
+                "type": "return",
+                "expression": {
+                    "type": "expression",
+                    "value": {
+                        "type": "index",
+                        "identifier": {
+                            "type": "identifier",
+                            "name": "input",
+                        },
+                        "index": {
+                            "type": "identifier",
+                            "name": "idx",
+                        },
+                    },
+                },
+            },
+        ],
+    }

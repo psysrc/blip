@@ -165,7 +165,13 @@ class Parser:
     def __parse_index(self, identifier: dict) -> dict:
         self.__consume_token("[")
 
-        index = self.__parse_integer_literal()
+        match self.__current_token.type:
+            case "INTEGER_LITERAL":
+                index = self.__parse_integer_literal()
+            case "IDENTIFIER":
+                index = self.__parse_identifier()
+            case _:
+                raise ParserError(f"Unexpected token '{self.__current_token}' while parsing index")
 
         self.__consume_token("]")
 
