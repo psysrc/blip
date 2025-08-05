@@ -95,8 +95,10 @@ class Parser:
 
         while self.__current_token.type not in {"EOL", "EOF"}:
             match self.__current_token.type:
-                case "IDENTIFIER" | "STRING_LITERAL":
-                    operands.append(self.__parse_primary_expression())
+                case "IDENTIFIER":
+                    operands.append(self.__parse_ambiguous_identifier_or_index_primary_expression())
+                case "STRING_LITERAL":
+                    operands.append(self.__parse_string_literal())
                 case "*":
                     operands.append(self.__parse_decomposition_wildcard())
 
@@ -126,35 +128,40 @@ class Parser:
         }
 
     def __parse_expression(self) -> dict:
-        primary_expressions = []
-
-        while self.__current_token.type in {"IDENTIFIER", "STRING_LITERAL", "INTEGER_LITERAL"}:
-            primary_expressions.append(self.__parse_primary_expression())
-
-        if len(primary_expressions) == 1:
-            value = primary_expressions[0]
-        else:
-            value = {
-                "type": "concatenation",
-                "operands": primary_expressions,
-            }
+        match self.__current_token.type:
+            case "INTEGER_LITERAL":
+                value = self.__parse_integer_literal()
+            case "IDENTIFIER" | "STRING_LITERAL":
+                value = self.__parse_ambiguous_possible_concatenation()
+            case _:
+                err = f"Unexpected token '{self.__current_token}' while parsing primary expression"
+                raise ParserError(err)
 
         return {
             "type": "expression",
             "value": value,
         }
 
-    def __parse_primary_expression(self) -> dict:
-        match self.__current_token.type:
-            case "IDENTIFIER":
-                return self.__parse_ambiguous_identifier_or_index_primary_expression()
-            case "STRING_LITERAL":
-                return self.__parse_string_literal()
-            case "INTEGER_LITERAL":
-                return self.__parse_integer_literal()
-            case _:
-                err = f"Unexpected token '{self.__current_token}' while parsing primary expression"
-                raise ParserError(err)
+    def __parse_ambiguous_possible_concatenation(self) -> dict:
+        primary_expressions = []
+
+        while self.__current_token.type in {"IDENTIFIER", "STRING_LITERAL"}:
+            match self.__current_token.type:
+                case "IDENTIFIER":
+                    primary_expressions.append(self.__parse_ambiguous_identifier_or_index_primary_expression())
+                case "STRING_LITERAL":
+                    primary_expressions.append(self.__parse_string_literal())
+                case _:
+                    err = f"Unexpected token '{self.__current_token}' while parsing primary expression"
+                    raise ParserError(err)
+
+        if len(primary_expressions) == 1:
+            return primary_expressions[0]
+
+        return {
+            "type": "concatenation",
+            "operands": primary_expressions,
+        }
 
     def __parse_ambiguous_identifier_or_index_primary_expression(self) -> dict:
         identifier = self.__parse_identifier()
