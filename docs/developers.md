@@ -25,9 +25,17 @@ poetry run python3 blip.py
 
 ## Unit tests
 
-Pytest is used for unit testing.
+Pytest is used for unit testing. To run the test suite:
 
-To run the unit tests, run `poetry run pytest`.
+```bash
+poetry run pytest
+```
+
+If desired, you can also get the code coverage output (the CI/CD pipeline does this):
+
+```bash
+poetry run pytest --cov=bliplib --cov-report=term-missing
+```
 
 ## Linting and Formatting
 
