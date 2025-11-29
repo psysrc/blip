@@ -148,8 +148,8 @@ class Parser:
         self.__consume_token("[")
 
         elements = []
-        # while self.__current_token.type != "]":
-        #     # get an element
+        while self.__current_token.type != "]":
+            elements.append(self.__parse_expression())
 
         self.__consume_token("]")
 

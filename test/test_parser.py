@@ -176,3 +176,72 @@ def test_empty_list_variable():
             },
         ],
     }
+
+
+def test_list_variable_one_element():
+    parser = Parser('list = ["a"]')
+
+    assert parser.parse() == {
+        "type": "program",
+        "statements": [
+            {
+                "type": "assignment",
+                "identifier": {
+                    "type": "identifier",
+                    "name": "list",
+                },
+                "expression": {
+                    "type": "expression",
+                    "value": {
+                        "type": "list",
+                        "elements": [
+                            {
+                                "type": "expression",
+                                "value": {
+                                    "type": "string_literal",
+                                    "value": "a",
+                                },
+                            },
+                        ],
+                    },
+                },
+            },
+        ],
+    }
+
+
+# def test_list_variable():
+#     parser = Parser('list = ["a", "b", "c"]')
+
+#     assert parser.parse() == {
+#         "type": "program",
+#         "statements": [
+#             {
+#                 "type": "assignment",
+#                 "identifier": {
+#                     "type": "identifier",
+#                     "name": "list",
+#                 },
+#                 "expression": {
+#                     "type": "expression",
+#                     "value": {
+#                         "type": "list",
+#                         "elements": [
+#                             {
+#                                 "type": "string_literal",
+#                                 "value": "a",
+#                             },
+#                             {
+#                                 "type": "string_literal",
+#                                 "value": "b",
+#                             },
+#                             {
+#                                 "type": "string_literal",
+#                                 "value": "c",
+#                             },
+#                         ],
+#                     },
+#                 },
+#             },
+#         ],
+#     }

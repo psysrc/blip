@@ -25,7 +25,7 @@ Variables|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
 String type|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
 Boolean type|:x:|:x:|:x:|:x:|:x:
 Integer type|:x:|:x:|:x:|:x:|:x:
-List type|:x:|:x:|:x:|:x:|:x:
+List type|:construction:|:x:|:x:|:x:|:x:
 Input directives|:x:|:x:|:x:|:x:|:x:
 Output directives|:x:|:x:|:x:|:x:|:x:
 If-conditionals|:x:|:x:|:x:|:x:|:x:
