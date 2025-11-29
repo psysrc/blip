@@ -1,9 +1,10 @@
 import pytest
 from bliplib.parser import Parser
+from bliplib.parser.blip_parser import ParserError
 from bliplib.parser.tokenizer import Token, TokenizerError
 
 
-def test_syntax_error_raises_tokenizer_error():
+def test_invalid_syntax_raises_tokenizer_error():
     with pytest.raises(TokenizerError):
         Parser("%67£$QGR _++ )(GFds")
 
@@ -12,6 +13,27 @@ def test_token_str():
     token = Token("string_literal", "hello")
 
     assert str(token) == "TOKEN['string_literal' | 'hello']"
+
+
+def test_bad_expression_raises_parser_error():
+    parser = Parser("ret")
+
+    with pytest.raises(ParserError):
+        parser.parse()
+
+
+def test_bad_identifier_statement_raises_parser_error():
+    parser = Parser("hello hello")
+
+    with pytest.raises(ParserError):
+        parser.parse()
+
+
+def test_bad_statement_raises_parser_error():
+    parser = Parser(",")
+
+    with pytest.raises(ParserError):
+        parser.parse()
 
 
 def test_string_decomposition_square_brackets():
