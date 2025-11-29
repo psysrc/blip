@@ -9,7 +9,7 @@ class InterpreterError(RuntimeError):
     pass
 
 
-type BlipType = str | list[str]
+type BlipType = str | list[str] | int | list[int]
 
 
 class Interpreter:
@@ -152,7 +152,7 @@ class Interpreter:
             case string if isinstance(string, str):
                 return [string]
             case [*items] if all(isinstance(item, str) for item in items):
-                return items
+                return items  # type: ignore (Pylance thinks this could be a list[int], but the guard clause prevents that)
             case _:
                 raise InterpreterError(f"Unexpected expression type in return statement: '{type(value)}'")
 
@@ -166,7 +166,10 @@ class Interpreter:
     def __interpret_expression_value(self, code: dict) -> BlipType:
         match code:
             case {"type": "string_literal"}:
-                return self.__interpret_literal(code)
+                return self.__interpret_string_literal(code)
+
+            case {"type": "integer_literal"}:
+                return self.__interpret_integer_literal(code)
 
             case {"type": "identifier"}:
                 return self.__interpret_identifier(code)
@@ -174,8 +177,48 @@ class Interpreter:
             case {"type": "concatenation"}:
                 return self.__interpret_concatenation(code)
 
+            # case {"type": "index"}:
+            #     return self.__interpret_indexed_expression(code)
+
             case _:
                 raise InterpreterError(f"Unexpected codetype in expression value: {code}")
+
+    # def __interpret_indexed_expression(self, code: dict) -> BlipType:
+    #     """
+    #     {
+    #         "type": "index",
+    #         "identifier": {
+    #             "type": "identifier",
+    #             "name": "input"
+    #         },
+    #         "index": {
+    #             "type": "integer_literal",
+    #             "value": 0
+    #         }
+    #     }
+    #     """
+
+    #     self.__ensure_code_type(code, "index")
+
+    #     identifier = self.__interpret_identifier(code["identifier"])
+
+    #     match idx := code["index"]:
+    #         case {"type": "integer_literal"}:
+    #             index: int = self.integ
+    #         case {"type": "identifier"}:
+    #             raise InterpreterError("Indexing with an identifier is not yet supported")
+    #         case _:
+    #             raise InterpreterError(f"Unexpected codetype in indexed expression value: {idx}")
+
+    def __interpret_integer_literal(self, code: dict) -> int:
+        self.__ensure_code_type(code, "integer_literal")
+
+        value = code["value"]
+
+        if not isinstance(value, int):
+            raise InterpreterError(f"Expected integer literal but value type is '{type(value)}'")
+
+        return value
 
     def __interpret_concatenation(self, code: dict) -> str:
         self.__ensure_code_type(code, "concatenation")
@@ -192,7 +235,7 @@ class Interpreter:
 
         return string
 
-    def __interpret_literal(self, code: dict) -> str:
+    def __interpret_string_literal(self, code: dict) -> str:
         self.__ensure_code_type(code, "string_literal")
 
         value = code["value"]
