@@ -11,6 +11,7 @@ In no particular order, here are the ideas that still need to be fleshed out.
 - Static analysis and semantic checks after parsing
 - Optimisations
 - Improved error messages
+- Arithmetic
 
 ## Implementation
 

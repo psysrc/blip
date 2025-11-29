@@ -211,7 +211,6 @@ class Interpreter:
         if not isinstance(variable, list):
             raise InterpreterError(f"Cannot index into non-list type ({type(variable)})")
 
-        # variable: list[str] | list[int]
         if index >= len(variable):
             raise InterpreterError(f"Index out of bounds (list has {len(variable)} elements, index is {index})")
 
