@@ -36,6 +36,20 @@ def test_bad_statement_raises_parser_error():
         parser.parse()
 
 
+def test_bad_decomposition_raises_parser_error():
+    parser = Parser("foo -> []")
+
+    with pytest.raises(ParserError):
+        parser.parse()
+
+
+def test_bad_index_raises_parser_error():
+    parser = Parser("foo = bar['z']")
+
+    with pytest.raises(ParserError):
+        parser.parse()
+
+
 def test_string_decomposition_square_brackets():
     parser = Parser("text -> '[' content ']'")
 
