@@ -152,3 +152,27 @@ def test_variable_index_with_integer_variable():
             },
         ],
     }
+
+
+def test_empty_list_variable():
+    parser = Parser("list = []")
+
+    assert parser.parse() == {
+        "type": "program",
+        "statements": [
+            {
+                "type": "assignment",
+                "identifier": {
+                    "type": "identifier",
+                    "name": "list",
+                },
+                "expression": {
+                    "type": "expression",
+                    "value": {
+                        "type": "list",
+                        "elements": [],
+                    },
+                },
+            },
+        ],
+    }

@@ -133,6 +133,8 @@ class Parser:
                 value = self.__parse_integer_literal()
             case "IDENTIFIER" | "STRING_LITERAL":
                 value = self.__parse_ambiguous_possible_concatenation()
+            case "[":
+                value = self.__parse_list()
             case _:
                 err = f"Unexpected token {self.__current_token} while parsing primary expression"
                 raise ParserError(err)
@@ -140,6 +142,20 @@ class Parser:
         return {
             "type": "expression",
             "value": value,
+        }
+
+    def __parse_list(self) -> dict:
+        self.__consume_token("[")
+
+        elements = []
+        # while self.__current_token.type != "]":
+        #     # get an element
+
+        self.__consume_token("]")
+
+        return {
+            "type": "list",
+            "elements": elements,
         }
 
     def __parse_ambiguous_possible_concatenation(self) -> dict:
