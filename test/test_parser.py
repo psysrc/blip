@@ -1,4 +1,11 @@
+import pytest
 from bliplib.parser import Parser
+from bliplib.parser.tokenizer import TokenizerError
+
+
+def test_syntax_error_raises_tokenizer_error():
+    with pytest.raises(TokenizerError):
+        Parser("%67£$QGR _++ )(GFds")
 
 
 def test_string_decomposition_square_brackets():
