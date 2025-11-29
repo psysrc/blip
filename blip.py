@@ -21,6 +21,8 @@ def main():
     mode_args.add_argument("-t", "--transpile", metavar="LANG", help="Transpile the program into another language")
     mode_args.add_argument("--ir", action="store_true", help="Output the program's Intermediate Representation")
 
+    argument_parser.add_argument("input_strings", nargs="*", help="Input strings (only used in interpret mode)")
+
     args = argument_parser.parse_args()
 
     file_path = Path(args.file)
@@ -32,7 +34,7 @@ def main():
         blip_ir = Parser(file_path.read_text()).parse()
 
     except ParserError as err:
-        print(f"Error encountered while parsing program: {err}")
+        print(f"Parser error: {err}")
         sys.exit(1)
 
     except Exception as err:
@@ -42,13 +44,13 @@ def main():
     if args.interpret:
         try:
             interpreter = Interpreter(blip_ir)
-            input_strings: list[str] = []
+            input_strings: list[str] = args.input_strings
             output_strings: list[str] = interpreter.run(input_strings)
             print(output_strings)
             sys.exit(0)
 
         except InterpreterError as err:
-            print(f"Error encountered while interpreting program: {err}")
+            print(f"Interpreter error: {err}")
             sys.exit(1)
 
         except Exception as err:
