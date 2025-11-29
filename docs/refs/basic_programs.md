@@ -328,3 +328,126 @@ ret my_str
 |Input|Output|
 |-----|------|
 |`[]`|`["ABC123ABC"]`|
+
+## Decomposition
+
+Strings can be decomposed into constituent parts using the decomposition operator `->`.
+This simultaneously verifies that the string follows the expected pattern, throwing an error if not.
+
+#### Blip code
+
+```blip
+// Assume the input is an email, e.g. harvey.madson@hotmail.co.uk
+email = input[0]
+email -> username "@" *
+username -> first "." last
+ret first " " last
+```
+
+#### Blip IR
+
+<details>
+<summary><i>Expand...</i></summary>
+
+```json
+{
+    "type": "program",
+    "statements": [
+        {
+            "type": "assignment",
+            "identifier": {
+                "type": "identifier",
+                "name": "email"
+            },
+            "expression": {
+                "type": "expression",
+                "value": {
+                    "type": "index",
+                    "identifier": {
+                        "type": "identifier",
+                        "name": "input"
+                    },
+                    "index": {
+                        "type": "integer_literal",
+                        "value": 0
+                    }
+                }
+            }
+        },
+        {
+            "type": "decomposition",
+            "identifier": {
+                "type": "identifier",
+                "name": "email"
+            },
+            "pattern": [
+                {
+                    "type": "identifier",
+                    "name": "username"
+                },
+                {
+                    "type": "string_literal",
+                    "value": "@"
+                },
+                {
+                    "type": "decomposition_wildcard"
+                }
+            ]
+        },
+        {
+            "type": "decomposition",
+            "identifier": {
+                "type": "identifier",
+                "name": "username"
+            },
+            "pattern": [
+                {
+                    "type": "identifier",
+                    "name":"first"
+                },
+                {
+                    "type": "string_literal",
+                    "value": "."
+                },
+                {
+                    "type": "identifier",
+                    "name": "last"
+                }
+            ]
+        },
+        {
+            "type": "return",
+            "expression": {
+                "type": "expression",
+                "value": {
+                    "type": "concatenation",
+                    "operands": [
+                        {
+                            "type": "identifier",
+                            "name": "first"
+                        },
+                        {
+                            "type": "string_literal",
+                            "value": " "
+                        },
+                        {
+                            "type": "identifier",
+                            "name": "last"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}
+```
+
+</details>
+
+#### Execution
+
+|Input|Output|
+|-----|------|
+|`["harvey.madson@hotmail.co.uk"]`|`["harvey madson"]`|
+|`["amy.nelson@gmail.com"]`|`["amy nelson"]`|
+|`["Not an email"]`|`Error`|
