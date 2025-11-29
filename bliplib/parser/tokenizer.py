@@ -13,7 +13,7 @@ class Token:
     value: str
 
     def __str__(self) -> str:
-        return f"{self.type}[{self.value}]"
+        return f"TOKEN['{self.type}' | '{self.value}']"
 
 
 class TokenizerError(RuntimeError):
