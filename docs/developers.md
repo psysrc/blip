@@ -28,3 +28,19 @@ poetry run python3 blip.py
 Pytest is used for unit testing.
 
 To run the unit tests, run `poetry run pytest`.
+
+## Linting and Formatting
+
+Ruff is used as the linter and formatter.
+
+To lint:
+
+```bash
+poetry run ruff check --fix
+```
+
+To format:
+
+```bash
+poetry run ruff format
+```
