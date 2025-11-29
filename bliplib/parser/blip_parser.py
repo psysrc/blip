@@ -71,7 +71,7 @@ class Parser:
                     statements.append(self.__parse_return_statement())
 
                 case _:
-                    err = f"Unexpected token '{self.__current_token}' while parsing program statements"
+                    err = f"Unexpected token {self.__current_token} while parsing program statements"
                     raise ParserError(err)
 
         return statements
@@ -85,7 +85,7 @@ class Parser:
             case "->":
                 return self.__parse_decomposition_statement(identifier)
             case _:
-                err = f"Unexpected token '{self.__current_token}' while parsing ambiguous identifier statement"
+                err = f"Unexpected token {self.__current_token} while parsing ambiguous identifier statement"
                 raise ParserError(err)
 
     def __parse_decomposition_statement(self, identifier: dict) -> dict:
@@ -103,7 +103,7 @@ class Parser:
                     operands.append(self.__parse_decomposition_wildcard())
 
                 case _:
-                    raise ParserError(f"Unexpected token '{self.__current_token.type}' while parsing decomposition statement")
+                    raise ParserError(f"Unexpected token {self.__current_token.type} while parsing decomposition statement")
 
         self.__consume_token("EOL", "EOF")
 
@@ -134,7 +134,7 @@ class Parser:
             case "IDENTIFIER" | "STRING_LITERAL":
                 value = self.__parse_ambiguous_possible_concatenation()
             case _:
-                err = f"Unexpected token '{self.__current_token}' while parsing primary expression"
+                err = f"Unexpected token {self.__current_token} while parsing primary expression"
                 raise ParserError(err)
 
         return {
@@ -152,7 +152,7 @@ class Parser:
                 case "STRING_LITERAL":
                     primary_expressions.append(self.__parse_string_literal())
                 case _:
-                    err = f"Unexpected token '{self.__current_token}' while parsing primary expression"
+                    err = f"Unexpected token {self.__current_token} while parsing possible concatenation"
                     raise ParserError(err)
 
         if len(primary_expressions) == 1:
@@ -180,7 +180,7 @@ class Parser:
             case "IDENTIFIER":
                 index = self.__parse_identifier()
             case _:
-                raise ParserError(f"Unexpected token '{self.__current_token}' while parsing index")
+                raise ParserError(f"Unexpected token {self.__current_token} while parsing index")
 
         self.__consume_token("]")
 
