@@ -74,7 +74,7 @@ def test_number_of_reference_programs():
     This is a belts-and-braces test to make sure the test suite is functioning correctly
     """
 
-    expected_programs = 7
+    expected_programs = 8
 
     actual_programs = len(get_reference_programs())
 

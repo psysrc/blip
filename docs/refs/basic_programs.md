@@ -89,8 +89,8 @@ ret 'Hello, World!'
 
 ## Empty Program
 
-Empty programs are not valid because they halt without producing any output.
-Programs in Blip must either explicitly return valid output, or produce an error.
+Programs in Blip always either return a valid output, or produce an error.
+So, the empty program below - which does not return any output - will always produce an error.
 
 #### Blip code
 
@@ -451,3 +451,58 @@ ret first " " last
 |`["harvey.madson@hotmail.co.uk"]`|`["harvey madson"]`|
 |`["amy.nelson@gmail.com"]`|`["amy nelson"]`|
 |`["Not an email"]`|`Error`|
+
+## Indexing into Lists
+
+Lists store a number of elements (zero or more).
+Indexing into a list will provide the element at that position.
+Indexes start at 0.
+
+The program below returns the first string provided to the program.
+
+#### Blip code
+
+```blip
+ret input[0]
+```
+
+#### Blip IR
+
+<details>
+<summary><i>Expand...</i></summary>
+
+```json
+{
+    "type": "program",
+    "statements": [
+        {
+            "type": "return",
+            "expression": {
+                "type": "expression",
+                "value": {
+                    "type": "index",
+                    "identifier": {
+                        "type": "identifier",
+                        "name": "input"
+                    },
+                    "index": {
+                        "type": "integer_literal",
+                        "value": 0
+                    }
+                }
+            }
+        }
+    ]
+}
+```
+
+</details>
+
+#### Execution
+
+|Input|Output|
+|-----|------|
+|`[]`|`Error`|
+|`["a"]`|`["a"]`|
+|`["a", "b"]`|`["a"]`|
+|`["a", "b", "c"]`|`["a"]`|

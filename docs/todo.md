@@ -23,9 +23,9 @@ Concatenation|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
 Decomposition|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
 Variables|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
 String type|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
-List type|:white_check_mark:|:x:|:x:|:x:|:x:
-Integer type|:white_check_mark:|:x:|:x:|:x:|:x:
-List indexing|:white_check_mark:|:x:|:x:|:x:|:x:
+List type|:white_check_mark:|:construction:|:x:|:x:|:x:
+Integer type|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
+List indexing|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
 Boolean type|:x:|:x:|:x:|:x:|:x:
 Input directives|:x:|:x:|:x:|:x:|:x:
 Output directives|:x:|:x:|:x:|:x:|:x:
