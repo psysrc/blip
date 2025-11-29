@@ -94,10 +94,5 @@ class Tokenizer:
 
         raise TokenizerError(f"Unknown syntax near characters '{self.source[:10]}'")
 
-    def end_of_stream(self) -> bool:
-        """Returns whether the end of the stream has been reached."""
-
-        return self.current_token.type == "EOF"
-
     def __source_is_empty(self) -> bool:
         return not bool(self.source)
