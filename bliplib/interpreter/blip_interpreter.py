@@ -180,24 +180,22 @@ class Interpreter:
             case {"type": "index"}:
                 return self.__interpret_indexed_expression(code)
 
+            case {"type": "list"}:
+                return self.__interpret_list(code)
+
             case _:
                 raise InterpreterError(f"Unexpected codetype in expression value: {code}")
 
-    def __interpret_indexed_expression(self, code: dict) -> BlipType:
-        """
-        {
-            "type": "index",
-            "identifier": {
-                "type": "identifier",
-                "name": "input"
-            },
-            "index": {
-                "type": "integer_literal",
-                "value": 0
-            }
-        }
-        """
+    def __interpret_list(self, code: dict) -> BlipType:
+        self.__ensure_code_type(code, "list")
 
+        the_list = []
+        for elem in code["elements"]:
+            the_list.append(self.__interpret_expression(elem))
+
+        return the_list
+
+    def __interpret_indexed_expression(self, code: dict) -> BlipType:
         self.__ensure_code_type(code, "index")
 
         variable = self.__interpret_identifier(code["identifier"])

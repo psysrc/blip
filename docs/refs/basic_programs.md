@@ -164,12 +164,20 @@ ret input
 
 ## Variable Assignment
 
+Variables can be created and assigned to using the equals operator `=`.
+Blip supports the following basic types:
+
+- String
+- Integer
+- List
+
 #### Blip code
 
 ```blip
-my_name = "Sam"
-my_username = my_name
-ret my_username
+fav_number = 987
+fav_colour = "blue"
+top_ten_colours = [fav_colour, "black", "red"]
+ret top_ten_colours
 ```
 
 #### Blip IR
@@ -185,13 +193,13 @@ ret my_username
             "type": "assignment",
             "identifier": {
                 "type": "identifier",
-                "name": "my_name"
+                "name": "fav_number"
             },
             "expression": {
                 "type": "expression",
                 "value": {
-                    "type": "string_literal",
-                    "value": "Sam"
+                    "type": "integer_literal",
+                    "value": 987
                 }
             }
         },
@@ -199,13 +207,49 @@ ret my_username
             "type": "assignment",
             "identifier": {
                 "type": "identifier",
-                "name": "my_username"
+                "name": "fav_colour"
             },
             "expression": {
                 "type": "expression",
                 "value": {
-                    "type": "identifier",
-                    "name": "my_name"
+                    "type": "string_literal",
+                    "value": "blue"
+                }
+            }
+        },
+        {
+            "type": "assignment",
+            "identifier": {
+                "type": "identifier",
+                "name": "top_ten_colours"
+            },
+            "expression": {
+                "type": "expression",
+                "value": {
+                    "type": "list",
+                    "elements": [
+                        {
+                            "type": "expression",
+                            "value": {
+                                "type": "identifier",
+                                "name": "fav_colour"
+                            }
+                        },
+                        {
+                            "type": "expression",
+                            "value": {
+                                "type": "string_literal",
+                                "value": "black"
+                            }
+                        },
+                        {
+                            "type": "expression",
+                            "value": {
+                                "type": "string_literal",
+                                "value": "red"
+                            }
+                        }
+                    ]
                 }
             }
         },
@@ -215,7 +259,7 @@ ret my_username
                 "type": "expression",
                 "value": {
                     "type": "identifier",
-                    "name": "my_username"
+                    "name": "top_ten_colours"
                 }
             }
         }
@@ -229,7 +273,7 @@ ret my_username
 
 |Input|Output|
 |-----|------|
-|`[]`|`["Sam"]`|
+|`[]`|`["blue", "black", "red"]`|
 
 ## Concatenation
 
