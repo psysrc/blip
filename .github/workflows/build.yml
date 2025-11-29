@@ -28,7 +28,7 @@ jobs:
       run: poetry install
 
     - name: Test with pytest
-      run: poetry run pytest --cov=blip --cov-report=term-missing
+      run: poetry run pytest --cov=bliplib --cov-report=term-missing
 
     - name: Run ruff check
       run: poetry run ruff check
