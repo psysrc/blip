@@ -210,38 +210,47 @@ def test_list_variable_one_element():
     }
 
 
-# def test_list_variable():
-#     parser = Parser('list = ["a", "b", "c"]')
+def test_list_variable_many_elements():
+    parser = Parser('list = ["a", "b", "c"]')
 
-#     assert parser.parse() == {
-#         "type": "program",
-#         "statements": [
-#             {
-#                 "type": "assignment",
-#                 "identifier": {
-#                     "type": "identifier",
-#                     "name": "list",
-#                 },
-#                 "expression": {
-#                     "type": "expression",
-#                     "value": {
-#                         "type": "list",
-#                         "elements": [
-#                             {
-#                                 "type": "string_literal",
-#                                 "value": "a",
-#                             },
-#                             {
-#                                 "type": "string_literal",
-#                                 "value": "b",
-#                             },
-#                             {
-#                                 "type": "string_literal",
-#                                 "value": "c",
-#                             },
-#                         ],
-#                     },
-#                 },
-#             },
-#         ],
-#     }
+    assert parser.parse() == {
+        "type": "program",
+        "statements": [
+            {
+                "type": "assignment",
+                "identifier": {
+                    "type": "identifier",
+                    "name": "list",
+                },
+                "expression": {
+                    "type": "expression",
+                    "value": {
+                        "type": "list",
+                        "elements": [
+                            {
+                                "type": "expression",
+                                "value": {
+                                    "type": "string_literal",
+                                    "value": "a",
+                                },
+                            },
+                            {
+                                "type": "expression",
+                                "value": {
+                                    "type": "string_literal",
+                                    "value": "b",
+                                },
+                            },
+                            {
+                                "type": "expression",
+                                "value": {
+                                    "type": "string_literal",
+                                    "value": "c",
+                                },
+                            },
+                        ],
+                    },
+                },
+            },
+        ],
+    }
