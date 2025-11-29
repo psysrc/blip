@@ -177,38 +177,48 @@ class Interpreter:
             case {"type": "concatenation"}:
                 return self.__interpret_concatenation(code)
 
-            # case {"type": "index"}:
-            #     return self.__interpret_indexed_expression(code)
+            case {"type": "index"}:
+                return self.__interpret_indexed_expression(code)
 
             case _:
                 raise InterpreterError(f"Unexpected codetype in expression value: {code}")
 
-    # def __interpret_indexed_expression(self, code: dict) -> BlipType:
-    #     """
-    #     {
-    #         "type": "index",
-    #         "identifier": {
-    #             "type": "identifier",
-    #             "name": "input"
-    #         },
-    #         "index": {
-    #             "type": "integer_literal",
-    #             "value": 0
-    #         }
-    #     }
-    #     """
+    def __interpret_indexed_expression(self, code: dict) -> BlipType:
+        """
+        {
+            "type": "index",
+            "identifier": {
+                "type": "identifier",
+                "name": "input"
+            },
+            "index": {
+                "type": "integer_literal",
+                "value": 0
+            }
+        }
+        """
 
-    #     self.__ensure_code_type(code, "index")
+        self.__ensure_code_type(code, "index")
 
-    #     identifier = self.__interpret_identifier(code["identifier"])
+        variable = self.__interpret_identifier(code["identifier"])
 
-    #     match idx := code["index"]:
-    #         case {"type": "integer_literal"}:
-    #             index: int = self.integ
-    #         case {"type": "identifier"}:
-    #             raise InterpreterError("Indexing with an identifier is not yet supported")
-    #         case _:
-    #             raise InterpreterError(f"Unexpected codetype in indexed expression value: {idx}")
+        match idx := code["index"]:
+            case {"type": "integer_literal"}:
+                index = self.__interpret_integer_literal(idx)
+            case {"type": "identifier"}:
+                raise InterpreterError("Indexing with an identifier is not yet supported")
+            case _:
+                raise InterpreterError(f"Unexpected codetype in indexed expression value: {idx}")
+
+        if not isinstance(variable, list):
+            raise InterpreterError(f"Cannot index into non-list type ({type(variable)})")
+
+        # variable: list[str] | list[int]
+        if index >= len(variable):
+            raise InterpreterError(f"Index out of bounds (list has {len(variable)} elements, index is {index})")
+
+        element = variable[index]
+        return element
 
     def __interpret_integer_literal(self, code: dict) -> int:
         self.__ensure_code_type(code, "integer_literal")

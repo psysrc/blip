@@ -158,44 +158,46 @@ def test_integer_literal_as_expression():
     assert interpreter.run([]) == [""]
 
 
-# def test_list_index_with_integer_literal():
-#     interpreter = Interpreter({
-#         "type": "program",
-#         "statements": [
-#             {
-#                 "type": "assignment",
-#                 "identifier": {
-#                     "type": "identifier",
-#                     "name": "first"
-#                 },
-#                 "expression": {
-#                     "type": "expression",
-#                     "value": {
-#                         "type": "index",
-#                         "identifier": {
-#                             "type": "identifier",
-#                             "name": "input"
-#                         },
-#                         "index": {
-#                             "type": "integer_literal",
-#                             "value": 0
-#                         }
-#                     }
-#                 }
-#             },
-#             {
-#                 "type": "return",
-#                 "expression": {
-#                     "type": "expression",
-#                     "value": {
-#                         "type": "identifier",
-#                         "name": "first"
-#                     }
-#                 }
-#             }
-#         ]
-#     })
+def test_list_index_with_integer_literal():
+    interpreter = Interpreter(
+        {
+            "type": "program",
+            "statements": [
+                {
+                    "type": "assignment",
+                    "identifier": {
+                        "type": "identifier",
+                        "name": "first",
+                    },
+                    "expression": {
+                        "type": "expression",
+                        "value": {
+                            "type": "index",
+                            "identifier": {
+                                "type": "identifier",
+                                "name": "input",
+                            },
+                            "index": {
+                                "type": "integer_literal",
+                                "value": 0,
+                            },
+                        },
+                    },
+                },
+                {
+                    "type": "return",
+                    "expression": {
+                        "type": "expression",
+                        "value": {
+                            "type": "identifier",
+                            "name": "first",
+                        },
+                    },
+                },
+            ],
+        }
+    )
 
-#     assert interpreter.run(["a"]) == ["a"]
-#     assert interpreter.run(["a", "b"]) == ["a"]
-#     assert interpreter.run(["a", "b", "c"]) == ["a"]
+    assert interpreter.run(["a"]) == ["a"]
+    assert interpreter.run(["a", "b"]) == ["a"]
+    assert interpreter.run(["a", "b", "c"]) == ["a"]
