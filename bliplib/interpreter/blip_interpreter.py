@@ -9,7 +9,7 @@ class InterpreterError(RuntimeError):
     pass
 
 
-type BlipType = str | list[str] | int | list[int]
+type BlipType = str | list[str] | int | list[int] | bool | list[bool]
 
 
 class Interpreter:
@@ -171,6 +171,9 @@ class Interpreter:
             case {"type": "integer_literal"}:
                 return self.__interpret_integer_literal(code)
 
+            case {"type": "boolean_literal"}:
+                return self.__interpret_boolean_literal(code)
+
             case {"type": "identifier"}:
                 return self.__interpret_identifier(code)
 
@@ -249,6 +252,16 @@ class Interpreter:
 
         if not isinstance(value, str):
             raise InterpreterError(f"Expected string literal but value type is '{type(value)}'")
+
+        return value
+
+    def __interpret_boolean_literal(self, code: dict) -> bool:
+        self.__ensure_code_type(code, "boolean_literal")
+
+        value = code["value"]
+
+        if not isinstance(value, bool):
+            raise InterpreterError(f"Expected boolean literal but value type is '{type(value)}'")
 
         return value
 

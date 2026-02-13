@@ -170,11 +170,13 @@ Blip supports the following basic types:
 - String
 - Integer
 - List
+- Boolean
 
 #### Blip code
 
 ```blip
 fav_number = 987
+fav_bool = true
 fav_colour = "blue"
 top_ten_colours = [fav_colour, "black", "red"]
 ret top_ten_colours
@@ -200,6 +202,20 @@ ret top_ten_colours
                 "value": {
                     "type": "integer_literal",
                     "value": 987
+                }
+            }
+        },
+        {
+            "type": "assignment",
+            "identifier": {
+                "type": "identifier",
+                "name": "fav_bool"
+            },
+            "expression": {
+                "type": "expression",
+                "value": {
+                    "type": "boolean_literal",
+                    "value": true
                 }
             }
         },

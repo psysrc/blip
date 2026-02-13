@@ -65,6 +65,8 @@ class Tokenizer:
             r"^\]": "]",
             r"^,": ",",
             r"^ret": "RETURN",
+            r"^true\b": "BOOLEAN_LITERAL",
+            r"^false\b": "BOOLEAN_LITERAL",
             r'^"[^"]*"': "STRING_LITERAL",
             r"^'[^']*'": "STRING_LITERAL",
             r"^[0-9]+": "INTEGER_LITERAL",

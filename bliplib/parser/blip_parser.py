@@ -131,6 +131,8 @@ class Parser:
         match self.__current_token.type:
             case "INTEGER_LITERAL":
                 value = self.__parse_integer_literal()
+            case "BOOLEAN_LITERAL":
+                value = self.__parse_boolean_literal()
             case "IDENTIFIER" | "STRING_LITERAL":
                 value = self.__parse_ambiguous_possible_concatenation()
             case "[":
@@ -247,4 +249,12 @@ class Parser:
         return {
             "type": "string_literal",
             "value": literal_text[1:-1],
+        }
+
+    def __parse_boolean_literal(self) -> dict:
+        literal_text = self.__consume_token("BOOLEAN_LITERAL")
+
+        return {
+            "type": "boolean_literal",
+            "value": True if literal_text == "true" else False,
         }
