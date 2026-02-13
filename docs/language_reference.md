@@ -114,7 +114,6 @@ programs in a larger software ecosystem (this applies to both interpreted Blip p
 For example, if your program expects three strings as input, but at runtime is only invoked with two,
 it might take your program a long time before it tries to access the third string before it throws a strange error.
 In this situation if you had provided an input directive, the problem would have been caught before the program even started running.
-Likewise, if your program always
 
 Only one input directive can be provided per program, and likewise with the output directive.
 Input and output directives are independent from one another; you can provide an input directive without an output directive and vice versa.
