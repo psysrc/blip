@@ -32,7 +32,7 @@ class Interpreter:
         # Validate and assign input variables according to directives
         input_directive = directives.get("input")
         if input_directive is not None:
-            self.__validate_input(input_strings, input_directive)
+            self.__validate_program_input(input_strings, input_directive)
             if input_directive.get("names"):
                 for idx, name in enumerate(input_directive["names"]):
                     self.__variables[name] = input_strings[idx]
@@ -47,7 +47,7 @@ class Interpreter:
                         # Validate outputs according to directives before returning
                         output_dir = directives.get("output")
                         if output_dir is not None:
-                            self.__validate_output(result, output_dir)
+                            self.__validate_program_output(result, output_dir)
 
                         return result
 
@@ -280,43 +280,36 @@ class Interpreter:
 
         return value
 
-    def __validate_input(self, inputs: list[str], directive: dict) -> None:
-        dtype = directive.get("type")
+    def __validate_program_input(self, inputs: list[str], directive: dict) -> None:
+        try:
+            self.__validate_in_or_out_directive(inputs, directive)
+        except InterpreterError as err:
+            raise InterpreterError(f"Program input validation failed: {err}")
 
-        if dtype == "fixed":
-            expected = directive.get("value")
-            if len(inputs) != expected:
-                raise InterpreterError(f"Input directive expects {expected} inputs, got {len(inputs)}")
+    def __validate_program_output(self, outputs: list[str], directive: dict) -> None:
+        try:
+            self.__validate_in_or_out_directive(outputs, directive)
+        except InterpreterError as err:
+            raise InterpreterError(f"Program output validation failed: {err}")
 
-        elif dtype == "range":
+    def __validate_in_or_out_directive(self, operands: list[str], directive: dict) -> None:
+        directive_type = directive.get("type")
+
+        if directive_type == "fixed":
+            expected_num_operands = directive.get("value")
+            if len(operands) != expected_num_operands:
+                raise InterpreterError(f"Directive expected {expected_num_operands} operands, got {len(operands)}")
+
+        elif directive_type == "range":
             mn = directive.get("min")
             mx = directive.get("max")
-            if mn is not None and len(inputs) < mn:
-                raise InterpreterError(f"Input directive expects at least {mn} inputs, got {len(inputs)}")
-            if mx is not None and len(inputs) > mx:
-                raise InterpreterError(f"Input directive expects at most {mx} inputs, got {len(inputs)}")
+            if mn is not None and len(operands) < mn:
+                raise InterpreterError(f"Directive expected at least {mn} operands, got {len(operands)}")
+            if mx is not None and len(operands) > mx:
+                raise InterpreterError(f"Directive expected at most {mx} operands, got {len(operands)}")
 
         else:
-            raise InterpreterError(f"Unknown input directive type: {dtype}")
-
-    def __validate_output(self, outputs: list[str], directive: dict) -> None:
-        dtype = directive.get("type")
-
-        if dtype == "fixed":
-            expected = directive.get("value")
-            if len(outputs) != expected:
-                raise InterpreterError(f"Output directive expects {expected} outputs, got {len(outputs)}")
-
-        elif dtype == "range":
-            mn = directive.get("min")
-            mx = directive.get("max")
-            if mn is not None and len(outputs) < mn:
-                raise InterpreterError(f"Output directive expects at least {mn} outputs, got {len(outputs)}")
-            if mx is not None and len(outputs) > mx:
-                raise InterpreterError(f"Output directive expects at most {mx} outputs, got {len(outputs)}")
-
-        else:
-            raise InterpreterError(f"Unknown output directive type: {dtype}")
+            raise InterpreterError(f"Unknown directive type: {directive_type}")
 
     def __interpret_identifier(self, code: dict) -> BlipType:
         self.__ensure_code_type(code, "identifier")
