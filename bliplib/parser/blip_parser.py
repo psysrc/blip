@@ -49,12 +49,23 @@ class Parser:
         return token_value
 
     def __parse_program(self) -> dict:
+        directives = {}
+
+        # Parse optional top-level directives (e.g. !in / !out)
+        while self.__current_token.type in {"DIRECTIVE_IN", "DIRECTIVE_OUT"}:
+            directives.update(self.__parse_directive())
+
         statements = self.__parse_statements()
 
-        return {
+        program = {
             "type": "program",
             "statements": statements,
         }
+
+        if directives:
+            program["directives"] = directives
+
+        return program
 
     def __parse_statements(self) -> list:
         statements = []
@@ -242,6 +253,64 @@ class Parser:
             "type": "return",
             "expression": expression,
         }
+
+    def __parse_directive(self) -> dict:
+        match self.__current_token.type:
+            case "DIRECTIVE_IN":
+                self.__consume_token("DIRECTIVE_IN")
+                payload = self.__parse_directive_body()
+                self.__consume_token("EOL", "EOF")
+                return {"input": payload}
+
+            case "DIRECTIVE_OUT":
+                self.__consume_token("DIRECTIVE_OUT")
+                payload = self.__parse_directive_body()
+                self.__consume_token("EOL", "EOF")
+                return {"output": payload}
+
+            case _:
+                raise ParserError(f"Unexpected directive token {self.__current_token}")
+
+    def __parse_directive_body(self) -> dict:
+        # Possible forms:
+        # 1) INTEGER_LITERAL                      => fixed count
+        # 2) INTEGER_LITERAL '..' INTEGER_LITERAL => range
+        # 3) INTEGER_LITERAL '..'                 => range min..
+        # 4) '..' INTEGER_LITERAL                 => range ..max
+        # 5) IDENTIFIER IDENTIFIER ...            => named fixed
+
+        if self.__current_token.type == "INTEGER_LITERAL":
+            lower = int(self.__consume_token("INTEGER_LITERAL"))
+
+            if self.__current_token.type == "..":
+                self.__consume_token("..")
+
+                if self.__current_token.type == "INTEGER_LITERAL":
+                    upper = int(self.__consume_token("INTEGER_LITERAL"))
+                else:
+                    upper = None
+
+                return {"type": "range", "min": lower, "max": upper}
+
+            return {"type": "fixed", "value": lower}
+
+        if self.__current_token.type == "..":
+            self.__consume_token("..")
+
+            if self.__current_token.type == "INTEGER_LITERAL":
+                upper = int(self.__consume_token("INTEGER_LITERAL"))
+                return {"type": "range", "min": None, "max": upper}
+
+            raise ParserError("Malformed directive range")
+
+        if self.__current_token.type == "IDENTIFIER":
+            names = []
+            while self.__current_token.type == "IDENTIFIER":
+                names.append(self.__consume_token("IDENTIFIER"))
+
+            return {"type": "fixed", "value": len(names), "names": names}
+
+        raise ParserError(f"Unexpected token {self.__current_token} in directive body")
 
     def __parse_string_literal(self) -> dict:
         literal_text = self.__consume_token("STRING_LITERAL")
