@@ -134,3 +134,95 @@ However, with a fixed number of inputs you can also directly populate variables 
 ```plaintext
 !in username email  // Exactly 2 strings as input: First string becomes 'username', second string becomes 'email'
 ```
+
+## If Statements
+
+`if` statements create conditional control flow.
+
+```
+name = "Sam"
+
+if name == "Sam" {
+    ret "Superuser"
+}
+```
+
+### Conditional Decomposition
+
+Blip also supports `if` statements with conditional decomposition. If the decomposition succeeds, the condition is considered true and the `if` block executes. If it fails, the `if` block is skipped and control moves to the next statement.
+
+```plaintext
+email = "bob@example.com"
+
+// Try to decompose the email to check if it contains '@'
+if email -> name "@" domain {
+    ret name
+}
+```
+
+This also works with `else` blocks, which execute if the decomposition fails:
+
+```plaintext
+data = "[123]"
+
+if data -> "[" num "]" {
+    ret "Found number: " num
+} else {
+    ret "Not a valid number"
+}
+```
+
+## While Loops
+
+Blip supports `while` loops for repeated iteration with a boolean condition.
+
+```plaintext
+counter = 0
+
+while counter < 5 {
+    counter = counter + 1
+}
+
+ret counter
+```
+
+The `while` loop continues as long as the condition is true. The `break` statement can be used to exit the loop early:
+
+```plaintext
+counter = 0
+
+while true {
+    counter = counter + 1
+    if counter >= 10 {
+        break
+    }
+}
+
+ret counter
+```
+
+## For Loops
+
+Blip supports `for` loops to iterate over lists and arbitrary ranges.
+
+When iterating over lists, the loop variable is automatically assigned each element from the list.
+
+```plaintext
+items = ["a", "b", "c"]
+
+for item in items {
+    // Process each item
+    // item = "a" then "b" then "c"
+}
+```
+
+When iterating over ranges, the loop variable starts at 0 and increments by 1 each iteration.
+
+```
+for num in 3 {
+    // Do something 3 times
+    // num = 0 then 1 then 2
+}
+```
+
+For loops also support the `break` statement to exit the loop early.
