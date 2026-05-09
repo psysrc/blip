@@ -34,11 +34,11 @@ def main():
         blip_ir = Parser(file_path.read_text()).parse()
 
     except ParserError as err:
-        print(f"Parser error: {err}")
+        print(f"Parser error: {err}", file=sys.stderr)
         sys.exit(1)
 
     except Exception as err:
-        print(f"Unknown error encountered while parsing program: {err}")
+        print(f"Unknown error encountered while parsing program: {err}", file=sys.stderr)
         sys.exit(2)
 
     if args.interpret:
@@ -50,11 +50,11 @@ def main():
             sys.exit(0)
 
         except InterpreterError as err:
-            print(f"Interpreter error: {err}")
+            print(f"Interpreter error: {err}", file=sys.stderr)
             sys.exit(1)
 
         except Exception as err:
-            print(f"Unknown error encountered while interpreting program: {err}")
+            print(f"Unknown error encountered while interpreting program: {err}", file=sys.stderr)
             sys.exit(2)
 
     if args.transpile:
@@ -64,8 +64,8 @@ def main():
         print(json.dumps(blip_ir, indent=4))
         sys.exit(0)
 
-    print("Error: Program called with unexpected arguments.")
-    print(f"{args}")
+    print("Error: Program called with unexpected arguments.", file=sys.stderr)
+    print(f"{args}", file=sys.stderr)
     sys.exit(1)
 
 
