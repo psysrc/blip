@@ -4,6 +4,8 @@ from pathlib import Path
 import sys
 from bliplib.interpreter import Interpreter, InterpreterError
 from bliplib.parser import Parser, ParserError
+from bliplib.transpiler import factory as transpiler_factory
+from bliplib.transpiler.interface import Transpiler
 
 
 def main():
@@ -19,8 +21,9 @@ def main():
         help="Execute the program using the Blip Interpreter (this is the default)",
     )
     mode_args.add_argument("-t", "--transpile", metavar="LANG", help="Transpile the program into another language")
-    mode_args.add_argument("--ir", action="store_true", help="Output the program's Intermediate Representation")
+    mode_args.add_argument("--ir", action="store_true", help="Output the program's Intermediate Representation (BlipIR)")
 
+    argument_parser.add_argument("--prog", action="store_true", help="Create a full program when transpiling")
     argument_parser.add_argument("input_strings", nargs="*", help="Input strings (only used in interpret mode)")
 
     args = argument_parser.parse_args()
@@ -58,7 +61,15 @@ def main():
             sys.exit(2)
 
     if args.transpile:
-        raise NotImplementedError("Transpiling is not supported yet.")
+        transpiler: Transpiler = transpiler_factory.get_transpiler(args.transpile)
+
+        if args.prog:
+            target_code = transpiler.transpile_program(blip_ir)
+        else:
+            target_code = transpiler.transpile_function(blip_ir)
+
+        print(target_code)
+        sys.exit(0)
 
     if args.ir:
         print(json.dumps(blip_ir, indent=4))
