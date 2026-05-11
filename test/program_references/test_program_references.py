@@ -9,8 +9,8 @@ import pytest
 import warnings
 from bliplib.parser import Parser, ParserError
 from bliplib.interpreter import Interpreter, InterpreterError
-from test.reference_parser import ReferenceParser
-from test.reference_program import ReferenceProgram
+from test.program_references.reference_parser import ReferenceParser
+from test.program_references.reference_program import ReferenceProgram
 
 
 __reference_programs: Optional[list[ReferenceProgram]] = None
