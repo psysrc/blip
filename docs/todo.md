@@ -19,7 +19,7 @@ Once a feature has been sufficiently designed, it needs to be implemented.
 
 Feature|Parser|Interpreter|Transpiler (Python)|Transpiler (C)|Transpiler (C++)
 -------|:----:|:---------:|:-----------------:|:------------:|:--------------:
-Return statement|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
+Return statement|:white_check_mark:|:white_check_mark:|:construction:|:x:|:x:
 Concatenation|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
 Decomposition|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
 Variables|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
@@ -30,9 +30,9 @@ List indexing|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
 Boolean type|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
 Input directives|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
 Output directives|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
-If-conditionals|:construction:|:x:|:x:|:x:|:x:
-For-loops|:construction:|:x:|:x:|:x:|:x:
-While-loops|:construction:|:x:|:x:|:x:|:x:
+If-conditionals|:x:|:x:|:x:|:x:|:x:
+For-loops|:x:|:x:|:x:|:x:|:x:
+While-loops|:x:|:x:|:x:|:x:|:x:
 
 Key:
 
