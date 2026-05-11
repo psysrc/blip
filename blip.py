@@ -28,13 +28,16 @@ def main():
 
     args = argument_parser.parse_args()
 
-    file_path = Path(args.file)
+    if args.file == "-":
+        blip_code = sys.stdin.read()
+    else:
+        blip_code = Path(args.file).read_text()
 
     if not any([args.ir, args.transpile, args.interpret]):
         args.interpret = True
 
     try:
-        blip_ir = Parser(file_path.read_text()).parse()
+        blip_ir = Parser(blip_code).parse()
 
     except ParserError as err:
         print(f"Parser error: {err}", file=sys.stderr)
