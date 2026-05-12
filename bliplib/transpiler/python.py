@@ -22,7 +22,7 @@ class PythonTranspiler(Transpiler):
 
             return "\n".join(python_statements)
 
-        except RuntimeError as err:
+        except Exception as err:
             raise TranspilerError() from err
 
     def transpile_program(self, blip_ir: dict) -> str:
