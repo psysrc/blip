@@ -4,7 +4,7 @@ set -e
 
 PACKAGE_DIR=package/
 MAIN_NAME=blip
-EXE_NAME=blip.app
+EXE_NAME=blip
 
 mkdir -p $PACKAGE_DIR
 
