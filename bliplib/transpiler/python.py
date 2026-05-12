@@ -1,9 +1,24 @@
+from typing import Self
 from bliplib.transpiler.interface import Transpiler
 from bliplib.errors import TranspilerError
 
 
+class PythonReturnStatement:
+    def __init__(self, expression: str):
+        self.__expression = expression
+
+    @staticmethod
+    def from_blip_ir(blip_ir: dict) -> Self:
+        match blip_ir:
+            case {"type": "return"}:
+                return PythonReturnStatement(blip_ir["expression"]["value"]["value"])
+
+    def serialise(self) -> str:
+        return f"""return ["{self.__expression}"]"""
+
+
 class PythonFunction:
-    def __init__(self, statements: list[str]):
+    def __init__(self, statements: list[PythonReturnStatement]):
         self.__statements = statements
 
     def serialise(self) -> str:
@@ -12,7 +27,7 @@ class PythonFunction:
         serial = [signature]
 
         for stmt in self.__statements:
-            serial.append(f"    {stmt}")
+            serial.append(f"    {stmt.serialise()}")
 
         return "\n".join(serial)
 
@@ -25,7 +40,7 @@ class PythonTranspiler(Transpiler):
             if len(blip_statements) == 0:
                 raise TranspilerError("Cannot generate Python code for an empty Blip program")
 
-            function = PythonFunction([f"""return ["{stmt["expression"]["value"]["value"]}"]""" for stmt in blip_statements])
+            function = PythonFunction([PythonReturnStatement.from_blip_ir(stmt) for stmt in blip_statements])
 
             return function.serialise()
 
