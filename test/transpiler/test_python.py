@@ -1,4 +1,6 @@
+import pytest
 from bliplib.transpiler.python import PythonTranspiler
+from bliplib.errors import BlipError
 
 
 def test_hello_world_function():
@@ -25,3 +27,13 @@ def test_hello_world_function():
     actual_python = PythonTranspiler().transpile_function(blip_ir)
 
     assert actual_python == expected_python
+
+
+def test_empty_program_fails_to_transpile():
+    blip_ir = {
+        "type": "program",
+        "statements": [],
+    }
+
+    with pytest.raises(BlipError):
+        PythonTranspiler().transpile_function(blip_ir)

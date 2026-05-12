@@ -12,3 +12,7 @@ class ParserError(BlipError):
 
 class InterpreterError(BlipError):
     """An error emitted by the Blip interpreter."""
+
+
+class TranspilerError(BlipError):
+    """An error emitted by a Blip transpiler."""
