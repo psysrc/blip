@@ -44,8 +44,11 @@ class PythonTranspiler(Transpiler):
 
             return function.serialise()
 
+        except TranspilerError:
+            raise
+
         except Exception as err:
-            raise TranspilerError() from err
+            raise TranspilerError("Internal error") from err
 
     def transpile_program(self, blip_ir: dict) -> str:
         raise NotImplementedError("Python program transpiling")
