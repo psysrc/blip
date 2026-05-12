@@ -3,18 +3,51 @@ from bliplib.transpiler.interface import Transpiler
 from bliplib.errors import TranspilerError
 
 
-class PythonReturnStatement:
+class PythonExpression:
     def __init__(self, expression: str):
         self.__expression = expression
 
     @staticmethod
     def from_blip_ir(blip_ir: dict) -> Self:
         match blip_ir:
-            case {"type": "return"}:
-                return PythonReturnStatement(blip_ir["expression"]["value"]["value"])
+            case {"type": "expression"}:
+                expr = blip_ir["value"]
+                match expr:
+                    case {"type": "string_literal"}:
+                        return PythonExpression(f'"{expr["value"]}"')
+                    case {"type": "list"}:
+                        elems = expr["elements"]
+                        values = [f'"{e["value"]["value"]}"' for e in elems]
+                        return PythonExpression(", ".join(values))
+                    case _:
+                        raise NotImplementedError()
+
+            case _:
+                err = f"Cannot generate Python expression from BlipIR: {blip_ir}"
+                raise TranspilerError(err)
 
     def serialise(self) -> str:
-        return f"""return ["{self.__expression}"]"""
+        return self.__expression
+
+
+class PythonReturnStatement:
+    def __init__(self, expression: PythonExpression):
+        self.__expression = expression
+
+    @staticmethod
+    def from_blip_ir(blip_ir: dict) -> Self:
+        match blip_ir:
+            case {"type": "return"}:
+                expr = blip_ir["expression"]
+                expression = PythonExpression.from_blip_ir(expr)
+                return PythonReturnStatement(expression)
+
+            case _:
+                err = f"Cannot generate Python return statement from BlipIR: {blip_ir}"
+                raise TranspilerError(err)
+
+    def serialise(self) -> str:
+        return f"""return [{self.__expression.serialise()}]"""
 
 
 class PythonFunction:
