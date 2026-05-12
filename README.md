@@ -5,7 +5,7 @@ Blip is a Domain Specific Language (DSL) for parsing and manipulating string dat
 It's intended to be easy to write, easy to understand, and intuitive.
 It can be directly interpreted or transpiled into various other languages.
 
-*Blip is currently under construction! Please be patient.*
+:construction: *Blip is currently under construction! Please be patient.*
 
 ## Documentation
 
