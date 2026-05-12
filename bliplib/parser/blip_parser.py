@@ -3,10 +3,7 @@ Implements the Parser class.
 """
 
 from .tokenizer import Tokenizer
-
-
-class ParserError(RuntimeError):
-    pass
+from bliplib.errors import ParserError
 
 
 class Parser:

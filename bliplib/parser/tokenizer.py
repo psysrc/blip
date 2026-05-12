@@ -5,6 +5,7 @@ Implements the Tokenizer class.
 import logging
 import re
 from dataclasses import dataclass
+from bliplib.errors import TokenizerError
 
 
 @dataclass
@@ -14,10 +15,6 @@ class Token:
 
     def __str__(self) -> str:
         return f"TOKEN['{self.type}' | '{self.value}']"
-
-
-class TokenizerError(RuntimeError):
-    pass
 
 
 class Tokenizer:

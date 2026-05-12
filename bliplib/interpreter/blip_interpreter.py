@@ -3,10 +3,7 @@ Implements the Interpreter class.
 """
 
 from typing import Optional
-
-
-class InterpreterError(RuntimeError):
-    pass
+from bliplib.errors import InterpreterError
 
 
 type BlipType = str | list[str] | int | list[int] | bool | list[bool]
