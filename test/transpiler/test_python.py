@@ -5,7 +5,13 @@ def test_hello_world_function():
     blip_ir = {
         "type": "program",
         "statements": [
-            {"type": "return", "expression": {"type": "expression", "value": {"type": "string_literal", "value": "Hello World!"}}}
+            {
+                "type": "return",
+                "expression": {
+                    "type": "expression",
+                    "value": {"type": "string_literal", "value": "Hello World!"},
+                },
+            }
         ],
     }
 
