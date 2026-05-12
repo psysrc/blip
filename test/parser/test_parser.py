@@ -1,7 +1,6 @@
 import pytest
 from bliplib.parser import Parser
 from bliplib.parser.blip_parser import ParserError
-from bliplib.parser.tokenizer import TokenizerError
 
 
 @pytest.fixture
@@ -10,7 +9,7 @@ def parser():
 
 
 def test_invalid_syntax_raises_tokenizer_error(parser):
-    with pytest.raises(TokenizerError):
+    with pytest.raises(ParserError):
         parser.parse("%67£$QGR _++ )(GFds")
 
 

@@ -3,7 +3,7 @@ Implements the Parser class.
 """
 
 from .tokenizer import Tokenizer, Token
-from bliplib.errors import ParserError
+from bliplib.errors import ParserError, TokenizerError
 
 
 class Parser:
@@ -25,15 +25,19 @@ class Parser:
         If parsing fails at any point, a ParserError will be raised.
         """
 
-        self.__tokenizer = Tokenizer(source)
-        self.__current_token = self.__tokenizer.next_token()
+        try:
+            self.__tokenizer = Tokenizer(source)
+            self.__current_token = self.__tokenizer.next_token()
 
-        ast = self.__parse_program()
+            ast = self.__parse_program()
+            return ast
 
-        self.__tokenizer = None
-        self.__current_token = None
+        except TokenizerError as err:
+            raise ParserError("Tokenization failure") from err
 
-        return ast
+        finally:
+            self.__tokenizer = None
+            self.__current_token = None
 
     def __consume_token(self, *token_types: str) -> str:
         """
