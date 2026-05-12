@@ -57,10 +57,10 @@ def run_interpreter_test(ref: ReferenceProgram):
 
 
 def run_parser_test(ref: ReferenceProgram):
-    parser = Parser(ref.blip_code)
+    parser = Parser()
 
     try:
-        actual_blip_ir = parser.parse()
+        actual_blip_ir = parser.parse(ref.blip_code)
     except ParserError as err:
         pytest.fail(f"Program reference '{ref.name}': Parser error: {err}")
 

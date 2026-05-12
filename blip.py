@@ -37,7 +37,7 @@ def main():
         args.interpret = True
 
     try:
-        blip_ir = Parser(blip_code).parse()
+        blip_ir = Parser().parse(blip_code)
 
     except ParserError as err:
         print(f"Parser error: {err}", file=sys.stderr)

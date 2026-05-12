@@ -2,7 +2,7 @@
 Implements the Parser class.
 """
 
-from .tokenizer import Tokenizer
+from .tokenizer import Tokenizer, Token
 from bliplib.errors import ParserError
 
 
@@ -10,23 +10,30 @@ class Parser:
     """
     The Blip Parser.
 
-    Performs syntactic analysis of the tokenized source code to produce an Abstract Syntax Tree (AST).
-    The AST can then be compiled into a target language, or interpreted.
+    Performs tokenization and syntactic analysis of the source code to produce BlipIR (an Abstract Syntax Tree (AST)).
+    The BlipIR can then be transpiled into a target language, or directly interpreted.
     """
 
-    def __init__(self, source: str):
-        self.__tokenizer = Tokenizer(source)
+    def __init__(self):
+        self.__tokenizer: Tokenizer | None = None
+        self.__current_token: Token | None = None
 
-        self.__current_token = self.__tokenizer.next_token()
-
-    def parse(self) -> dict:
+    def parse(self, source: str) -> dict:
         """
         Parse the source and return the AST.
 
         If parsing fails at any point, a ParserError will be raised.
         """
 
-        return self.__parse_program()
+        self.__tokenizer = Tokenizer(source)
+        self.__current_token = self.__tokenizer.next_token()
+
+        ast = self.__parse_program()
+
+        self.__tokenizer = None
+        self.__current_token = None
+
+        return ast
 
     def __consume_token(self, *token_types: str) -> str:
         """

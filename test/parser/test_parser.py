@@ -5,8 +5,10 @@ from bliplib.parser.tokenizer import Token, TokenizerError
 
 
 def test_invalid_syntax_raises_tokenizer_error():
+    parser = Parser()
+
     with pytest.raises(TokenizerError):
-        Parser("%67£$QGR _++ )(GFds")
+        parser.parse("%67£$QGR _++ )(GFds")
 
 
 def test_token_str():
@@ -16,44 +18,44 @@ def test_token_str():
 
 
 def test_bad_expression_raises_parser_error():
-    parser = Parser("ret")
+    parser = Parser()
 
     with pytest.raises(ParserError):
-        parser.parse()
+        parser.parse("ret")
 
 
 def test_bad_identifier_statement_raises_parser_error():
-    parser = Parser("hello hello")
+    parser = Parser()
 
     with pytest.raises(ParserError):
-        parser.parse()
+        parser.parse("hello hello")
 
 
 def test_bad_statement_raises_parser_error():
-    parser = Parser(",")
+    parser = Parser()
 
     with pytest.raises(ParserError):
-        parser.parse()
+        parser.parse(",")
 
 
 def test_bad_decomposition_raises_parser_error():
-    parser = Parser("foo -> []")
+    parser = Parser()
 
     with pytest.raises(ParserError):
-        parser.parse()
+        parser.parse("foo -> []")
 
 
 def test_bad_index_raises_parser_error():
-    parser = Parser("foo = bar['z']")
+    parser = Parser()
 
     with pytest.raises(ParserError):
-        parser.parse()
+        parser.parse("foo = bar['z']")
 
 
 def test_string_decomposition_square_brackets():
-    parser = Parser("text -> '[' content ']'")
+    parser = Parser()
 
-    assert parser.parse() == {
+    assert parser.parse("text -> '[' content ']'") == {
         "type": "program",
         "statements": [
             {
@@ -82,9 +84,9 @@ def test_string_decomposition_square_brackets():
 
 
 def test_string_decomposition_email():
-    parser = Parser("email -> name '@' *")
+    parser = Parser()
 
-    assert parser.parse() == {
+    assert parser.parse("email -> name '@' *") == {
         "type": "program",
         "statements": [
             {
@@ -112,9 +114,9 @@ def test_string_decomposition_email():
 
 
 def test_int_variable():
-    parser = Parser("num = 5")
+    parser = Parser()
 
-    assert parser.parse() == {
+    assert parser.parse("num = 5") == {
         "type": "program",
         "statements": [
             {
@@ -136,9 +138,9 @@ def test_int_variable():
 
 
 def test_variable_index_with_integer_literal():
-    parser = Parser("ret input[0]")
+    parser = Parser()
 
-    assert parser.parse() == {
+    assert parser.parse("ret input[0]") == {
         "type": "program",
         "statements": [
             {
@@ -163,9 +165,9 @@ def test_variable_index_with_integer_literal():
 
 
 def test_variable_index_with_integer_variable():
-    parser = Parser("idx = 0; ret input[idx]")
+    parser = Parser()
 
-    assert parser.parse() == {
+    assert parser.parse("idx = 0; ret input[idx]") == {
         "type": "program",
         "statements": [
             {
@@ -204,9 +206,9 @@ def test_variable_index_with_integer_variable():
 
 
 def test_empty_list_variable():
-    parser = Parser("list = []")
+    parser = Parser()
 
-    assert parser.parse() == {
+    assert parser.parse("list = []") == {
         "type": "program",
         "statements": [
             {
@@ -228,9 +230,9 @@ def test_empty_list_variable():
 
 
 def test_list_variable_one_element():
-    parser = Parser('list = ["a"]')
+    parser = Parser()
 
-    assert parser.parse() == {
+    assert parser.parse('list = ["a"]') == {
         "type": "program",
         "statements": [
             {
@@ -260,9 +262,9 @@ def test_list_variable_one_element():
 
 
 def test_list_variable_many_elements():
-    parser = Parser('list = ["a", "b", "c"]')
+    parser = Parser()
 
-    assert parser.parse() == {
+    assert parser.parse('list = ["a", "b", "c"]') == {
         "type": "program",
         "statements": [
             {
