@@ -392,16 +392,15 @@ ret my_str
 ## Decomposition
 
 Strings can be decomposed into constituent parts using the decomposition operator `->`.
-This simultaneously verifies that the string follows the expected pattern, throwing an error if not.
+This allows extraction of substrings into variables and also verifies that the string matches an expected pattern.
 
 #### Blip code
 
 ```blip
-// Assume the input is an email, e.g. harvey.madson@hotmail.co.uk
-email = input[0]
-email -> username "@" *
-username -> first "." last
-ret first " " last
+email = input[0]  // Assume the input is an email, e.g. joe.bloggs@hotmail.co.uk
+email -> username "@" *  // Decompose email to extract the username
+username -> first "." last  // Decompose username to get first and last name
+ret first " " last  // Concatenate first and last name with a space
 ```
 
 #### Blip IR
@@ -508,7 +507,7 @@ ret first " " last
 
 |Input|Output|
 |-----|------|
-|`["harvey.madson@hotmail.co.uk"]`|`["harvey madson"]`|
+|`["joe.bloggs@hotmail.co.uk"]`|`["joe bloggs"]`|
 |`["amy.nelson@gmail.com"]`|`["amy nelson"]`|
 |`["Not an email"]`|`Error`|
 
