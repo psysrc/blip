@@ -50,18 +50,18 @@ def test_reference_program(ref: ReferenceProgram):
 
     interpreter = Interpreter(blip_ir)
 
-    for i, exec in enumerate(ref.executions):
-        if exec.success:
+    for i, execution in enumerate(ref.executions):
+        if execution.success:
             try:
-                output = interpreter.run(exec.input_strings)
+                output = interpreter.run(execution.input_strings)
             except InterpreterError as err:
                 pytest.fail(f"Program reference '{ref.name}': Execution #{i + 1}: {err}")
             else:
-                assert output == exec.output_strings, f"Program reference '{ref.name}': Execution #{i + 1}: Incorrect program output"
+                assert output == execution.output_strings, f"Program reference '{ref.name}': Execution #{i + 1}: Incorrect program output"
 
         else:
             try:
-                output = interpreter.run(exec.input_strings)
+                output = interpreter.run(execution.input_strings)
             except InterpreterError:
                 pass
             else:
