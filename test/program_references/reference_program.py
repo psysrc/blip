@@ -5,7 +5,7 @@ from dataclasses import dataclass
 class ReferenceProgramExecution:
     input_strings: list[str]
     output_strings: list[str]
-    success: bool
+    expect_success: bool
 
 
 @dataclass

@@ -35,23 +35,11 @@ def get_reference_programs() -> list[ReferenceProgram]:
     return __reference_programs
 
 
-@pytest.mark.parametrize("ref", get_reference_programs())
-def test_reference_program(ref: ReferenceProgram):
-    """Given a `ReferenceProgram`, perform all necessary testing."""
-
-    parser = Parser(ref.blip_code)
-
-    try:
-        blip_ir = parser.parse()
-    except ParserError as err:
-        pytest.fail(f"Program reference '{ref.name}': Parser error: {err}")
-
-    assert blip_ir == ref.blip_ir, f"Program reference '{ref.name}': Incorrect Blip IR"
-
+def run_interpreter_test(blip_ir: dict, ref: ReferenceProgram):
     interpreter = Interpreter(blip_ir)
 
     for i, execution in enumerate(ref.executions):
-        if execution.success:
+        if execution.expect_success:
             try:
                 output = interpreter.run(execution.input_strings)
             except InterpreterError as err:
@@ -66,6 +54,22 @@ def test_reference_program(ref: ReferenceProgram):
                 pass
             else:
                 pytest.fail(f"Program reference '{ref.name}': Execution #{i + 1}: Did not throw error, output was {output}")
+
+
+@pytest.mark.parametrize("ref", get_reference_programs())
+def test_reference_program(ref: ReferenceProgram):
+    """Given a `ReferenceProgram`, perform all necessary testing."""
+
+    parser = Parser(ref.blip_code)
+
+    try:
+        blip_ir = parser.parse()
+    except ParserError as err:
+        pytest.fail(f"Program reference '{ref.name}': Parser error: {err}")
+
+    assert blip_ir == ref.blip_ir, f"Program reference '{ref.name}': Incorrect Blip IR"
+
+    run_interpreter_test(blip_ir, ref)
 
 
 def test_number_of_reference_programs():

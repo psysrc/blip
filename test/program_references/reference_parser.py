@@ -117,7 +117,7 @@ class ReferenceParser:
                 success = True
                 out_strings: list[str] = json.loads(o)
 
-            return ReferenceProgramExecution(input_strings=in_strings, output_strings=out_strings, success=success)
+            return ReferenceProgramExecution(input_strings=in_strings, output_strings=out_strings, expect_success=success)
 
         return ReferenceProgram(
             name=reference_name,
