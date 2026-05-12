@@ -1,10 +1,14 @@
-class TokenizerError(RuntimeError):
-    pass
+class BlipError(RuntimeError):
+    """Generic error class for all Blip-related errors."""
 
 
-class ParserError(RuntimeError):
-    pass
+class TokenizerError(BlipError):
+    """An error emitted by the Blip tokenizer."""
 
 
-class InterpreterError(RuntimeError):
-    pass
+class ParserError(BlipError):
+    """An error emitted by the Blip parser."""
+
+
+class InterpreterError(BlipError):
+    """An error emitted by the Blip interpreter."""

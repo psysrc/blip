@@ -1,3 +1,3 @@
-from bliplib.errors.exceptions import TokenizerError, ParserError, InterpreterError
+from bliplib.errors.exceptions import BlipError, TokenizerError, ParserError, InterpreterError
 
-__all__ = ["TokenizerError", "ParserError", "InterpreterError"]
+__all__ = ["BlipError", "TokenizerError", "ParserError", "InterpreterError"]
