@@ -1,11 +1,46 @@
 # Blip
 
 Blip is a Domain Specific Language (DSL) for parsing and manipulating string data.
-
-It's intended to be easy to write, easy to understand, and intuitive.
 It can be directly interpreted or transpiled into various other languages.
 
-:construction: *Blip is currently under construction! Please be patient.*
+It's intended to be easy to write, easy to understand, and intuitive.
+
+```mermaid
+flowchart LR
+    blip(Blip Code)
+    blipir(BlipIR)
+    parser[Blip Parser]
+    
+    blip --> parser
+    parser --> blipir
+    style blip fill:#55f,color:#fff,stroke:#333
+    style blipir fill:#c5f,color:#fff,stroke:#333
+    style parser fill:#555,color:#fff,stroke:#333
+
+    interpreter[Blip Interpreter]
+    blipir --> interpreter
+    style interpreter fill:#555,color:#fff,stroke:#333
+
+    py(Python Code)
+    py_transpiler[Python Transpiler]
+    blipir --> py_transpiler --> py
+    style py_transpiler fill:#555,color:#fff,stroke:#333
+    style py fill:#c33,color:#fff,stroke:#333
+
+    cpp(C++ Code)
+    cpp_transpiler[C++ Transpiler]
+    blipir --> cpp_transpiler --> cpp
+    style cpp_transpiler fill:#555,color:#fff,stroke:#333
+    style cpp fill:#c33,color:#fff,stroke:#333
+
+    c(C Code)
+    c_transpiler[C Transpiler]
+    blipir --> c_transpiler --> c
+    style c_transpiler fill:#555,color:#fff,stroke:#333
+    style c fill:#c33,color:#fff,stroke:#333
+```
+
+:construction: *Blip is a work-in-progress project. See the [to-do list](docs/todo.md) for current progress!*
 
 ## Documentation
 
