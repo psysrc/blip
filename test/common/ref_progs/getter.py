@@ -1,7 +1,7 @@
 from typing import Optional
 from pathlib import Path
-from test.common.classes import ReferenceProgram
-from test.common.parser import ReferenceParser
+from test.common.ref_progs.classes import ReferenceProgram
+from test.common.ref_progs.parser import ReferenceParser
 
 
 __reference_programs: Optional[list[ReferenceProgram]] = None

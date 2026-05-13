@@ -7,8 +7,8 @@ import pytest
 import warnings
 from bliplib.parser import Parser, ParserError
 from bliplib.interpreter import Interpreter, InterpreterError
-from test.common.classes import ReferenceProgram
-from test.common.getter import get_reference_programs
+from test.common.ref_progs.classes import ReferenceProgram
+from test.common.ref_progs.getter import get_reference_programs
 
 
 def run_interpreter_test(ref: ReferenceProgram):
