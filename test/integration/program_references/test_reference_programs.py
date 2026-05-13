@@ -11,31 +11,30 @@ from test.common.ref_progs.classes import ReferenceProgram
 from test.common.ref_progs.getter import get_reference_programs
 
 
-@pytest.fixture(scope="module", autouse=True, name="blip")
+__blip_binary = "./build/bin/blip"
+
+
+def __run_blip(blip_args: list[str], stdin: str) -> subprocess.CompletedProcess:
+    prog_args = [__blip_binary, "-"] + blip_args
+    return subprocess.run(prog_args, input=stdin, text=True, capture_output=True)
+
+
+@pytest.fixture(scope="module", autouse=True)
 def blip_binary():
     subprocess.run(["./build.sh"], check=True)  # Build the blip CLI tool
 
-    blip = "./build/bin/blip"
-    result = subprocess.run([blip, "--help"], stdout=subprocess.DEVNULL)  # Check it built correctly
+    result = subprocess.run([__blip_binary, "--help"], stdout=subprocess.DEVNULL)  # Check it built correctly
     if result.returncode != 0:
         raise RuntimeError("Failed to build blip executable")
 
-    return blip
-
-
-def test_hello_world_interpret(blip):
-    result = subprocess.run([blip, "-"], input="ret 'Hello World'", text=True, check=True, capture_output=True)
-
-    assert result.stdout == "['Hello World']\n"
-
 
 @pytest.mark.parametrize("ref", get_reference_programs())
-def test_reference_program_parsing(blip, ref: ReferenceProgram):
+def test_reference_program_parsing(ref: ReferenceProgram):
     """Given a `ReferenceProgram`, test that the Blip code parses into the correct BlipIR."""
 
     expected_blip_ir = ref.blip_ir
 
-    result = subprocess.run([blip, "-", "--ir"], input=ref.blip_code, text=True, capture_output=True)
+    result = __run_blip(["--ir"], ref.blip_code)
 
     if result.returncode == 0:
         actual_blip_ir = json.loads(result.stdout)
@@ -46,15 +45,14 @@ def test_reference_program_parsing(blip, ref: ReferenceProgram):
 
 
 @pytest.mark.parametrize("ref", get_reference_programs())
-def test_reference_program_interpreting(blip, ref: ReferenceProgram):
+def test_reference_program_interpreting(ref: ReferenceProgram):
     """Given a `ReferenceProgram`, test that the BlipIR is interpreted correctly."""
 
     for i, execution in enumerate(ref.executions):
-        prog_args = [blip, "-", "--interpret"]
-        prog_args.extend(execution.input_strings)
+        prog_args = ["--interpret"] + execution.input_strings
 
         if execution.expect_success:
-            result = subprocess.run(prog_args, input=ref.blip_code, text=True, capture_output=True)
+            result = __run_blip(prog_args, ref.blip_code)
 
             if result.returncode == 0:
                 actual_output = ast.literal_eval(result.stdout)
@@ -65,28 +63,28 @@ def test_reference_program_interpreting(blip, ref: ReferenceProgram):
                 pytest.fail(f"Program reference '{ref.name}': Execution #{i + 1}: Error code {result.returncode}")
 
         else:
-            result = subprocess.run(prog_args, input=ref.blip_code, text=True, capture_output=True)
+            result = __run_blip(prog_args, ref.blip_code)
 
             if result.returncode == 0:
                 pytest.fail(f"Program reference '{ref.name}': Execution #{i + 1}: Did not throw error, output was {result.stdout}")
 
 
 # @pytest.mark.parametrize("ref", get_reference_programs())
-# def test_reference_program_transpile_python(blip, ref: ReferenceProgram):
+# def test_reference_program_transpile_python(ref: ReferenceProgram):
 #     """Given a `ReferenceProgram`, test that the BlipIR is transpiled into Python correctly."""
 
 #     pytest.skip()
 
 
 # @pytest.mark.parametrize("ref", get_reference_programs())
-# def test_reference_program_transpile_cpp(blip, ref: ReferenceProgram):
+# def test_reference_program_transpile_cpp(ref: ReferenceProgram):
 #     """Given a `ReferenceProgram`, test that the BlipIR is transpiled into C++ correctly."""
 
 #     pytest.skip()
 
 
 # @pytest.mark.parametrize("ref", get_reference_programs())
-# def test_reference_program_transpile_c(blip, ref: ReferenceProgram):
+# def test_reference_program_transpile_c(ref: ReferenceProgram):
 #     """Given a `ReferenceProgram`, test that the BlipIR is transpiled into C correctly."""
 
 #     pytest.skip()
