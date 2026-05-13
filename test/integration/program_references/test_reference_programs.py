@@ -5,6 +5,7 @@ This ensures the Blip code can be parsed, interpreted, and transpiled into all s
 
 import pytest
 import json
+import ast
 import subprocess
 from test.common.ref_progs.classes import ReferenceProgram
 from test.common.ref_progs.getter import get_reference_programs
@@ -48,7 +49,26 @@ def test_reference_program_parsing(blip, ref: ReferenceProgram):
 def test_reference_program_interpreting(blip, ref: ReferenceProgram):
     """Given a `ReferenceProgram`, test that the BlipIR is interpreted correctly."""
 
-    pytest.skip()
+    for i, execution in enumerate(ref.executions):
+        prog_args = [blip, "-", "--interpret"]
+        prog_args.extend(execution.input_strings)
+
+        if execution.expect_success:
+            result = subprocess.run(prog_args, input=ref.blip_code, text=True, capture_output=True)
+
+            if result.returncode == 0:
+                actual_output = ast.literal_eval(result.stdout)
+                expected_output = execution.output_strings
+                assert actual_output == expected_output, f"Program reference '{ref.name}': Execution #{i + 1}: Incorrect program output"
+
+            else:
+                pytest.fail(f"Program reference '{ref.name}': Execution #{i + 1}: Error code {result.returncode}")
+
+        else:
+            result = subprocess.run(prog_args, input=ref.blip_code, text=True, capture_output=True)
+
+            if result.returncode == 0:
+                pytest.fail(f"Program reference '{ref.name}': Execution #{i + 1}: Did not throw error, output was {result.stdout}")
 
 
 # @pytest.mark.parametrize("ref", get_reference_programs())
