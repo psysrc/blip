@@ -34,10 +34,14 @@ def test_reference_program_parsing(blip, ref: ReferenceProgram):
 
     expected_blip_ir = ref.blip_ir
 
-    result = subprocess.run([blip, "-", "--ir"], input=ref.blip_code, text=True, check=True, capture_output=True)
-    actual_blip_ir = json.loads(result.stdout)
+    result = subprocess.run([blip, "-", "--ir"], input=ref.blip_code, text=True, capture_output=True)
 
-    assert actual_blip_ir == expected_blip_ir, f"Program reference '{ref.name}': Incorrect Blip IR"
+    if result.returncode == 0:
+        actual_blip_ir = json.loads(result.stdout)
+
+        assert actual_blip_ir == expected_blip_ir, f"Program reference '{ref.name}': Incorrect Blip IR"
+    else:
+        pytest.fail(f"Program reference '{ref.name}': Error code {result.returncode}")
 
 
 @pytest.mark.parametrize("ref", get_reference_programs())
