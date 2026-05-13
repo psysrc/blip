@@ -3,36 +3,12 @@ This unit test runs through all of the example programs in the `docs/refs/` dire
 This involves taking the Blip code, parsing it, then interpreting it with all of the inputs and asserting the correct outputs.
 """
 
-from pathlib import Path
-from typing import Optional
 import pytest
 import warnings
 from bliplib.parser import Parser, ParserError
 from bliplib.interpreter import Interpreter, InterpreterError
-from test.program_references.reference_parser import ReferenceParser
-from test.program_references.reference_program import ReferenceProgram
-
-
-__reference_programs: Optional[list[ReferenceProgram]] = None
-
-
-def get_reference_programs() -> list[ReferenceProgram]:
-    global __reference_programs
-    if __reference_programs is None:
-        __reference_programs = []
-
-        ref_program_dir = Path("docs/refs")
-        for ref_prog_file in ref_program_dir.glob("*.md"):
-            if ref_prog_file.name == "README.md":
-                continue
-
-            markdown_text = ref_prog_file.read_text()
-
-            found_programs = ReferenceParser(markdown_text).get_reference_programs()
-
-            __reference_programs.extend(found_programs)
-
-    return __reference_programs
+from test.common.classes import ReferenceProgram
+from test.common.getter import get_reference_programs
 
 
 def run_interpreter_test(ref: ReferenceProgram):

@@ -2,7 +2,7 @@ import json
 from typing import Optional
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
-from test.program_references.reference_program import ReferenceProgram, ReferenceProgramExecution
+from test.common.classes import ReferenceProgram, ReferenceProgramExecution
 
 
 class TokenStream:
