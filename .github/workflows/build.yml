@@ -30,8 +30,8 @@ jobs:
     - name: Run unit tests
       run: poetry run pytest test/unit/ --cov=bliplib --cov-report=term-missing
 
-    # - name: Run integration tests
-    #   run: poetry run pytest test/integration/
+    - name: Run integration tests
+      run: poetry run pytest test/integration/
 
     - name: Code linting
       run: poetry run ruff check
