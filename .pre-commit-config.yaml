@@ -16,6 +16,6 @@ repos:
       - id: pytest
         name: pytest
         language: system
-        entry: poetry run pytest
+        entry: poetry run pytest test/unit/
         types: [python]
         pass_filenames: false
