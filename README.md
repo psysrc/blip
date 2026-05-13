@@ -1,5 +1,12 @@
 # Blip
 
+<div align="center">
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Build Status](https://github.com/psysrc/blip/actions/workflows/build.yml/badge.svg)](https://github.com/psysrc/blip/actions?query=branch%3Amain)
+
+</div>
+
 Blip is a Domain Specific Language (DSL) for parsing and manipulating string data.
 It can be directly interpreted or transpiled into various other languages.
 
