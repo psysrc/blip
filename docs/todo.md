@@ -23,8 +23,8 @@ Return statement|:white_check_mark:|:white_check_mark:|:construction:|:x:|:x:
 Concatenation|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
 Decomposition|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
 Variables|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
-String type|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
-List type|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
+String type|:white_check_mark:|:white_check_mark:|:construction:|:x:|:x:
+List type|:white_check_mark:|:white_check_mark:|:construction:|:x:|:x:
 Integer type|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
 List indexing|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
 Boolean type|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
