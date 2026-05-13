@@ -6,6 +6,10 @@ It can be directly interpreted or transpiled into various other languages.
 It's intended to be easy to write, easy to understand, and intuitive.
 
 ```mermaid
+---
+config:
+  layout: 'elk'
+---
 flowchart LR
     blip(Blip Code)
     blipir(BlipIR)
