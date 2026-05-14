@@ -240,12 +240,12 @@ ret "OK"
 |`["a","b","c"]`|`["OK"]`|
 |`["a","b","c","d"]`|`Error`|
 
-## Range Output Directive
+## Range Output Directive (Success case)
 
 #### Blip code
 
 ```blip
-!out ..2
+!out ..1
 ret "OK"
 ```
 
@@ -261,7 +261,7 @@ ret "OK"
         "output": {
             "type": "range",
             "min": null,
-            "max": 2
+            "max": 1
         }
     },
     "statements": [
@@ -286,3 +286,65 @@ ret "OK"
 |Input|Output|
 |-----|------|
 |`[]`|`["OK"]`|
+
+## Range Output Directive (Error case)
+
+#### Blip code
+
+```blip
+!out ..1
+ret ["one", "two"]
+```
+
+#### Blip IR
+
+<details>
+<summary><i>Expand...</i></summary>
+
+```json
+{
+    "type": "program",
+    "statements": [
+        {
+            "type": "return",
+            "expression": {
+                "type": "expression",
+                "value": {
+                    "type": "list",
+                    "elements": [
+                        {
+                            "type": "expression",
+                            "value": {
+                                "type": "string_literal",
+                                "value": "one"
+                            }
+                        },
+                        {
+                            "type": "expression",
+                            "value": {
+                                "type": "string_literal",
+                                "value": "two"
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "directives": {
+        "output": {
+            "type": "range",
+            "min": null,
+            "max": 1
+        }
+    }
+}
+```
+
+</details>
+
+#### Execution
+
+|Input|Output|
+|-----|------|
+|`[]`|`Error`|
