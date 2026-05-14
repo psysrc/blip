@@ -52,7 +52,7 @@ def main():
             interpreter = Interpreter(blip_ir)
             input_strings: list[str] = args.input_strings
             output_strings: list[str] = interpreter.run(input_strings)
-            print(output_strings)
+            print(json.dumps(output_strings))
             sys.exit(0)
 
         except InterpreterError as err:

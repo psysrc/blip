@@ -5,7 +5,6 @@ This ensures the Blip code can be parsed, interpreted, and transpiled into all s
 
 import pytest
 import json
-import ast
 import subprocess
 from test.common.ref_progs.classes import ReferenceProgram
 from test.common.ref_progs.getter import get_reference_programs
@@ -55,7 +54,7 @@ def test_reference_program_interpreting(ref: ReferenceProgram):
             result = __run_blip(prog_args, ref.blip_code)
 
             if result.returncode == 0:
-                actual_output = ast.literal_eval(result.stdout)
+                actual_output = json.loads(result.stdout)
                 expected_output = execution.output_strings
                 assert actual_output == expected_output, f"Program reference '{ref.name}': Execution #{i + 1}: Incorrect program output"
 
