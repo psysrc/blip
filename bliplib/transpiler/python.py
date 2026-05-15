@@ -9,8 +9,9 @@ class PythonStatement:
 
 
 class PythonExpression:
-    def __init__(self, expression: str):
+    def __init__(self, expression: str, expr_type: type):
         self.__expression = expression
+        self.__expr_type = expr_type
 
     @staticmethod
     def from_blip_ir(blip_ir: dict) -> Self:
@@ -19,11 +20,11 @@ class PythonExpression:
                 expr = blip_ir["value"]
                 match expr:
                     case {"type": "string_literal"}:
-                        return PythonExpression(f'"{expr["value"]}"')
+                        return PythonExpression(f'"{expr["value"]}"', str)
                     case {"type": "list"}:
                         elems = expr["elements"]
                         values = [f'"{e["value"]["value"]}"' for e in elems]
-                        return PythonExpression(", ".join(values))
+                        return PythonExpression(f"[{', '.join(values)}]", list)
                     case _:
                         raise NotImplementedError()
 
@@ -33,6 +34,9 @@ class PythonExpression:
 
     def serialise(self) -> str:
         return self.__expression
+
+    def get_type(self) -> type:
+        return self.__expr_type
 
 
 class PythonRaiseStatement(PythonStatement):
@@ -60,7 +64,12 @@ class PythonReturnStatement(PythonStatement):
                 raise TranspilerError(err)
 
     def serialise(self) -> str:
-        return f"""return [{self.__expression.serialise()}]"""
+        expression = self.__expression.serialise()
+
+        if self.__expression.get_type() is str:
+            expression = f"[{expression}]"  # Wrap in a list
+
+        return f"""return {expression}"""
 
 
 class PythonFunction:
