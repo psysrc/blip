@@ -21,7 +21,7 @@ def __get_progs():
     ]
 
     # See https://docs.pytest.org/en/latest/how-to/skipping.html#skip-xfail-with-parametrize
-    return [pytest.param(p, marks=pytest.mark.xfail) if p.name in xfail_progs else p for p in get_reference_programs()]
+    return [pytest.param(p, marks=pytest.mark.xfail(strict=True)) if p.name in xfail_progs else p for p in get_reference_programs()]
 
 
 @pytest.mark.parametrize("ref", __get_progs())
