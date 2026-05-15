@@ -24,7 +24,7 @@ def blip_binary():
 
     result = subprocess.run([__blip_binary, "--help"], stdout=subprocess.DEVNULL)  # Check it built correctly
     if result.returncode != 0:
-        raise RuntimeError("Failed to build blip executable")
+        raise RuntimeError(f"Failed to build blip executable: {result.stderr}")
 
 
 @pytest.mark.parametrize("ref", get_reference_programs())
@@ -40,7 +40,7 @@ def test_reference_program_parse(ref: ReferenceProgram):
 
         assert actual_blip_ir == expected_blip_ir, f"Program reference '{ref.name}': Incorrect Blip IR"
     else:
-        pytest.fail(f"Program reference '{ref.name}': Failed to parse (error code {result.returncode})")
+        pytest.fail(f"Program reference '{ref.name}': Failed to parse (error code {result.returncode})\n{result.stderr}")
 
 
 @pytest.mark.parametrize("ref", get_reference_programs())
@@ -58,29 +58,55 @@ def test_reference_program_interpret(ref: ReferenceProgram):
                 assert actual_output == expected_output, f"Program reference '{ref.name}': Execution #{i + 1}: Incorrect program output"
 
             else:
-                pytest.fail(f"Program reference '{ref.name}': Execution #{i + 1}: Error code {result.returncode}")
+                pytest.fail(f"Program reference '{ref.name}': Execution #{i + 1}: Error code {result.returncode}\n{result.stderr}")
 
         else:
             if result.returncode == 0:
                 pytest.fail(f"Program reference '{ref.name}': Execution #{i + 1}: Did not throw error, output was {result.stdout}")
 
 
-# @pytest.mark.parametrize("ref", get_reference_programs())
-# def test_reference_program_transpile_python(ref: ReferenceProgram):
-#     """Given a `ReferenceProgram`, test that the BlipIR is transpiled into Python correctly."""
+@pytest.mark.xfail(reason="Python transpiling is still under development")
+@pytest.mark.parametrize("ref", get_reference_programs())
+def test_reference_program_transpile_python(ref: ReferenceProgram):
+    """Given a `ReferenceProgram`, test that the BlipIR is transpiled into Python and the Python code behaves correctly."""
 
-#     pytest.skip()
+    blip_args = ["--transpile", "python", "--prog"]
+    blip_result = __run_blip(blip_args, ref.blip_code)
+
+    if blip_result.returncode != 0:
+        pytest.fail(f"Program reference '{ref.name}': Failed to transpile to Python\n{blip_result.stderr}")
+
+    python_code = blip_result.stdout
+
+    for i, execution in enumerate(ref.executions):
+        python_args = ["python3", "-"] + execution.input_strings
+        python_result = subprocess.run(python_args, input=python_code, text=True, capture_output=True)
+
+        if execution.expect_success:
+            if python_result.returncode == 0:
+                actual_output = json.loads(python_result.stdout)
+                expected_output = execution.output_strings
+                assert actual_output == expected_output, f"Program reference '{ref.name}': Execution #{i + 1}: Incorrect program output"
+
+            else:
+                pytest.fail(
+                    f"Program reference '{ref.name}': Execution #{i + 1}: Error code ({blip_result.returncode})\n{python_result.stderr}"
+                )
+
+        else:
+            if python_result.returncode == 0:
+                pytest.fail(f"Program reference '{ref.name}': Execution #{i + 1}: Did not throw error, output was {python_result.stdout}")
 
 
 # @pytest.mark.parametrize("ref", get_reference_programs())
 # def test_reference_program_transpile_cpp(ref: ReferenceProgram):
-#     """Given a `ReferenceProgram`, test that the BlipIR is transpiled into C++ correctly."""
+#     """Given a `ReferenceProgram`, test that the BlipIR is transpiled into C++ and the C++ code behaves correctly."""
 
 #     pytest.skip()
 
 
 # @pytest.mark.parametrize("ref", get_reference_programs())
 # def test_reference_program_transpile_c(ref: ReferenceProgram):
-#     """Given a `ReferenceProgram`, test that the BlipIR is transpiled into C correctly."""
+#     """Given a `ReferenceProgram`, test that the BlipIR is transpiled into C and the C code behaves correctly."""
 
 #     pytest.skip()
