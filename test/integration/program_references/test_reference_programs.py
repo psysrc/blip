@@ -19,7 +19,9 @@ def __run_blip(blip_args: list[str], stdin: str) -> subprocess.CompletedProcess:
 
 
 @pytest.fixture(scope="module", autouse=True)
-def blip_binary():
+def build_blip_binary():
+    """Run the build script to get the blip executable."""
+
     subprocess.run(["./build.sh"], check=True)  # Build the blip CLI tool
 
     result = subprocess.run([__blip_binary, "--help"], stdout=subprocess.DEVNULL)  # Check it built correctly
