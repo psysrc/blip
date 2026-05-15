@@ -28,7 +28,7 @@ def blip_binary():
 
 
 @pytest.mark.parametrize("ref", get_reference_programs())
-def test_reference_program_parsing(ref: ReferenceProgram):
+def test_reference_program_parse(ref: ReferenceProgram):
     """Given a `ReferenceProgram`, test that the Blip code parses into the correct BlipIR."""
 
     expected_blip_ir = ref.blip_ir
@@ -40,19 +40,18 @@ def test_reference_program_parsing(ref: ReferenceProgram):
 
         assert actual_blip_ir == expected_blip_ir, f"Program reference '{ref.name}': Incorrect Blip IR"
     else:
-        pytest.fail(f"Program reference '{ref.name}': Error code {result.returncode}")
+        pytest.fail(f"Program reference '{ref.name}': Failed to parse (error code {result.returncode})")
 
 
 @pytest.mark.parametrize("ref", get_reference_programs())
-def test_reference_program_interpreting(ref: ReferenceProgram):
+def test_reference_program_interpret(ref: ReferenceProgram):
     """Given a `ReferenceProgram`, test that the BlipIR is interpreted correctly."""
 
     for i, execution in enumerate(ref.executions):
-        prog_args = ["--interpret"] + execution.input_strings
+        blip_args = ["--interpret"] + execution.input_strings
+        result = __run_blip(blip_args, ref.blip_code)
 
         if execution.expect_success:
-            result = __run_blip(prog_args, ref.blip_code)
-
             if result.returncode == 0:
                 actual_output = json.loads(result.stdout)
                 expected_output = execution.output_strings
@@ -62,8 +61,6 @@ def test_reference_program_interpreting(ref: ReferenceProgram):
                 pytest.fail(f"Program reference '{ref.name}': Execution #{i + 1}: Error code {result.returncode}")
 
         else:
-            result = __run_blip(prog_args, ref.blip_code)
-
             if result.returncode == 0:
                 pytest.fail(f"Program reference '{ref.name}': Execution #{i + 1}: Did not throw error, output was {result.stdout}")
 
