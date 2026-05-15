@@ -71,7 +71,7 @@ def main():
         else:
             target_code = transpiler.transpile_function(blip_ir)
 
-        print(target_code, end="")
+        print(target_code)
         sys.exit(0)
 
     if args.ir:

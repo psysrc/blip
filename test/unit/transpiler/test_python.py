@@ -73,7 +73,6 @@ def test_hello_world_program():
             """""",
             """if __name__ == "__main__":""",
             """    main()""",
-            """""",
         ]
     )
 

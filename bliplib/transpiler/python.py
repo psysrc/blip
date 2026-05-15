@@ -135,7 +135,6 @@ class PythonTranspiler(Transpiler):
             """""",
             """if __name__ == "__main__":""",
             """    main()""",
-            """""",
         ]
 
         return "\n".join(program_lines)
