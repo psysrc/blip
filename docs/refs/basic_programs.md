@@ -92,6 +92,8 @@ ret 'Hello, World!'
 Programs in Blip always either return a valid output, or produce an error.
 So, the empty program below - which does not return any output - will always produce an error.
 
+While not particularly useful, it is nevertheless a valid Blip program.
+
 #### Blip code
 
 ```blip

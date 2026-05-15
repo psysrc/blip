@@ -8,7 +8,6 @@ from test.integration.conftest import run_blip
 
 def __get_progs():
     xfail_progs = [
-        "Empty Program",
         "Identity Program",
         "Variable Assignment",
         "Concatenation",
