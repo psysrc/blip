@@ -1,0 +1,39 @@
+import pytest
+import json
+import subprocess
+from test.common.ref_progs.classes import ReferenceProgram
+from test.common.ref_progs.getter import get_reference_programs
+from test.integration.conftest import run_blip
+
+
+@pytest.mark.xfail(reason="Python transpiling is still under development")
+@pytest.mark.parametrize("ref", get_reference_programs())
+def test_reference_program_transpile_python(ref: ReferenceProgram):
+    """Given a `ReferenceProgram`, test that the BlipIR is transpiled into Python and the Python code behaves correctly."""
+
+    blip_args = ["--transpile", "python", "--prog"]
+    blip_result = run_blip(blip_args, ref.blip_code)
+
+    if blip_result.returncode != 0:
+        pytest.fail(f"Program reference '{ref.name}': Failed to transpile to Python\n{blip_result.stderr}")
+
+    python_code = blip_result.stdout
+
+    for i, execution in enumerate(ref.executions):
+        python_args = ["python3", "-"] + execution.input_strings
+        python_result = subprocess.run(python_args, input=python_code, text=True, capture_output=True)
+
+        if execution.expect_success:
+            if python_result.returncode == 0:
+                actual_output = json.loads(python_result.stdout)
+                expected_output = execution.output_strings
+                assert actual_output == expected_output, f"Program reference '{ref.name}': Execution #{i + 1}: Incorrect program output"
+
+            else:
+                pytest.fail(
+                    f"Program reference '{ref.name}': Execution #{i + 1}: Error code ({blip_result.returncode})\n{python_result.stderr}"
+                )
+
+        else:
+            if python_result.returncode == 0:
+                pytest.fail(f"Program reference '{ref.name}': Execution #{i + 1}: Did not throw error, output was {python_result.stdout}")
