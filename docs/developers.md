@@ -3,17 +3,22 @@
 ## Getting Started
 
 Poetry is used to manage this repo.
-To get started, do the following:
+
+You can *optionally* create a specific virtual env to install poetry.
+This isn't necessary if you already have `poetry` available on the system.
 
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 pip install -U pip
 pip install poetry
-poetry install
 ```
 
-This will set up a new Python virtual environment with all dependencies.
+Then install all project dependencies:
+
+```bash
+poetry install
+```
 
 ## Running Blip
 
