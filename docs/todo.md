@@ -19,11 +19,11 @@ Once a feature has been sufficiently designed, it needs to be implemented.
 
 Feature|Parser|Interpreter|Transpiler (Python)|Transpiler (C)|Transpiler (C++)
 -------|:----:|:---------:|:-----------------:|:------------:|:--------------:
-Return statement|:white_check_mark:|:white_check_mark:|:construction:|:x:|:x:
+Return statement|:white_check_mark:|:white_check_mark:|:white_check_mark:|:x:|:x:
 Concatenation|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
 Decomposition|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
 Variables|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
-String type|:white_check_mark:|:white_check_mark:|:construction:|:x:|:x:
+String type|:white_check_mark:|:white_check_mark:|:white_check_mark:|:x:|:x:
 List type|:white_check_mark:|:white_check_mark:|:construction:|:x:|:x:
 Integer type|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
 List indexing|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
