@@ -1,6 +1,6 @@
 """
-These are the unit tests for the reference programs in the `docs/refs/` directory.
-This ensures the Blip code can be parsed and produces the correct outputs when interpreted.
+These are the parsing unit tests for the reference programs in the `docs/refs/` directory.
+This ensures the Blip code can be parsed.
 """
 
 import pytest
