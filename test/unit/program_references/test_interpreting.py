@@ -6,7 +6,6 @@ This ensures the Blip code produces the correct outputs when interpreted.
 import pytest
 from test.common.ref_progs.classes import ReferenceProgram
 from test.common.ref_progs.getter import get_reference_programs
-from bliplib.parser import Parser, ParserError
 from bliplib.interpreter import Interpreter, InterpreterError
 
 
