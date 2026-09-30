@@ -8,7 +8,7 @@ Before a feature can be implemented, it has to be properly designed.
 In no particular order, here are the ideas that still need to be fleshed out.
 
 - Functions
-- Static analysis and semantic checks after parsing
+- Definite-return analysis, static directive arity checks
 - Optimisations
 - Improved error messages
 - Arithmetic

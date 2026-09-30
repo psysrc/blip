@@ -1,7 +1,5 @@
 # AGENTS.md
 
-Guidance for AI agents working in this repository. Human-facing setup docs live in [docs/developers.md](docs/developers.md) — this file covers what isn't obvious from reading the code.
-
 ## What Blip is
 
 A DSL for parsing and manipulating string data. Blip source is parsed into **BlipIR** (a plain, JSON-serialisable `dict`), which is then either interpreted directly or transpiled into another language.
@@ -24,11 +22,11 @@ BlipIR is the contract between the front end and every back end. It is an ordina
 
 ## Reference programs are the test suite
 
-This is the most important convention here. The markdown files in `docs/refs/` are parsed at test time by `test/common/ref_progs/getter.py`, which globs `docs/refs/*.md` (skipping `README.md`) and extracts every program's Blip code, its expected BlipIR, and a table of input/output executions.
+The markdown files in `docs/refs/` are parsed at test time by `test/common/ref_progs/getter.py`, which globs `docs/refs/*.md` (skipping `README.md`) and extracts every program's Blip code, its expected BlipIR, and a table of input/output executions.
 
 Those parsed programs are then run against the parser, the interpreter, and each transpiler.
 
-**So: adding or changing a language feature means editing the documentation.** A new reference program in `docs/refs/` is immediately picked up by the parser, interpreter and transpiler test suites — you do not write per-feature tests for it by hand. Each program needs all four sections (`#### Blip code`, `#### Blip IR`, `#### Execution` table) in the existing format; follow `docs/refs/basic_programs.md`.
+**So: adding or changing a language feature means editing the documentation.** A new reference program in `docs/refs/` is immediately picked up by the parser, interpreter and transpiler test suites. Each reference program needs all four sections (`#### Blip code`, `#### Blip IR`, `#### Execution` table) in the existing format; follow `docs/refs/basic_programs.md`.
 
 Write unit tests in `test/unit/` only for things reference programs can't express — internal helpers, error paths, malformed IR.
 
@@ -52,7 +50,7 @@ poetry run ruff check --fix
 poetry run ruff format
 ```
 
-Integration tests are slow for a non-obvious reason: the session-scoped autouse fixture in `test/integration/conftest.py` runs `./build.sh`, which invokes PyInstaller to produce `./build/bin/blip`, and the tests then drive that binary as a subprocess. Prefer `pytest test/unit/` while iterating.
+Integration tests are slow-ish: the session-scoped autouse fixture in `test/integration/conftest.py` runs `./build.sh`, which invokes PyInstaller to produce `./build/bin/blip`, and the tests then drive that binary as a subprocess. Prefer `pytest test/unit/` while iterating.
 
 CI (`.github/workflows/build.yml`) runs unit tests with coverage, integration tests, `ruff check` and `ruff format --check` — all four must pass.
 
@@ -60,7 +58,6 @@ CI (`.github/workflows/build.yml`) runs unit tests with coverage, integration te
 
 - Ruff, line length **140** (configured in `pyproject.toml`; there is no other lint config).
 - Private attributes use the double-underscore name-mangled form (`self.__expression`), consistently throughout.
-- Dispatch on BlipIR with `match`/`case` and raise the matching `BlipError` subclass in the `case _:` fallback, with the offending IR in the message.
 - Transpilers must implement both `transpile_function` and `transpile_program` from `bliplib/transpiler/interface.py`, and register in `factory.py`.
 
 ## Transpiler back ends
