@@ -1,5 +1,8 @@
 # Blip Static Analysis Design
 
+This file documents the plan for adding static analysis to Blip.
+Once the functionality here is fully implemented, this file should be updated to read in present-tense.
+
 Blip programs are fully type-inferred: there is no type syntax in the language, and there is no plan to add any.
 Every consumer of BlipIR nevertheless needs to know the type of every expression — the interpreter to validate operations, and the
 transpilers to emit correctly typed target code. Today each consumer re-derives that knowledge, inconsistently: the interpreter re-checks
@@ -131,12 +134,12 @@ Re-wrapping is therefore per-slot and mechanical, and the exact-equality round t
 exist in the object model, it is also not annotated in the serialised IR — its type would be a duplicate of the value beneath it, and
 consumers already read `node["value"]` to find the node kind.
 
-### The parser still emits a `dict`
+### The parser still emits a `dict` for now
 
-`bliplib/parser/` is unchanged: it produces the same `dict` it produces today, and `load()` runs immediately afterwards. Rewriting the parser
+`bliplib/parser/` is unchanged for now: it produces the same `dict` it produces today, and `load()` runs immediately afterwards. Rewriting the parser
 to build objects directly — making `to_dict()` the only code that knows the JSON shape — is a worthwhile cleanup with no user-visible effect,
 so it is deferred rather than bundled in. Until then, an unannotated IR `dict` exists briefly between the parser and the loader, and is never
-serialised except by `--parse-only`.
+serialised except by `--no-analysis`.
 
 ## Type annotations in BlipIR
 
@@ -255,7 +258,7 @@ Unification and reassignment are **different operations, and the code must keep 
 *compares* two fully-formed types and rejects a mismatch (see Scope and binding, below). `x = []` followed by a use at `STRING` is
 inference. `x = "a"` followed by `x = 1` is an error.
 
-Because Blip variables are monomorphic and Blip has no functions, unification is *all* that is required — there is no generalisation and no
+Because Blip variables are monomorphic and Blip has no functions yet, unification is *all* that is required — there is no generalisation and no
 instantiation, which is the difference between this and a full Hindley–Milner implementation. See Deferred decisions.
 
 ### Inference rules
@@ -348,10 +351,10 @@ Four things the analyser could plausibly check, and does not:
 Analysis runs in **every** mode, so a static error surfaces identically whether interpreting, transpiling or dumping IR. `--ir` output is
 always fully analysed.
 
-| Flag           | Behaviour                                                                                          |
-| -------------- | -------------------------------------------------------------------------------------------------- |
-| `--check`      | Parse, load and analyse; emit nothing on success. Also re-verifies annotations already present      |
-| `--parse-only` | Dump the unannotated IR. For debugging the analyser itself; not a supported interchange format      |
+| Flag            | Behaviour                                                                                          |
+| --------------- | -------------------------------------------------------------------------------------------------- |
+| `--check`       | Parse, load and analyse; emit nothing on success. Also re-verifies annotations already present      |
+| `--no-analysis` | Dump the unannotated IR. For debugging the analyser itself; not a supported interchange format      |
 
 `--check` is the verifier that the "annotations are authoritative" bargain above depends on. It is also the cheapest possible pre-commit
 hook for a repository of Blip programs.
@@ -423,7 +426,7 @@ monomorphic rule, `SemanticError`. Validated against the corpus — no errors on
 entirely from fixtures that already exist. Unit tests cover the error paths.
 
 **Stage 3 — wire it in, annotate the fixtures.** Analysis runs in every mode. All 15 `#### Blip IR` blocks gain `blip_type` keys. Add
-`--check` and `--parse-only`, the `#### Compilation` reference-program category, the first static-error reference programs, and the test
+`--check` and `--no-analysis`, the `#### Compilation` reference-program category, the first static-error reference programs, and the test
 renames described above. [The ecosystem design](design_ecosystem.md) describes BlipIR as the output of the parser and needs the analyser
 adding to its pipeline diagram and its `--ir` description.
 
@@ -438,28 +441,23 @@ Stages 1 to 4 deliver the value; 5 is cleanup.
 
 ## Risks
 
-- **Stage 3 is a point of no return for the fixtures.** After it, every reference program's IR block contains types, and `docs/refs/*.md`
-  stops being comfortably hand-writable — the IR blocks become tool output that is reviewed rather than authored. That is the honest price of
-  putting types in the contract.
-- **A serialised type can lie.** Discussed above; mitigated by `--check`, not eliminated.
+- **A serialised type can lie.** Discussed above; mitigated by `--check`, not eliminated. This is acceptable.
 - **Wrapper re-insertion fidelity.** `to_dict()` must re-wrap in exactly the three slots the parser wraps, and nowhere else. Guarded by the
   existing exact-equality test over the whole corpus, which is why Stage 1 exists as its own stage.
 - **Two shapes in flight.** Until the parser builds objects directly, an unannotated IR `dict` exists between the parser and the loader. It
-  is internal and short-lived, but it is a second shape that a reader has to know about.
+  is internal and short-lived, but it is a second shape that a reader has to know about. This will be mitigated once the parser outputs objects directly.
 - **Scope creep into a general type checker.** The `docs/todo.md` analysis items are broader than this pass. Keep this one to types and
   binding.
-- **The monomorphic rule may reject programs the interpreter accepts.** Surveyed above against the existing corpus and found clean, but the
-  survey has to be repeated for any new reference program written before Stage 3.
 
 ## Deferred decisions
 
 - **The parser building objects directly.** Would make `to_dict()` the only code that knows the JSON shape. No user-visible effect, so it is
   not bundled into this work.
 - **`.blipir` as CLI input.** Discussed under CLI surface.
-- **User-defined functions.** `docs/todo.md` lists functions as a feature still to be designed. If Blip gets functions and they are meant to
-  be generic, this is where unification's missing half — generalisation at the definition and instantiation at each use, the other half of
-  Hindley–Milner — becomes necessary. That decision belongs with the functions design, not here; the unification described above is the part
-  that would not change.
+- **User-defined functions.** `docs/todo.md` lists functions as a feature still to be designed. Functions will likely be explicitly typed, but
+  if Blip gets functions and they are meant to be generic, this is where unification's missing half — generalisation at the definition and
+  instantiation at each use, the other half of Hindley–Milner — becomes necessary. That decision belongs with the functions design, not here;
+  the unification described above is the part that would not change.
 - **Source locations.** BlipIR carries none, so a semantic error can describe a conflict structurally but cannot point at a line. This bites
   hardest when two distant constraint sites disagree. Tracked under the `docs/todo.md` "Improved error messages" item.
 - **Comparison operators and arithmetic.** `if` and `while` conditions must be `BOOLEAN`, but no operator produces one yet, and arithmetic
