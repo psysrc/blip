@@ -72,9 +72,10 @@ wrong, for three reasons.
 - **Optimisations want IR-to-IR.** `docs/todo.md` lists optimisations as a feature to be designed. Passes compose when they share one shape.
   With a mirror tree, a future pass either runs before analysis without type information, or operates on a second representation that has to
   be maintained in step. Annotated BlipIR makes the analyser the first of a pipeline, not a fork in it.
-- **The cost was overstated.** Annotating every value node across all 15 reference programs adds roughly 11% to the lines in the
-  `#### Blip IR` blocks. The IR is already one key per line and the blocks live inside collapsed `<details>` elements, so a type key per
-  value node disappears into the noise.
+- **The cost was overstated.** Annotating every value node across all 15 reference programs adds 53 lines to the 489 in the `#### Blip IR`
+  blocks — roughly 11%. The IR is already one key per line and the blocks live inside collapsed `<details>` elements, so a type key per
+  value node disappears into the noise. Removing the `expression` wrapper in the same work takes 78 lines back out, so the annotated IR is
+  about 5% *shorter* than today's.
 
 The mirror tree's genuine benefit was that backends could not be handed a node with a missing field. That benefit does not require a second
 tree — it requires a loader, which is the next section.
@@ -107,39 +108,42 @@ Every `Value` carries a `blip_type` field; no other node does. `Wildcard`, the s
 
 Three properties matter:
 
-- **`load()` validates totally.** An unknown node kind, a missing field, or an unrecognised type string raises `IRError`, a new subclass of
-  `BlipError`. This is neither a `ParserError` (nothing was parsed) nor a `SemanticError` (nothing was analysed) — a malformed `.blipir` is
-  its own failure mode, and it is the failure mode that lets every backend delete its defensive `case _: raise` fallbacks.
+- **`load()` validates totally.** An unknown node kind, a missing field, an unrecognised type string, or an annotation that contradicts the
+  node it sits on raises `IRError`, a new subclass of `BlipError`. This is neither a `ParserError` (nothing was parsed) nor a `SemanticError`
+  (nothing was analysed) — a malformed `.blipir` is its own failure mode, and it is the failure mode that lets every backend delete its
+  defensive `case _: raise` fallbacks. The contradiction check is described under [Annotating what is derivable](#annotating-what-is-derivable).
 - **Nodes are mutable.** `blip_type` starts as `None` and the analyser fills it in place. Unification's final resolution pass — walk the
   tree and replace every hole with what it resolved to — is natural on a mutable tree and awkward on a frozen one. These are data carriers
   that backends read, so their fields are public: a deliberate departure from the `self.__private` convention used elsewhere.
 - **The round trip is exact.** `load(d).to_dict() == d` for any well-formed `d`. This is already tested for the whole corpus at no cost,
   because the reference-program test compares `blip --ir` output against the fixture for exact equality.
 
-### The `expression` wrapper is collapsed
+### The `expression` wrapper is removed
 
-BlipIR wraps some values in `{"type": "expression", "value": ...}`. The wrapper carries nothing — its type is always its value's type — so the
-object model drops it, and `to_dict()` re-inserts it. The wrapper appears in exactly three slots, and nowhere else:
+BlipIR used to wrap some values in `{"type": "expression", "value": ...}`. It is deleted from the format outright — not collapsed in the object
+model and re-inserted on the way out — so every value slot holds a value node directly.
 
-| Slot                    | Wrapped |
-| ----------------------- | ------- |
-| `assignment.expression` | yes     |
-| `return.expression`     | yes     |
-| `list.elements[*]`      | yes     |
-| `concatenation.operands[*]` | no  |
-| `decomposition.pattern[*]`  | no  |
-| `index.index`               | no  |
+The wrapper was not merely uninformative; it was *asymmetrically* uninformative, and that is what condemned it. Only the parser's
+`__parse_expression` ever produced one, so the wrapper marked "this slot was filled by the general expression production" — a fact about the
+parser's call graph, not about the program. It appeared in `assignment.expression`, `return.expression` and `list.elements[*]`, and not in
+`concatenation.operands[*]`, `decomposition.pattern[*]` or `index.index`, which are filled by narrower parser helpers. It did not even work as
+a reliable grammar marker, since the narrow slots accept kinds that also appear wrapped elsewhere: `index.index` takes an `integer_literal` or
+an `identifier`, both of which are wrapped in the slots above.
 
-Re-wrapping is therefore per-slot and mechanical, and the exact-equality round trip test is what guards it. Because the wrapper does not
-exist in the object model, it is also not annotated in the serialised IR — its type would be a duplicate of the value beneath it, and
-consumers already read `node["value"]` to find the node kind.
+A uniformly applied but useless convention would have been tolerable. Present in three value slots out of six, it invited every reader to infer
+that the wrapped slots differ semantically from the unwrapped ones. They do not.
 
-### The parser still emits a `dict` for now
+Removing it is a change to the file format, which is cheap now and never cheaper later: `blip` does not read `.blipir` as input yet, so nothing
+outside this repository consumes the shape. It also deletes a whole class of work — there is no per-slot re-wrapping table for `to_dict()` to
+encode, and no re-insertion fidelity risk to guard. [Stage 0.5](#implementation-stages) does it on its own, before any analysis work starts.
 
-`bliplib/parser/` is unchanged for now: it produces the same `dict` it produces today, and `load()` runs immediately afterwards. Rewriting the parser
-to build objects directly — making `to_dict()` the only code that knows the JSON shape — is a worthwhile cleanup with no user-visible effect,
-so it is deferred rather than bundled in. Until then, an unannotated IR `dict` exists briefly between the parser and the loader, and is never
-serialised except by `--no-analysis`.
+### The parser emits a `dict` for now
+
+`bliplib/parser/` keeps producing a `dict` rather than objects, and `load()` runs immediately afterwards. Rewriting the parser to build objects
+directly — making `to_dict()` the only code that knows the JSON shape — is a worthwhile cleanup with no user-visible effect, so it is deferred
+rather than bundled in. Until then, an unannotated IR `dict` exists briefly between the parser and the loader, and is never serialised except
+by `--no-analysis`. That `dict` is structurally identical to the serialised form and differs from it only by the absence of annotations, because
+Stage 0.5 removes the `expression` wrapper from the parser itself rather than hiding it behind the loader.
 
 ## Type annotations in BlipIR
 
@@ -162,20 +166,17 @@ For `ret input[0]`:
         {
             "type": "return",
             "expression": {
-                "type": "expression",
-                "value": {
-                    "type": "index",
-                    "blip_type": "string",
-                    "identifier": {
-                        "type": "identifier",
-                        "blip_type": "list[string]",
-                        "name": "input"
-                    },
-                    "index": {
-                        "type": "integer_literal",
-                        "blip_type": "integer",
-                        "value": 0
-                    }
+                "type": "index",
+                "blip_type": "string",
+                "identifier": {
+                    "type": "identifier",
+                    "blip_type": "list[string]",
+                    "name": "input"
+                },
+                "index": {
+                    "type": "integer_literal",
+                    "blip_type": "integer",
+                    "value": 0
                 }
             }
         }
@@ -185,6 +186,42 @@ For `ret input[0]`:
 
 Identifiers are annotated in binding positions too — an assignment target, a decomposition target, a decomposition pattern identifier — since
 that is the variable's type, and a statically typed backend wants it in order to emit a declaration.
+
+### Annotating what is derivable
+
+Most of these annotations are redundant. Of the seven value kinds, only two can carry type information that the structure does not already pin
+down — an `identifier` always, and a `list` when it is empty:
+
+| Node                                                     | Derivable from structure alone?                            |
+| -------------------------------------------------------- | ---------------------------------------------------------- |
+| `string_literal` / `integer_literal` / `boolean_literal` | yes — fixed by the node kind                                |
+| `concatenation`                                          | yes — always `STRING`                                       |
+| `list`, non-empty                                        | yes — from the elements' own annotations                     |
+| `list`, empty                                            | **no** — only inference determines the element type          |
+| `index`                                                  | yes — strip one `list[…]` from the target's annotation       |
+| `identifier`                                             | **no** — the type comes from the environment                 |
+
+`index` only appears in the first column because identifiers are annotated; it is derivable *given* annotation, not instead of it.
+
+Every value node is annotated anyway, and the reason is not information content — it is that **the rule a reader would have to know costs more
+than the lines it saves.** Under a partial scheme, "what is this node's type?" stops being a key lookup and becomes a seven-case function that
+every consumer needs and that all consumers must implement identically — a smaller instance of the problem this document opens with. It would
+also mean a `.blipir` can only be read by something that already knows Blip's typing rules, which is the self-description argument made against
+the mirror tree, one level down: a formatter, a linter, an ad-hoc `jq` query and a prototype backend all get the answer for free, where
+otherwise each would embed "concatenation is always a string". This is the same trade LLVM makes by writing `i32` on operands that could be
+inferred — an IR is read far more often than it is written.
+
+Invariant 1 below is the other reason. "Every `Value` node has a `blip_type` that is not `None`" is checkable mechanically over the whole
+corpus; its partial-scheme equivalent cannot even be stated without the table above.
+
+The redundancy does create a failure mode that a minimal scheme would not have: `{"type": "integer_literal", "blip_type": "string"}` is a file
+that contradicts *itself*, so something has to decide whether the kind or the annotation wins. **`load()` decides by rejecting the file.** It
+re-derives every annotation in the first column — bottom-up, since each rule needs only the node and its children, both of which the loader
+has — and raises `IRError` on any disagreement. This is what makes the redundancy a checksum rather than a liability, and it means a backend
+that consumes an annotated `.blipir` without running the analyser still has every derivable annotation verified for free.
+
+An *absent* annotation is not an error at load time: the loader must accept the parser's unannotated `dict`, and `--no-analysis` emits one. The
+check applies to whatever annotations are present. Requiring them to be present at all is the analyser's job, via the invariants below.
 
 ### Annotations are output, never input
 
@@ -196,6 +233,11 @@ tool-generated `.blipir` can carry annotations that its structure does not suppo
 it will believe them. The position taken is that the annotations are authoritative and garbage in is garbage out — the same bargain Java
 bytecode and LLVM IR make, minus the verifier. `blip --check` is the verifier: it re-derives every type and reports any disagreement with the
 annotations already in the file.
+
+The loader's consistency check narrows the exposure but does not close it. What survives is a lie that is *internally consistent* and anchored
+on an `identifier` or an empty `list` — annotating a variable as `integer` at every one of its occurrences, say, when its binding gives it
+`STRING`. Those are precisely the positions where the environment is the only source of truth, so only a pass that rebuilds the environment can
+catch them. That pass is `--check`.
 
 ### No derived variable map
 
@@ -416,16 +458,32 @@ Ordered so that nothing lands half-wired, and so that the riskiest mechanical ch
 **Stage 0 — this document.** Plus `AGENTS.md`, which states that BlipIR "is an ordinary `dict` — there are no IR node classes" and tells
 consumers to destructure with `match`/`case`. Both become false at Stage 1, so `AGENTS.md` is updated then, not now.
 
+**Stage 0.5 — delete the `expression` wrapper.** No new packages, no analysis, no object model: just the removal of a node kind from the format
+and from the parser that produces it and the two consumers that read it. `__parse_expression` returns its value instead of wrapping it; the
+interpreter's `__interpret_expression` becomes an unwrap of nothing and its three call sites collapse onto `__interpret_expression_value`; the
+Python transpiler loses the outer `case {"type": "expression"}` in `PythonExpression.from_blip_ir`. The 15 `#### Blip IR` fixtures lose three
+lines per wrapper, 78 in total.
+
+This is its own stage, before the loader, for two reasons. It keeps a format change out of a refactor — the existing execution and IR tests
+already cover it end to end, with no new code in play to confuse a failure. And it restores Stage 1's most useful property: with the fixtures
+already reshaped, the loader's output is byte-identical to them, so the round trip is proven without the fixtures moving underneath it.
+
+The fixture edit is mechanical but is being made to the files that are the test oracle, so it is verified in the direction that does not beg the
+question: re-wrapping the new fixtures must reproduce the old ones exactly, and the diff must consist only of removed `"type": "expression"` and
+`"value": {` lines, removed closing braces, and dedents.
+
 **Stage 1 — `bliplib/ir/`, no types.** Node classes, `load`, `to_dict`, `IRError`. Wire `--ir` to print `load(parse(src)).to_dict()`.
-Output is byte-identical, so every existing test stays green — which is the point: the round trip and the wrapper collapsing are proven
-against the whole corpus before any semantics exist.
+Output is byte-identical, so every existing test stays green — which is the point: the round trip is proven against the whole corpus before any
+semantics exist. Because the wrapper is already gone, `to_dict()` has no per-slot special cases and every value slot serialises the same way.
 
 **Stage 2 — the analyser, no consumers.** `bliplib/analysis/`: type model, environment, unification, occurs check, resolution pass, the
 monomorphic rule, `SemanticError`. Validated against the corpus — no errors on any of the 15 valid programs, and for every row of every
 `#### Execution` table, the statically inferred return type matches the shape of the recorded output. That is a real conformance check built
 entirely from fixtures that already exist. Unit tests cover the error paths.
 
-**Stage 3 — wire it in, annotate the fixtures.** Analysis runs in every mode. All 15 `#### Blip IR` blocks gain `blip_type` keys. Add
+**Stage 3 — wire it in, annotate the fixtures.** Analysis runs in every mode. All 15 `#### Blip IR` blocks gain `blip_type` keys, 53 lines in
+total. This is the first stage in which a file can carry an annotation, so the compact-string codec and the loader's annotation consistency
+check land here, with unit tests for the contradictions they reject. Add
 `--check` and `--no-analysis`, the `#### Compilation` reference-program category, the first static-error reference programs, and the test
 renames described above. [The ecosystem design](design_ecosystem.md) describes BlipIR as the output of the parser and needs the analyser
 adding to its pipeline diagram and its `--ir` description.
@@ -437,15 +495,19 @@ matrix cells move.
 **Stage 5 — the interpreter consumes it.** Drop the `isinstance` checks that are now statically guaranteed, keeping the input-dependent
 ones. Optional, and lowest priority; the interpreter works today.
 
-Stages 1 to 4 deliver the value; 5 is cleanup.
+Stages 0.5 to 4 deliver the value; 5 is cleanup.
 
 ## Risks
 
-- **A serialised type can lie.** Discussed above; mitigated by `--check`, not eliminated. This is acceptable.
-- **Wrapper re-insertion fidelity.** `to_dict()` must re-wrap in exactly the three slots the parser wraps, and nowhere else. Guarded by the
-  existing exact-equality test over the whole corpus, which is why Stage 1 exists as its own stage.
+- **A serialised type can lie.** Discussed above. Narrowed to internally consistent lies on identifiers and empty lists by the loader's
+  consistency check, and mitigated beyond that by `--check`, but not eliminated. This is acceptable.
+- **Fixtures are the oracle for their own reshape.** Stage 0.5 edits the 15 `#### Blip IR` blocks that the tests compare against, so a mistake
+  in the edit is a mistake in the oracle. Guarded by checking the reshape in the reverse direction and by constraining the shape of the diff,
+  both described in that stage.
 - **Two shapes in flight.** Until the parser builds objects directly, an unannotated IR `dict` exists between the parser and the loader. It
-  is internal and short-lived, but it is a second shape that a reader has to know about. This will be mitigated once the parser outputs objects directly.
+  is internal and short-lived, but it is a second shape that a reader has to know about. It differs from the serialised form only by the absence
+  of annotations — Stage 0.5 removes the wrapper from the parser, not just from the output — and it goes away once the parser builds objects
+  directly.
 - **Scope creep into a general type checker.** The `docs/todo.md` analysis items are broader than this pass. Keep this one to types and
   binding.
 
