@@ -115,7 +115,7 @@ class Parser:
         while self.__current_token.type not in {"EOL", "EOF"}:
             match self.__current_token.type:
                 case "IDENTIFIER":
-                    operands.append(self.__parse_ambiguous_identifier_or_index_primary_expression())
+                    operands.append(self.__parse_identifier())
                 case "STRING_LITERAL":
                     operands.append(self.__parse_string_literal())
                 case "*":

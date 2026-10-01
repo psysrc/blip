@@ -33,6 +33,16 @@ def test_bad_decomposition_raises_parser_error(parser):
         parser.parse("foo -> []")
 
 
+def test_indexing_in_decomposition_pattern_raises_parser_error(parser):
+    """A decomposition pattern element is a string literal, a capturing variable or a wildcard - never a value expression."""
+
+    with pytest.raises(ParserError):
+        parser.parse("foo -> bar[0]")
+
+    with pytest.raises(ParserError):
+        parser.parse('foo -> name "@" rest[1]')
+
+
 def test_bad_index_raises_parser_error(parser):
     with pytest.raises(ParserError):
         parser.parse("foo = bar['z']")
