@@ -26,11 +26,8 @@ ret "Hello, World!"
         {
             "type": "return",
             "expression": {
-                "type": "expression",
-                "value": {
-                    "type": "string_literal",
-                    "value": "Hello, World!"
-                }
+                "type": "string_literal",
+                "value": "Hello, World!"
             }
         }
     ]
@@ -68,11 +65,8 @@ ret 'Hello, World!'
         {
             "type": "return",
             "expression": {
-                "type": "expression",
-                "value": {
-                    "type": "string_literal",
-                    "value": "Hello, World!"
-                }
+                "type": "string_literal",
+                "value": "Hello, World!"
             }
         }
     ]
@@ -143,11 +137,8 @@ ret input
         {
             "type": "return",
             "expression": {
-                "type": "expression",
-                "value": {
-                    "type": "identifier",
-                    "name": "input"
-                }
+                "type": "identifier",
+                "name": "input"
             }
         }
     ]
@@ -200,11 +191,8 @@ ret top_ten_colours
                 "name": "fav_number"
             },
             "expression": {
-                "type": "expression",
-                "value": {
-                    "type": "integer_literal",
-                    "value": 987
-                }
+                "type": "integer_literal",
+                "value": 987
             }
         },
         {
@@ -214,11 +202,8 @@ ret top_ten_colours
                 "name": "fav_bool"
             },
             "expression": {
-                "type": "expression",
-                "value": {
-                    "type": "boolean_literal",
-                    "value": true
-                }
+                "type": "boolean_literal",
+                "value": true
             }
         },
         {
@@ -228,11 +213,8 @@ ret top_ten_colours
                 "name": "fav_colour"
             },
             "expression": {
-                "type": "expression",
-                "value": {
-                    "type": "string_literal",
-                    "value": "blue"
-                }
+                "type": "string_literal",
+                "value": "blue"
             }
         },
         {
@@ -242,43 +224,28 @@ ret top_ten_colours
                 "name": "top_ten_colours"
             },
             "expression": {
-                "type": "expression",
-                "value": {
-                    "type": "list",
-                    "elements": [
-                        {
-                            "type": "expression",
-                            "value": {
-                                "type": "identifier",
-                                "name": "fav_colour"
-                            }
-                        },
-                        {
-                            "type": "expression",
-                            "value": {
-                                "type": "string_literal",
-                                "value": "black"
-                            }
-                        },
-                        {
-                            "type": "expression",
-                            "value": {
-                                "type": "string_literal",
-                                "value": "red"
-                            }
-                        }
-                    ]
-                }
+                "type": "list",
+                "elements": [
+                    {
+                        "type": "identifier",
+                        "name": "fav_colour"
+                    },
+                    {
+                        "type": "string_literal",
+                        "value": "black"
+                    },
+                    {
+                        "type": "string_literal",
+                        "value": "red"
+                    }
+                ]
             }
         },
         {
             "type": "return",
             "expression": {
-                "type": "expression",
-                "value": {
-                    "type": "identifier",
-                    "name": "top_ten_colours"
-                }
+                "type": "identifier",
+                "name": "top_ten_colours"
             }
         }
     ]
@@ -322,24 +289,21 @@ ret my_str
                 "name": "abc"
             },
             "expression": {
-                "type": "expression",
-                "value": {
-                    "type": "concatenation",
-                    "operands": [
-                        {
-                            "type": "string_literal",
-                            "value": "A"
-                        },
-                        {
-                            "type": "string_literal",
-                            "value": "B"
-                        },
-                        {
-                            "type": "string_literal",
-                            "value": "C"
-                        }
-                    ]
-                }
+                "type": "concatenation",
+                "operands": [
+                    {
+                        "type": "string_literal",
+                        "value": "A"
+                    },
+                    {
+                        "type": "string_literal",
+                        "value": "B"
+                    },
+                    {
+                        "type": "string_literal",
+                        "value": "C"
+                    }
+                ]
             }
         },
         {
@@ -349,34 +313,28 @@ ret my_str
                 "name": "my_str"
             },
             "expression": {
-                "type": "expression",
-                "value": {
-                    "type": "concatenation",
-                    "operands": [
-                        {
-                            "type": "identifier",
-                            "name": "abc"
-                        },
-                        {
-                            "type": "string_literal",
-                            "value": "123"
-                        },
-                        {
-                            "type": "identifier",
-                            "name": "abc"
-                        }
-                    ]
-                }
+                "type": "concatenation",
+                "operands": [
+                    {
+                        "type": "identifier",
+                        "name": "abc"
+                    },
+                    {
+                        "type": "string_literal",
+                        "value": "123"
+                    },
+                    {
+                        "type": "identifier",
+                        "name": "abc"
+                    }
+                ]
             }
         },
         {
             "type": "return",
             "expression": {
-                "type": "expression",
-                "value": {
-                    "type": "identifier",
-                    "name": "my_str"
-                }
+                "type": "identifier",
+                "name": "my_str"
             }
         }
     ]
@@ -421,17 +379,14 @@ ret first " " last  // Concatenate first and last name with a space
                 "name": "email"
             },
             "expression": {
-                "type": "expression",
-                "value": {
-                    "type": "index",
-                    "identifier": {
-                        "type": "identifier",
-                        "name": "input"
-                    },
-                    "index": {
-                        "type": "integer_literal",
-                        "value": 0
-                    }
+                "type": "index",
+                "identifier": {
+                    "type": "identifier",
+                    "name": "input"
+                },
+                "index": {
+                    "type": "integer_literal",
+                    "value": 0
                 }
             }
         },
@@ -464,7 +419,7 @@ ret first " " last  // Concatenate first and last name with a space
             "pattern": [
                 {
                     "type": "identifier",
-                    "name":"first"
+                    "name": "first"
                 },
                 {
                     "type": "string_literal",
@@ -479,24 +434,21 @@ ret first " " last  // Concatenate first and last name with a space
         {
             "type": "return",
             "expression": {
-                "type": "expression",
-                "value": {
-                    "type": "concatenation",
-                    "operands": [
-                        {
-                            "type": "identifier",
-                            "name": "first"
-                        },
-                        {
-                            "type": "string_literal",
-                            "value": " "
-                        },
-                        {
-                            "type": "identifier",
-                            "name": "last"
-                        }
-                    ]
-                }
+                "type": "concatenation",
+                "operands": [
+                    {
+                        "type": "identifier",
+                        "name": "first"
+                    },
+                    {
+                        "type": "string_literal",
+                        "value": " "
+                    },
+                    {
+                        "type": "identifier",
+                        "name": "last"
+                    }
+                ]
             }
         }
     ]
@@ -539,17 +491,14 @@ ret input[0]
         {
             "type": "return",
             "expression": {
-                "type": "expression",
-                "value": {
-                    "type": "index",
-                    "identifier": {
-                        "type": "identifier",
-                        "name": "input"
-                    },
-                    "index": {
-                        "type": "integer_literal",
-                        "value": 0
-                    }
+                "type": "index",
+                "identifier": {
+                    "type": "identifier",
+                    "name": "input"
+                },
+                "index": {
+                    "type": "integer_literal",
+                    "value": 0
                 }
             }
         }

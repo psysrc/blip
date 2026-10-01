@@ -27,11 +27,8 @@ ret "OK"
         {
             "type": "return",
             "expression": {
-                "type": "expression",
-                "value": {
-                    "type": "string_literal",
-                    "value": "OK"
-                }
+                "type": "string_literal",
+                "value": "OK"
             }
         }
     ]
@@ -76,11 +73,8 @@ ret "OK"
         {
             "type": "return",
             "expression": {
-                "type": "expression",
-                "value": {
-                    "type": "string_literal",
-                    "value": "OK"
-                }
+                "type": "string_literal",
+                "value": "OK"
             }
         }
     ]
@@ -122,11 +116,8 @@ ret "OK"
         {
             "type": "return",
             "expression": {
-                "type": "expression",
-                "value": {
-                    "type": "string_literal",
-                    "value": "OK"
-                }
+                "type": "string_literal",
+                "value": "OK"
             }
         }
     ]
@@ -162,18 +153,18 @@ ret username
         "input": {
             "type": "fixed",
             "value": 2,
-            "names": ["username", "email"]
+            "names": [
+                "username",
+                "email"
+            ]
         }
     },
     "statements": [
         {
             "type": "return",
             "expression": {
-                "type": "expression",
-                "value": {
-                    "type": "identifier",
-                    "name": "username"
-                }
+                "type": "identifier",
+                "name": "username"
             }
         }
     ]
@@ -218,11 +209,8 @@ ret "OK"
         {
             "type": "return",
             "expression": {
-                "type": "expression",
-                "value": {
-                    "type": "string_literal",
-                    "value": "OK"
-                }
+                "type": "string_literal",
+                "value": "OK"
             }
         }
     ]
@@ -268,11 +256,8 @@ ret "OK"
         {
             "type": "return",
             "expression": {
-                "type": "expression",
-                "value": {
-                    "type": "string_literal",
-                    "value": "OK"
-                }
+                "type": "string_literal",
+                "value": "OK"
             }
         }
     ]
@@ -308,26 +293,17 @@ ret ["one", "two"]
         {
             "type": "return",
             "expression": {
-                "type": "expression",
-                "value": {
-                    "type": "list",
-                    "elements": [
-                        {
-                            "type": "expression",
-                            "value": {
-                                "type": "string_literal",
-                                "value": "one"
-                            }
-                        },
-                        {
-                            "type": "expression",
-                            "value": {
-                                "type": "string_literal",
-                                "value": "two"
-                            }
-                        }
-                    ]
-                }
+                "type": "list",
+                "elements": [
+                    {
+                        "type": "string_literal",
+                        "value": "one"
+                    },
+                    {
+                        "type": "string_literal",
+                        "value": "two"
+                    }
+                ]
             }
         }
     ],

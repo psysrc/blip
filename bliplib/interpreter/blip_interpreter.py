@@ -169,13 +169,6 @@ class Interpreter:
                 raise InterpreterError(f"Unexpected expression type in return statement: '{type(value)}'")
 
     def __interpret_expression(self, code: dict) -> BlipType:
-        self.__ensure_code_type(code, "expression")
-
-        value = code["value"]
-
-        return self.__interpret_expression_value(value)
-
-    def __interpret_expression_value(self, code: dict) -> BlipType:
         match code:
             case {"type": "string_literal"}:
                 return self.__interpret_string_literal(code)
@@ -199,7 +192,7 @@ class Interpreter:
                 return self.__interpret_list(code)
 
             case _:
-                raise InterpreterError(f"Unexpected codetype in expression value: {code}")
+                raise InterpreterError(f"Unexpected codetype in expression: {code}")
 
     def __interpret_list(self, code: dict) -> BlipType:
         self.__ensure_code_type(code, "list")
@@ -248,7 +241,7 @@ class Interpreter:
         string = ""
 
         for operand_code in code["operands"]:
-            operand_value = self.__interpret_expression_value(operand_code)
+            operand_value = self.__interpret_expression(operand_code)
 
             if isinstance(operand_value, str):
                 string += operand_value

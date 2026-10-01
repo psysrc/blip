@@ -106,11 +106,8 @@ def test_int_variable(parser):
                     "name": "num",
                 },
                 "expression": {
-                    "type": "expression",
-                    "value": {
-                        "type": "integer_literal",
-                        "value": 5,
-                    },
+                    "type": "integer_literal",
+                    "value": 5,
                 },
             },
         ],
@@ -124,17 +121,14 @@ def test_variable_index_with_integer_literal(parser):
             {
                 "type": "return",
                 "expression": {
-                    "type": "expression",
-                    "value": {
-                        "type": "index",
-                        "identifier": {
-                            "type": "identifier",
-                            "name": "input",
-                        },
-                        "index": {
-                            "type": "integer_literal",
-                            "value": 0,
-                        },
+                    "type": "index",
+                    "identifier": {
+                        "type": "identifier",
+                        "name": "input",
+                    },
+                    "index": {
+                        "type": "integer_literal",
+                        "value": 0,
                     },
                 },
             },
@@ -153,27 +147,21 @@ def test_variable_index_with_integer_variable(parser):
                     "name": "idx",
                 },
                 "expression": {
-                    "type": "expression",
-                    "value": {
-                        "type": "integer_literal",
-                        "value": 0,
-                    },
+                    "type": "integer_literal",
+                    "value": 0,
                 },
             },
             {
                 "type": "return",
                 "expression": {
-                    "type": "expression",
-                    "value": {
-                        "type": "index",
-                        "identifier": {
-                            "type": "identifier",
-                            "name": "input",
-                        },
-                        "index": {
-                            "type": "identifier",
-                            "name": "idx",
-                        },
+                    "type": "index",
+                    "identifier": {
+                        "type": "identifier",
+                        "name": "input",
+                    },
+                    "index": {
+                        "type": "identifier",
+                        "name": "idx",
                     },
                 },
             },
@@ -192,11 +180,8 @@ def test_empty_list_variable(parser):
                     "name": "list",
                 },
                 "expression": {
-                    "type": "expression",
-                    "value": {
-                        "type": "list",
-                        "elements": [],
-                    },
+                    "type": "list",
+                    "elements": [],
                 },
             },
         ],
@@ -214,19 +199,13 @@ def test_list_variable_one_element(parser):
                     "name": "list",
                 },
                 "expression": {
-                    "type": "expression",
-                    "value": {
-                        "type": "list",
-                        "elements": [
-                            {
-                                "type": "expression",
-                                "value": {
-                                    "type": "string_literal",
-                                    "value": "a",
-                                },
-                            },
-                        ],
-                    },
+                    "type": "list",
+                    "elements": [
+                        {
+                            "type": "string_literal",
+                            "value": "a",
+                        },
+                    ],
                 },
             },
         ],
@@ -244,33 +223,21 @@ def test_list_variable_many_elements(parser):
                     "name": "list",
                 },
                 "expression": {
-                    "type": "expression",
-                    "value": {
-                        "type": "list",
-                        "elements": [
-                            {
-                                "type": "expression",
-                                "value": {
-                                    "type": "string_literal",
-                                    "value": "a",
-                                },
-                            },
-                            {
-                                "type": "expression",
-                                "value": {
-                                    "type": "string_literal",
-                                    "value": "b",
-                                },
-                            },
-                            {
-                                "type": "expression",
-                                "value": {
-                                    "type": "string_literal",
-                                    "value": "c",
-                                },
-                            },
-                        ],
-                    },
+                    "type": "list",
+                    "elements": [
+                        {
+                            "type": "string_literal",
+                            "value": "a",
+                        },
+                        {
+                            "type": "string_literal",
+                            "value": "b",
+                        },
+                        {
+                            "type": "string_literal",
+                            "value": "c",
+                        },
+                    ],
                 },
             },
         ],

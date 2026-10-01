@@ -72,24 +72,21 @@ class PythonExpression:
     @staticmethod
     def from_blip_ir(blip_ir: dict) -> Self:
         match blip_ir:
-            case {"type": "expression"}:
-                expr = blip_ir["value"]
-                match expr:
-                    case {"type": "string_literal"}:
-                        return PythonExpression(ast.Constant(value=expr["value"]), str)
-                    case {"type": "list"}:
-                        elements = [PythonExpression.from_blip_ir(element) for element in expr["elements"]]
-                        return PythonExpression(ast.List(elts=[element.node() for element in elements]), list)
-                    case {"type": "identifier"}:
-                        name = expr["name"]
+            case {"type": "string_literal"}:
+                return PythonExpression(ast.Constant(value=blip_ir["value"]), str)
 
-                        # If this is the `input` identifier, change it
-                        if name == "input":
-                            return PythonExpression(ast.Name(id=_input_identifier), list)
+            case {"type": "list"}:
+                elements = [PythonExpression.from_blip_ir(element) for element in blip_ir["elements"]]
+                return PythonExpression(ast.List(elts=[element.node() for element in elements]), list)
 
-                        return PythonExpression(ast.Name(id=name), UnknownType)
-                    case _:
-                        raise NotImplementedError()
+            case {"type": "identifier"}:
+                name = blip_ir["name"]
+
+                # If this is the `input` identifier, change it
+                if name == "input":
+                    return PythonExpression(ast.Name(id=_input_identifier), list)
+
+                return PythonExpression(ast.Name(id=name), UnknownType)
 
             case _:
                 err = f"Cannot generate Python expression from BlipIR: {blip_ir}"

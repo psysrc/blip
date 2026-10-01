@@ -116,7 +116,9 @@ Three properties matter:
   tree and replace every hole with what it resolved to — is natural on a mutable tree and awkward on a frozen one. These are data carriers
   that backends read, so their fields are public: a deliberate departure from the `self.__private` convention used elsewhere.
 - **The round trip is exact.** `load(d).to_dict() == d` for any well-formed `d`. This is already tested for the whole corpus at no cost,
-  because the reference-program test compares `blip --ir` output against the fixture for exact equality.
+  because the reference-program test parses `blip --ir` output and compares it against the fixture as a `dict`. Note that this is structural
+  equality, not textual: JSON object keys are unordered, so key order and whitespace in the fixtures carry no meaning and nothing should be
+  built on them matching the tool's output byte for byte.
 
 ### The `expression` wrapper is removed
 
@@ -466,14 +468,14 @@ lines per wrapper, 78 in total.
 
 This is its own stage, before the loader, for two reasons. It keeps a format change out of a refactor — the existing execution and IR tests
 already cover it end to end, with no new code in play to confuse a failure. And it restores Stage 1's most useful property: with the fixtures
-already reshaped, the loader's output is byte-identical to them, so the round trip is proven without the fixtures moving underneath it.
+already reshaped, the loader's output compares equal to them, so the round trip is proven without the fixtures moving underneath it.
 
 The fixture edit is mechanical but is being made to the files that are the test oracle, so it is verified in the direction that does not beg the
 question: re-wrapping the new fixtures must reproduce the old ones exactly, and the diff must consist only of removed `"type": "expression"` and
 `"value": {` lines, removed closing braces, and dedents.
 
 **Stage 1 — `bliplib/ir/`, no types.** Node classes, `load`, `to_dict`, `IRError`. Wire `--ir` to print `load(parse(src)).to_dict()`.
-Output is byte-identical, so every existing test stays green — which is the point: the round trip is proven against the whole corpus before any
+Output is unchanged, so every existing test stays green — which is the point: the round trip is proven against the whole corpus before any
 semantics exist. Because the wrapper is already gone, `to_dict()` has no per-slot special cases and every value slot serialises the same way.
 
 **Stage 2 — the analyser, no consumers.** `bliplib/analysis/`: type model, environment, unification, occurs check, resolution pass, the

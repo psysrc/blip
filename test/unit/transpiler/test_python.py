@@ -24,7 +24,7 @@ def test_hello_world_function():
         "statements": [
             {
                 "type": "return",
-                "expression": {"type": "expression", "value": {"type": "string_literal", "value": "Hello World!"}},
+                "expression": {"type": "string_literal", "value": "Hello World!"},
             }
         ],
     }
@@ -45,7 +45,7 @@ def test_hello_world_program():
         "statements": [
             {
                 "type": "return",
-                "expression": {"type": "expression", "value": {"type": "string_literal", "value": "Hello World!"}},
+                "expression": {"type": "string_literal", "value": "Hello World!"},
             }
         ],
     }
@@ -109,14 +109,11 @@ def test_hello_world_list_function():
             {
                 "type": "return",
                 "expression": {
-                    "type": "expression",
-                    "value": {
-                        "type": "list",
-                        "elements": [
-                            {"type": "expression", "value": {"type": "string_literal", "value": "Hello"}},
-                            {"type": "expression", "value": {"type": "string_literal", "value": "World"}},
-                        ],
-                    },
+                    "type": "list",
+                    "elements": [
+                        {"type": "string_literal", "value": "Hello"},
+                        {"type": "string_literal", "value": "World"},
+                    ],
                 },
             }
         ],
@@ -138,7 +135,7 @@ def test_identity_function():
         "statements": [
             {
                 "type": "return",
-                "expression": {"type": "expression", "value": {"type": "identifier", "name": "input"}},
+                "expression": {"type": "identifier", "name": "input"},
             }
         ],
     }
@@ -174,7 +171,7 @@ def test_string_literals_are_escaped():
             "statements": [
                 {
                     "type": "return",
-                    "expression": {"type": "expression", "value": {"type": "string_literal", "value": awkward}},
+                    "expression": {"type": "string_literal", "value": awkward},
                 }
             ],
         }
@@ -195,7 +192,7 @@ def test_transpiled_program_is_valid_python():
         "statements": [
             {
                 "type": "return",
-                "expression": {"type": "expression", "value": {"type": "string_literal", "value": 'awkward " string'}},
+                "expression": {"type": "string_literal", "value": 'awkward " string'},
             }
         ],
     }

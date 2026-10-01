@@ -149,21 +149,16 @@ class Parser:
     def __parse_expression(self) -> dict:
         match self.__current_token.type:
             case "INTEGER_LITERAL":
-                value = self.__parse_integer_literal()
+                return self.__parse_integer_literal()
             case "BOOLEAN_LITERAL":
-                value = self.__parse_boolean_literal()
+                return self.__parse_boolean_literal()
             case "IDENTIFIER" | "STRING_LITERAL":
-                value = self.__parse_ambiguous_possible_concatenation()
+                return self.__parse_ambiguous_possible_concatenation()
             case "[":
-                value = self.__parse_list()
+                return self.__parse_list()
             case _:
                 err = f"Unexpected token {self.__current_token} while parsing primary expression"
                 raise ParserError(err)
-
-        return {
-            "type": "expression",
-            "value": value,
-        }
 
     def __parse_list(self) -> dict:
         self.__consume_token("[")
