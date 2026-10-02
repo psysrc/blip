@@ -20,6 +20,13 @@ Then install all project dependencies:
 poetry install
 ```
 
+It is also recommended to set up your `pre-commit` hooks:
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
 ## Running Blip
 
 To run the Blip tool:
