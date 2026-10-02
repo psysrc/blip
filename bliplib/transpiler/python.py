@@ -1,5 +1,4 @@
 import ast
-from typing import Self
 from bliplib.transpiler.interface import Transpiler
 from bliplib.errors import TranspilerError
 
@@ -70,7 +69,7 @@ class PythonExpression:
         self.__expr_type = expr_type
 
     @staticmethod
-    def from_blip_ir(blip_ir: dict) -> Self:
+    def from_blip_ir(blip_ir: dict) -> "PythonExpression":
         match blip_ir:
             case {"type": "string_literal"}:
                 return PythonExpression(ast.Constant(value=blip_ir["value"]), str)
@@ -113,7 +112,7 @@ class PythonReturnStatement(PythonStatement):
         self.__expression = expression
 
     @staticmethod
-    def from_blip_ir(blip_ir: dict) -> Self:
+    def from_blip_ir(blip_ir: dict) -> "PythonReturnStatement":
         match blip_ir:
             case {"type": "return"}:
                 expr = blip_ir["expression"]
@@ -138,7 +137,11 @@ class PythonFunction:
         self.__statements = statements
 
     def node(self) -> ast.stmt:
-        function: ast.FunctionDef = ast.parse(_FUNCTION_SCAFFOLD).body[0]
+        function = ast.parse(_FUNCTION_SCAFFOLD).body[0]
+
+        if not isinstance(function, ast.FunctionDef):
+            raise TranspilerError("Internal error: the function scaffold is not a function definition")
+
         function.body = [stmt.node() for stmt in self.__statements]
         return function
 

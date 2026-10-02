@@ -64,3 +64,11 @@ To format:
 ```bash
 poetry run ruff format
 ```
+
+## Type Checking
+
+Pyright is used as the static type checker.
+
+```bash
+poetry run pyright
+```

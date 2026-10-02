@@ -39,6 +39,30 @@ class Parser:
             self.__tokenizer = None
             self.__current_token = None
 
+    @property
+    def __stream(self) -> Tokenizer:
+        """
+        The token stream being parsed.
+        Only exists during a `parse()` call, so accessing it outside of one raises a `ParserError`.
+        """
+
+        if self.__tokenizer is None:
+            raise ParserError("No source is currently being parsed")
+
+        return self.__tokenizer
+
+    @property
+    def __token(self) -> Token:
+        """
+        The token at the head of the stream.
+        Only exists during a `parse()` call, so accessing it outside of one raises a `ParserError`.
+        """
+
+        if self.__current_token is None:
+            raise ParserError("No source is currently being parsed")
+
+        return self.__current_token
+
     def __consume_token(self, *token_types: str) -> str:
         """
         Consume the next token in the stream.
@@ -46,13 +70,13 @@ class Parser:
         Returns the value of the consumed token.
         """
 
-        if self.__current_token.type not in token_types:
-            actual_token_type = self.__current_token.type
+        if self.__token.type not in token_types:
+            actual_token_type = self.__token.type
             raise ParserError(f"Failed to consume token (expected one of '{token_types}', got '{actual_token_type}')")
 
-        token_value = self.__current_token.value
+        token_value = self.__token.value
 
-        self.__current_token = self.__tokenizer.next_token()
+        self.__current_token = self.__stream.next_token()
 
         return token_value
 
@@ -60,7 +84,7 @@ class Parser:
         directives = {}
 
         # Parse optional top-level directives (e.g. !in / !out)
-        while self.__current_token.type in {"DIRECTIVE_IN", "DIRECTIVE_OUT"}:
+        while self.__token.type in {"DIRECTIVE_IN", "DIRECTIVE_OUT"}:
             directives.update(self.__parse_directive())
 
         statements = self.__parse_statements()
@@ -78,8 +102,8 @@ class Parser:
     def __parse_statements(self) -> list:
         statements = []
 
-        while self.__current_token.type != "EOF":
-            match self.__current_token.type:
+        while self.__token.type != "EOF":
+            match self.__token.type:
                 case "EOL":
                     self.__consume_token("EOL")
 
@@ -90,7 +114,7 @@ class Parser:
                     statements.append(self.__parse_return_statement())
 
                 case _:
-                    err = f"Unexpected token {self.__current_token} while parsing program statements"
+                    err = f"Unexpected token {self.__token} while parsing program statements"
                     raise ParserError(err)
 
         return statements
@@ -98,13 +122,13 @@ class Parser:
     def __parse_ambiguous_identifier_statement(self) -> dict:
         identifier = self.__parse_identifier()
 
-        match self.__current_token.type:
+        match self.__token.type:
             case "=":
                 return self.__parse_assignment_statement(identifier)
             case "->":
                 return self.__parse_decomposition_statement(identifier)
             case _:
-                err = f"Unexpected token {self.__current_token} while parsing ambiguous identifier statement"
+                err = f"Unexpected token {self.__token} while parsing ambiguous identifier statement"
                 raise ParserError(err)
 
     def __parse_decomposition_statement(self, identifier: dict) -> dict:
@@ -112,8 +136,8 @@ class Parser:
 
         operands = []
 
-        while self.__current_token.type not in {"EOL", "EOF"}:
-            match self.__current_token.type:
+        while self.__token.type not in {"EOL", "EOF"}:
+            match self.__token.type:
                 case "IDENTIFIER":
                     operands.append(self.__parse_identifier())
                 case "STRING_LITERAL":
@@ -122,7 +146,7 @@ class Parser:
                     operands.append(self.__parse_decomposition_wildcard())
 
                 case _:
-                    raise ParserError(f"Unexpected token {self.__current_token.type} while parsing decomposition statement")
+                    raise ParserError(f"Unexpected token {self.__token.type} while parsing decomposition statement")
 
         self.__consume_token("EOL", "EOF")
 
@@ -147,7 +171,7 @@ class Parser:
         }
 
     def __parse_expression(self) -> dict:
-        match self.__current_token.type:
+        match self.__token.type:
             case "INTEGER_LITERAL":
                 return self.__parse_integer_literal()
             case "BOOLEAN_LITERAL":
@@ -157,16 +181,16 @@ class Parser:
             case "[":
                 return self.__parse_list()
             case _:
-                err = f"Unexpected token {self.__current_token} while parsing primary expression"
+                err = f"Unexpected token {self.__token} while parsing primary expression"
                 raise ParserError(err)
 
     def __parse_list(self) -> dict:
         self.__consume_token("[")
 
         elements = []
-        while self.__current_token.type != "]":
+        while self.__token.type != "]":
             elements.append(self.__parse_expression())
-            if self.__current_token.type == ",":
+            if self.__token.type == ",":
                 self.__consume_token(",")
 
         self.__consume_token("]")
@@ -179,14 +203,14 @@ class Parser:
     def __parse_ambiguous_possible_concatenation(self) -> dict:
         primary_expressions = []
 
-        while self.__current_token.type in {"IDENTIFIER", "STRING_LITERAL"}:
-            match self.__current_token.type:
+        while self.__token.type in {"IDENTIFIER", "STRING_LITERAL"}:
+            match self.__token.type:
                 case "IDENTIFIER":
                     primary_expressions.append(self.__parse_ambiguous_identifier_or_index_primary_expression())
                 case "STRING_LITERAL":
                     primary_expressions.append(self.__parse_string_literal())
                 case _:
-                    err = f"Unexpected token {self.__current_token} while parsing possible concatenation"
+                    err = f"Unexpected token {self.__token} while parsing possible concatenation"
                     raise ParserError(err)
 
         if len(primary_expressions) == 1:
@@ -200,7 +224,7 @@ class Parser:
     def __parse_ambiguous_identifier_or_index_primary_expression(self) -> dict:
         identifier = self.__parse_identifier()
 
-        if self.__current_token.type == "[":
+        if self.__token.type == "[":
             return self.__parse_index(identifier)
         else:
             return identifier
@@ -208,13 +232,13 @@ class Parser:
     def __parse_index(self, identifier: dict) -> dict:
         self.__consume_token("[")
 
-        match self.__current_token.type:
+        match self.__token.type:
             case "INTEGER_LITERAL":
                 index = self.__parse_integer_literal()
             case "IDENTIFIER":
                 index = self.__parse_identifier()
             case _:
-                raise ParserError(f"Unexpected token {self.__current_token} while parsing index")
+                raise ParserError(f"Unexpected token {self.__token} while parsing index")
 
         self.__consume_token("]")
 
@@ -258,7 +282,7 @@ class Parser:
         }
 
     def __parse_directive(self) -> dict:
-        match self.__current_token.type:
+        match self.__token.type:
             case "DIRECTIVE_IN":
                 self.__consume_token("DIRECTIVE_IN")
                 payload = self.__parse_directive_body()
@@ -272,7 +296,7 @@ class Parser:
                 return {"output": payload}
 
             case _:
-                raise ParserError(f"Unexpected directive token {self.__current_token}")
+                raise ParserError(f"Unexpected directive token {self.__token}")
 
     def __parse_directive_body(self) -> dict:
         # Possible forms:
@@ -282,13 +306,13 @@ class Parser:
         # 4) '..' INTEGER_LITERAL                 => range ..max
         # 5) IDENTIFIER IDENTIFIER ...            => named fixed
 
-        if self.__current_token.type == "INTEGER_LITERAL":
+        if self.__token.type == "INTEGER_LITERAL":
             lower = int(self.__consume_token("INTEGER_LITERAL"))
 
-            if self.__current_token.type == "..":
+            if self.__token.type == "..":
                 self.__consume_token("..")
 
-                if self.__current_token.type == "INTEGER_LITERAL":
+                if self.__token.type == "INTEGER_LITERAL":
                     upper = int(self.__consume_token("INTEGER_LITERAL"))
                 else:
                     upper = None
@@ -297,23 +321,23 @@ class Parser:
 
             return {"type": "fixed", "value": lower}
 
-        if self.__current_token.type == "..":
+        if self.__token.type == "..":
             self.__consume_token("..")
 
-            if self.__current_token.type == "INTEGER_LITERAL":
+            if self.__token.type == "INTEGER_LITERAL":
                 upper = int(self.__consume_token("INTEGER_LITERAL"))
                 return {"type": "range", "min": None, "max": upper}
 
             raise ParserError("Malformed directive range")
 
-        if self.__current_token.type == "IDENTIFIER":
+        if self.__token.type == "IDENTIFIER":
             names = []
-            while self.__current_token.type == "IDENTIFIER":
+            while self.__token.type == "IDENTIFIER":
                 names.append(self.__consume_token("IDENTIFIER"))
 
             return {"type": "fixed", "value": len(names), "names": names}
 
-        raise ParserError(f"Unexpected token {self.__current_token} in directive body")
+        raise ParserError(f"Unexpected token {self.__token} in directive body")
 
     def __parse_string_literal(self) -> dict:
         literal_text = self.__consume_token("STRING_LITERAL")

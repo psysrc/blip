@@ -23,6 +23,16 @@ pytest-cov = "^6.1.1"
 pre-commit = "^4.2.0"
 pyinstaller = "^6.14.2"
 markdown-it-py = "^3.0.0"
+pyright = "^1.1.414"
 
 [tool.ruff]
 line-length = 140
+
+[tool.pyright]
+include = ["blip.py", "bliplib", "test"]
+exclude = ["venv", ".venv", "build", "**/__pycache__"]
+
+# The lowest version this project supports, so that newer-only syntax is caught
+pythonVersion = "3.12"
+
+typeCheckingMode = "standard"

@@ -13,6 +13,13 @@ repos:
         entry: poetry run ruff format
         types: [python]
 
+      - id: pyright
+        name: Pyright
+        language: system
+        entry: poetry run pyright
+        types: [python]
+        pass_filenames: false
+
       - id: pytest
         name: Unit Tests
         language: system
