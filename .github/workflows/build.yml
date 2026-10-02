@@ -33,6 +33,9 @@ jobs:
     - name: Run integration tests
       run: poetry run pytest test/integration/
 
+    - name: Type checking
+      run: poetry run pyright
+
     - name: Code linting
       run: poetry run ruff check
 
