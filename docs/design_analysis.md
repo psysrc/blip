@@ -101,7 +101,7 @@ Value     = StringLiteral(value) | IntegerLiteral(value) | BooleanLiteral(value)
 PatternElement = Identifier | StringLiteral | Wildcard
 
 Directives(input: Directive | None, output: Directive | None)
-Directive = Fixed(count, names) | Range(min, max)
+Directive = FixedDirective(count, names) | Range(min, max)
 ```
 
 Every `Value` carries a `blip_type` field; no other node does. `Wildcard`, the statements, the directives and `Program` itself have no type.

@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import sys
 from bliplib.interpreter import Interpreter, InterpreterError
+from bliplib.ir import load, IRError
 from bliplib.parser import Parser, ParserError
 from bliplib.transpiler import factory as transpiler_factory
 from bliplib.transpiler.interface import Transpiler
@@ -75,8 +76,13 @@ def main():
         sys.exit(0)
 
     if args.ir:
-        print(json.dumps(blip_ir, indent=4))
-        sys.exit(0)
+        try:
+            print(json.dumps(load(blip_ir).to_dict(), indent=4))
+            sys.exit(0)
+
+        except IRError as err:
+            print(f"IR error: {err}", file=sys.stderr)
+            sys.exit(1)
 
     print("Error: Program called with unexpected arguments.", file=sys.stderr)
     print(f"{args}", file=sys.stderr)

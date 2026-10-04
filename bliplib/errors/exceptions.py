@@ -3,16 +3,20 @@ class BlipError(RuntimeError):
 
 
 class TokenizerError(BlipError):
-    """An error emitted by the Blip tokenizer."""
+    """Error during tokenization of Blip source code."""
 
 
 class ParserError(BlipError):
-    """An error emitted by the Blip parser."""
+    """Error while parsing Blip source code into BlipIR."""
+
+
+class IRError(BlipError):
+    """Malformed BlipIR."""
 
 
 class InterpreterError(BlipError):
-    """An error emitted by the Blip interpreter."""
+    """Error while interpreting a Blip program."""
 
 
 class TranspilerError(BlipError):
-    """An error emitted by a Blip transpiler."""
+    """Error during transpilation of Blip into a target language."""

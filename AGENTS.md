@@ -2,19 +2,25 @@
 
 ## What Blip is
 
-A DSL for parsing and manipulating string data. Blip source is parsed into **BlipIR** (a plain, JSON-serialisable `dict`), which is then either interpreted directly or transpiled into another language.
+A DSL for parsing and manipulating string data. Blip source is parsed into **BlipIR** (a JSON-serialisable tree), which is then either interpreted directly or transpiled into another language.
 
 ```
 Blip code -> Parser -> BlipIR -> Interpreter
                              \-> Python / C / C++ transpiler -> target code
 ```
 
-BlipIR is the contract between the front end and every back end. It is an ordinary `dict` — there are no IR node classes. Consumers destructure it with `match`/`case` on `{"type": ...}`, so a change to the IR shape touches the interpreter *and* every transpiler.
+BlipIR is the contract between the front end and every back end, and it exists in two forms while the static analysis work lands:
+
+- **the `dict`**, which the parser produces and which the interpreter and every transpiler still consume, destructuring it with `match`/`case` on `{"type": ...}`;
+- **the object model** in `bliplib/ir/`, a class per node kind, which `load()` builds from that `dict` and validates completely.
+
+Only `--ir` goes through the object model today. Moving the transpilers and the interpreter onto it is staged work tracked in `docs/design_analysis.md`, so a change to the IR shape currently touches `bliplib/ir/`, the interpreter *and* every transpiler.
 
 | Path | Role |
 |------|------|
 | `blip.py` | CLI entry point (`--interpret`, `--transpile LANG`, `--ir`, `--prog`) |
-| `bliplib/parser/` | Tokenizer and parser; produces BlipIR |
+| `bliplib/parser/` | Tokenizer and parser; produces BlipIR as a `dict` |
+| `bliplib/ir/` | BlipIR object model: a class per node kind, `load()` and `to_dict()` |
 | `bliplib/interpreter/` | Executes BlipIR directly |
 | `bliplib/transpiler/` | `interface.py` (ABC), `factory.py` (name -> transpiler), one module per target |
 | `bliplib/errors/` | All exceptions subclass `BlipError` |
