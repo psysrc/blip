@@ -25,6 +25,11 @@ pyinstaller = "^6.14.2"
 markdown-it-py = "^3.0.0"
 pyright = "^1.1.414"
 
+[tool.pytest.ini_options]
+# Put the repository root on sys.path, so that `test.common` always resolves to this project's
+# test package and never to the standard library's `test` package, which some Python builds ship.
+pythonpath = ["."]
+
 [tool.ruff]
 line-length = 140
 
