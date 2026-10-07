@@ -23,7 +23,7 @@ pytest-cov = "^7.1.0"
 pre-commit = "^4.6.2"
 pyinstaller = "^6.22.3"
 markdown-it-py = "^4.2.0"
-pyright = "^1.1.414"
+ty = "^0.0.85"
 
 [tool.pytest.ini_options]
 # Put the repository root on sys.path, so that `test.common` always resolves to this project's

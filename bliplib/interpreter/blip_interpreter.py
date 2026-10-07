@@ -199,7 +199,8 @@ class Interpreter:
         for elem in code["elements"]:
             the_list.append(self.__interpret_expression(elem))
 
-        return the_list
+        # Known type error: Stage 5 of the static analysis implementation will fix this by overhauling the type system
+        return the_list  # ty: ignore[invalid-return-type]
 
     def __interpret_indexed_expression(self, code: dict) -> BlipType:
         self.__ensure_code_type(code, "index")
