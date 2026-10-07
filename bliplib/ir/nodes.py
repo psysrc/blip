@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from bliplib.errors import IRError
+from bliplib.ir.types import BlipType
 
 
 def _as_dict(blip_ir: object, what_error: str) -> dict[str, Any]:
@@ -109,18 +110,20 @@ class ValueNode:
     """
     Base class for every BlipIR value node.
 
-    Values are the only nodes that represent a Blip type. `blip_type` starts as `None` and the analyser fills it in place from Stage 2.
+    Values are the only nodes that represent a Blip type. `blip_type` starts as `None`, and the analyser fills it in once its
+    resolution pass has a ground type to write. A hole is never stored here - it is not even assignable - so a value node either
+    has no type yet or has one that can be serialised.
     """
 
-    # Stage 2 replaces `Any` with `BlipType | None`, once the type model exists
-    blip_type: Any = field(default=None, kw_only=True)
+    blip_type: BlipType | None = field(default=None, kw_only=True)
 
     def _value_to_dict(self, kind: str, **fields: Any) -> dict[str, Any]:
         node: dict[str, Any] = {"type": kind}
 
         if self.blip_type is not None:
-            # Stage 3 encodes this with the compact-string codec
-            node["blip_type"] = self.blip_type
+            # Stage 3 adds the compact-string codec that belongs here. Until then this refuses rather than guesses: a `Scalar`
+            # is a `StrEnum` and would serialise correctly by luck, while a `List` would emit a dataclass repr or crash.
+            raise IRError("Serialising a type needs the compact-string codec, which does not exist yet")
 
         node.update(fields)
         return node

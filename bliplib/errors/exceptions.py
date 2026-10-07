@@ -14,6 +14,10 @@ class IRError(BlipError):
     """Malformed BlipIR."""
 
 
+class SemanticError(BlipError):
+    """Error during static analysis of BlipIR (the Blip program is not well-formed)."""
+
+
 class InterpreterError(BlipError):
     """Error while interpreting a Blip program."""
 

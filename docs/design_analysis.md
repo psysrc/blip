@@ -112,9 +112,10 @@ Three properties matter:
   node it sits on raises `IRError`, a new subclass of `BlipError`. This is neither a `ParserError` (nothing was parsed) nor a `SemanticError`
   (nothing was analysed) — a malformed `.blipir` is its own failure mode, and it is the failure mode that lets every backend delete its
   defensive `case _: raise` fallbacks. The contradiction check is described under [Annotating what is derivable](#annotating-what-is-derivable).
-- **Nodes are mutable.** `blip_type` starts as `None` and the analyser fills it in place. Unification's final resolution pass — walk the
-  tree and replace every hole with what it resolved to — is natural on a mutable tree and awkward on a frozen one. These are data carriers
-  that backends read, so their fields are public: a deliberate departure from the `self.__private` convention used elsewhere.
+- **Nodes are mutable.** `blip_type` starts as `None`, and the analyser's resolution pass fills it in place once it has a ground type to
+  write — which is natural on a mutable tree and awkward on a frozen one. A node is never left holding a hole in the meantime: holes live in
+  the analyser's own record of what it inferred, so a value node's type is either absent or serialisable, with no third state. These are data
+  carriers that backends read, so their fields are public: a deliberate departure from the `self.__private` convention used elsewhere.
 - **The round trip is exact.** `load(d).to_dict() == d` for any well-formed `d`. This is already tested for the whole corpus at no cost,
   because the reference-program test parses `blip --ir` output and compares it against the fixture as a `dict`. Note that this is structural
   equality, not textual: JSON object keys are unordered, so key order and whitespace in the fixtures carry no meaning and nothing should be
@@ -250,26 +251,39 @@ disagree with the tree next to it is not worth the lines it saves. The object mo
 ## The type model
 
 ```
-BlipType = Scalar(STRING | INTEGER | BOOLEAN)
-         | List(element: BlipType)
-         | Var(id)
-         | Unknown
+BlipType    = Scalar(STRING | INTEGER | BOOLEAN)        # bliplib/ir/
+            | List[element]
+
+InferredType = Scalar | List[InferredType] | Var(id)    # bliplib/analysis/
 ```
 
 `List` is recursive, so nested lists are nameable. This is more honest than a flat type alias, which cannot express what the interpreter can
-already build at runtime.
+already build at runtime. `Scalar` is an enum whose members are their own serialised form, so it is also the whole of the scalar codec.
 
-`Unknown` is **strictly an error-recovery value**. It exists so that one bad expression does not cascade into twenty errors. `Var` is a type
-not yet determined — see the next section. Neither is serialisable; both live only in `bliplib/analysis/`.
+`Var` is a type not yet determined — see the next section. It is **not serialisable, and lives only in `bliplib/analysis/`**, which is enforced
+rather than merely intended. `List` is generic and frozen, so its element parameter is covariant, and therefore `List[Var]` is not assignable to
+a `BlipType` at any depth. A hole cannot be stored on a value node, cannot be handed to the codec, and cannot be written to a `.blipir` —
+because the type checker rejects it, not because nothing happens to do it.
 
 Three invariants hold if, and only if, analysis succeeds:
 
 1. Every `Value` node has a `blip_type` that is not `None`.
-2. No `blip_type` is `Unknown` or contains an unresolved `Var`.
+2. No `blip_type` contains an unresolved `Var`.
 3. Every `blip_type` is therefore expressible as a compact string.
 
-Backends may assert on all three. This is the precise difference from the Python transpiler's current `UnknownType`, which reaches codegen
-and produces silently wrong output.
+Invariant 1 is checked against the corpus. Invariants 2 and 3 need no checking: the resolution pass is typed `InferredType -> BlipType`, so the
+only way it can compile is to turn an unresolved hole into an error. This is the precise difference from the Python transpiler's current
+`UnknownType`, which reaches codegen and produces silently wrong output.
+
+### Error recovery is deferred
+
+An earlier revision of this document gave the type model a fourth case, `Unknown`, as an error-recovery value so that one bad expression could
+not cascade into twenty errors. It is not implemented, because the analyser raises on the first `SemanticError` it finds — the same way the
+parser and the loader behave, and the same way `ParserError` and `IRError` already read.
+
+`Unknown` earns its place only once the analyser reports several errors at once, which is worth having when `blip --check` becomes a pre-commit
+hook and one error per run gets tedious. Adding it then means a value for "this expression is already wrong, do not complain about it again",
+a diagnostic list in place of a raise, and one more case for the resolution pass to reject. Until then it would be a case nothing produces.
 
 ## Type inference by unification
 
@@ -298,9 +312,13 @@ Three details matter to anyone working on the analyser:
   `Var` still unbound is a `SemanticError` — the program never said what it wanted. This pass is also what establishes invariant 3 above, and
   therefore what makes the tree serialisable.
 
-Unification and reassignment are **different operations, and the code must keep them distinct**. Unification *refines* a hole; reassignment
-*compares* two fully-formed types and rejects a mismatch (see Scope and binding, below). `x = []` followed by a use at `STRING` is
-inference. `x = "a"` followed by `x = 1` is an error.
+Reassignment **unifies** rather than compares. An earlier revision of this document had it compare two fully-formed types and reject any
+mismatch, keeping it distinct from unification. That is wrong when the existing type still holds a hole: `x = []` followed by `x = ["a"]` would
+be rejected, because `List(?1)` and `List(STRING)` are not equal, even though the second assignment is exactly what determines the first.
+
+Unifying instead gets both cases right, because unification on two types that are already ground *is* a comparison. So `x = []` followed by
+`x = ["a"]` refines `?1` to `STRING`, while `x = "a"` followed by `x = 1` is still an error. The monomorphic rule is about a name's type never
+*changing*; a hole being filled in is the same type becoming known.
 
 Because Blip variables are monomorphic and Blip has no functions yet, unification is *all* that is required — there is no generalisation and no
 instantiation, which is the difference between this and a full Hindley–Milner implementation. See Deferred decisions.
@@ -478,10 +496,14 @@ question: re-wrapping the new fixtures must reproduce the old ones exactly, and 
 Output is unchanged, so every existing test stays green — which is the point: the round trip is proven against the whole corpus before any
 semantics exist. Because the wrapper is already gone, `to_dict()` has no per-slot special cases and every value slot serialises the same way.
 
-**Stage 2 — the analyser, no consumers.** `bliplib/analysis/`: type model, environment, unification, occurs check, resolution pass, the
-monomorphic rule, `SemanticError`. Validated against the corpus — no errors on any of the 15 valid programs, and for every row of every
-`#### Execution` table, the statically inferred return type matches the shape of the recorded output. That is a real conformance check built
-entirely from fixtures that already exist. Unit tests cover the error paths.
+**Stage 2 — the analyser, no consumers.** The ground type model in `bliplib/ir/`, then `bliplib/analysis/`: the `Var` hole, environment,
+unification, occurs check, resolution pass, the monomorphic rule, `SemanticError`. Validated against the corpus — no errors on any of the 15
+valid programs, and for every row of every `#### Execution` table, the statically inferred return type matches the shape of the recorded
+output. That is a real conformance check built entirely from fixtures that already exist. Unit tests cover the error paths.
+
+Nothing consumes the analyser yet, so `blip.py`, the interpreter and the transpilers are untouched and `--ir` output does not change. One
+consequence of annotating a tree before the codec exists: `to_dict()` on an analysed tree raises, rather than guessing at a format it does not
+have. Stage 3 replaces that with the codec.
 
 **Stage 3 — wire it in, annotate the fixtures.** Analysis runs in every mode. All 15 `#### Blip IR` blocks gain `blip_type` keys, 53 lines in
 total. This is the first stage in which a file can carry an annotation, so the compact-string codec and the loader's annotation consistency
