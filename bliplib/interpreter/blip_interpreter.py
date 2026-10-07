@@ -2,9 +2,7 @@
 Implements the Interpreter class.
 """
 
-from typing import Optional
 from bliplib.errors import InterpreterError
-
 
 type BlipType = str | list[str] | int | list[int] | bool | list[bool]
 
@@ -53,7 +51,7 @@ class Interpreter:
 
         raise InterpreterError("Program halted without returning a value")
 
-    def __interpret_statement(self, statement: dict) -> Optional[list[str]]:
+    def __interpret_statement(self, statement: dict) -> list[str] | None:
         match statement:
             case {"type": "return"}:
                 return self.__interpret_return(statement)

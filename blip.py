@@ -1,10 +1,12 @@
 import argparse
 import json
-from pathlib import Path
 import sys
-from bliplib.interpreter import Interpreter, InterpreterError
-from bliplib.ir import load, IRError
-from bliplib.parser import Parser, ParserError
+from pathlib import Path
+
+from bliplib.errors import InterpreterError, ParserError, TranspilerError
+from bliplib.interpreter import Interpreter
+from bliplib.ir import IRError, load
+from bliplib.parser import Parser
 from bliplib.transpiler import factory as transpiler_factory
 from bliplib.transpiler.interface import Transpiler
 
@@ -44,10 +46,6 @@ def main():
         print(f"Parser error: {err}", file=sys.stderr)
         sys.exit(1)
 
-    except Exception as err:
-        print(f"Unknown error encountered while parsing program: {err}", file=sys.stderr)
-        sys.exit(2)
-
     if args.interpret:
         try:
             interpreter = Interpreter(blip_ir)
@@ -60,20 +58,21 @@ def main():
             print(f"Interpreter error: {err}", file=sys.stderr)
             sys.exit(1)
 
-        except Exception as err:
-            print(f"Unknown error encountered while interpreting program: {err}", file=sys.stderr)
-            sys.exit(2)
-
     if args.transpile:
-        transpiler: Transpiler = transpiler_factory.get_transpiler(args.transpile)
+        try:
+            transpiler: Transpiler = transpiler_factory.get_transpiler(args.transpile)
 
-        if args.prog:
-            target_code = transpiler.transpile_program(blip_ir)
-        else:
-            target_code = transpiler.transpile_function(blip_ir)
+            if args.prog:
+                target_code = transpiler.transpile_program(blip_ir)
+            else:
+                target_code = transpiler.transpile_function(blip_ir)
 
-        print(target_code)
-        sys.exit(0)
+            print(target_code)
+            sys.exit(0)
+
+        except TranspilerError as err:
+            print(f"Transpiler error: {err}", file=sys.stderr)
+            sys.exit(1)
 
     if args.ir:
         try:

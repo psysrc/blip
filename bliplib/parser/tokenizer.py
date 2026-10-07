@@ -2,9 +2,9 @@
 Implements the Tokenizer class.
 """
 
-import logging
 import re
 from dataclasses import dataclass
+
 from bliplib.errors import TokenizerError
 
 
@@ -27,7 +27,6 @@ class Tokenizer:
 
     def __init__(self, source: str):
         self.source = source
-        logging.debug("Tokenizer initialised")
 
         self.current_token = self.__get_next_token_from_stream()
 
@@ -84,12 +83,6 @@ class Tokenizer:
                 self.source = self.source[len(token_value) :]
 
                 if token_type:
-                    logging.debug(
-                        "Tokenizer matched token '%s' of type '%s'",
-                        token_value,
-                        token_type,
-                    )
-
                     return Token(type=token_type, value=token_value)
 
                 return self.__get_next_token_from_stream()

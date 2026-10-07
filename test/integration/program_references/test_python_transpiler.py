@@ -1,6 +1,8 @@
-import pytest
 import json
 import subprocess
+
+import pytest
+
 from test.common.ref_progs.classes import ReferenceProgram
 from test.common.ref_progs.getter import get_reference_programs
 from test.integration.conftest import run_blip
@@ -37,7 +39,7 @@ def test_reference_program_transpile_python(ref: ReferenceProgram):
 
     for i, execution in enumerate(ref.executions):
         python_args = ["python3", "-"] + execution.input_strings
-        python_result = subprocess.run(python_args, input=python_code, text=True, capture_output=True)
+        python_result = subprocess.run(python_args, input=python_code, text=True, capture_output=True, check=False)
 
         if execution.expect_success:
             if python_result.returncode == 0:

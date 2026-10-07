@@ -5,7 +5,10 @@ The round trip is checked against every reference program; the rest of these tes
 since that is what lets every consumer stop checking the shape for itself.
 """
 
+from typing import Any
+
 import pytest
+
 from bliplib.errors import BlipError
 from bliplib.ir import (
     Assignment,
@@ -14,10 +17,10 @@ from bliplib.ir import (
     Decomposition,
     Directives,
     FixedDirective,
-    IRError,
     Identifier,
     Index,
     IntegerLiteral,
+    IRError,
     ListLiteral,
     Program,
     RangeDirective,
@@ -33,7 +36,6 @@ from bliplib.ir import (
 from bliplib.parser import Parser
 from test.common.ref_progs.classes import ReferenceProgram
 from test.common.ref_progs.getter import get_reference_programs
-from typing import Any
 
 
 @pytest.mark.parametrize("ref", get_reference_programs())

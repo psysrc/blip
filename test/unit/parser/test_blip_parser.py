@@ -1,4 +1,5 @@
 import pytest
+
 from bliplib.parser import Parser
 from bliplib.parser.blip_parser import ParserError
 

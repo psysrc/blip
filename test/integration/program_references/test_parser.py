@@ -1,5 +1,7 @@
-import pytest
 import json
+
+import pytest
+
 from test.common.ref_progs.classes import ReferenceProgram
 from test.common.ref_progs.getter import get_reference_programs
 from test.integration.conftest import run_blip

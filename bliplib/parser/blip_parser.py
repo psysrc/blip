@@ -2,8 +2,9 @@
 Implements the Parser class.
 """
 
-from .tokenizer import Tokenizer, Token
 from bliplib.errors import ParserError, TokenizerError
+
+from .tokenizer import Token, Tokenizer
 
 
 class Parser:
@@ -352,5 +353,5 @@ class Parser:
 
         return {
             "type": "boolean_literal",
-            "value": True if literal_text == "true" else False,
+            "value": literal_text == "true",
         }

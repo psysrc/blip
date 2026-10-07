@@ -1,6 +1,6 @@
 import pytest
-from bliplib.interpreter import Interpreter, InterpreterError
 
+from bliplib.interpreter import Interpreter, InterpreterError
 
 """
 The tests here are intentionally thin on numbers.

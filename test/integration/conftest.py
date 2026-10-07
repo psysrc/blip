@@ -1,13 +1,19 @@
-import pytest
 import subprocess
 
+import pytest
 
 blip_binary = "./build/bin/blip"
 
 
 def run_blip(blip_args: list[str], stdin: str) -> subprocess.CompletedProcess:
+    """
+    Run the Blip CLI tool with the provided arguments and stdin stream.
+
+    Returns the results of the program execution (`subprocess.CompletedProcess`).
+    """
+
     prog_args = [blip_binary, "-"] + blip_args
-    return subprocess.run(prog_args, input=stdin, text=True, capture_output=True)
+    return subprocess.run(prog_args, input=stdin, text=True, capture_output=True, check=False)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -16,6 +22,6 @@ def build_blip_binary():
 
     subprocess.run(["./build.sh"], check=True)  # Build the blip CLI tool
 
-    result = subprocess.run([blip_binary, "--help"], stdout=subprocess.DEVNULL)  # Check it built correctly
+    result = subprocess.run([blip_binary, "--help"], stdout=subprocess.DEVNULL, check=False)  # Check it built correctly
     if result.returncode != 0:
         raise RuntimeError(f"Failed to build blip executable: {result.stderr}")

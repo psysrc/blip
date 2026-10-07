@@ -8,6 +8,7 @@ a type, and the type inferred for what a program returns must agree with the out
 from collections.abc import Iterator
 
 import pytest
+
 from bliplib.analysis import analyse
 from bliplib.errors import SemanticError
 from bliplib.ir import (

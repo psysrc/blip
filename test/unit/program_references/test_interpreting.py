@@ -4,9 +4,10 @@ This ensures the Blip code produces the correct outputs when interpreted.
 """
 
 import pytest
+
+from bliplib.interpreter import Interpreter, InterpreterError
 from test.common.ref_progs.classes import ReferenceProgram
 from test.common.ref_progs.getter import get_reference_programs
-from bliplib.interpreter import Interpreter, InterpreterError
 
 
 @pytest.mark.parametrize("ref", get_reference_programs())

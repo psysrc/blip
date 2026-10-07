@@ -4,10 +4,11 @@ This ensures the Blip code can be parsed.
 """
 
 import pytest
+
+from bliplib.interpreter import Interpreter, InterpreterError
+from bliplib.parser import Parser, ParserError
 from test.common.ref_progs.classes import ReferenceProgram
 from test.common.ref_progs.getter import get_reference_programs
-from bliplib.parser import Parser, ParserError
-from bliplib.interpreter import Interpreter, InterpreterError
 
 
 @pytest.mark.parametrize("ref", get_reference_programs())

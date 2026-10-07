@@ -6,7 +6,8 @@ reference programs, being all valid, never exercise.
 """
 
 import pytest
-from bliplib.analysis import Unifier, Var, describe_inferred_type
+
+from bliplib.analysis import InferredType, Unifier, Var, describe_inferred_type
 from bliplib.errors import SemanticError
 from bliplib.ir.types import List, Scalar
 
@@ -88,9 +89,9 @@ def test_unifying_two_identical_scalars_is_allowed(unifier: Unifier):
         pytest.param(List(List(Scalar.STRING)), List(Scalar.STRING), id="lists nested to different depths"),
     ],
 )
-def test_types_that_cannot_be_made_equal_raise(unifier: Unifier, left: object, right: object):
+def test_types_that_cannot_be_made_equal_raise(unifier: Unifier, left: InferredType, right: InferredType):
     with pytest.raises(SemanticError):
-        unifier.unify(left, right, CONTEXT)  # type: ignore[arg-type] - deliberately mismatched
+        unifier.unify(left, right, CONTEXT)
 
 
 def test_the_occurs_check_rejects_an_infinite_type(unifier: Unifier):
@@ -158,5 +159,5 @@ def test_an_error_message_resolves_what_it_already_knows(unifier: Unifier):
         pytest.param(List(Var(7)), "list[?7]", id="a list of holes"),
     ],
 )
-def test_describe_renders_a_type_for_a_message(inferred: object, expected: str):
-    assert describe_inferred_type(inferred) == expected  # type: ignore[arg-type] - exercising every shape
+def test_describe_renders_a_type_for_a_message(inferred: InferredType, expected: str):
+    assert describe_inferred_type(inferred) == expected

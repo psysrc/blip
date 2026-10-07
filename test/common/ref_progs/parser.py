@@ -1,14 +1,15 @@
 import json
-from typing import Optional
+
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
+
 from test.common.ref_progs.classes import ReferenceProgram, ReferenceProgramExecution
 
 
 class TokenStream:
     def __init__(self, tokens: list[Token]) -> None:
         self.__tokens = tokens
-        self.__current_token: Optional[Token] = self.__tokens[0]
+        self.__current_token: Token | None = self.__tokens[0]
 
     def goto_token(self, **attrs) -> Token:
         """
@@ -26,7 +27,7 @@ class TokenStream:
 
             self.consume_token()
 
-    def consume_token(self) -> Optional[Token]:
+    def consume_token(self) -> Token | None:
         """
         Consume and return the next token in the stream, or `None` if all tokens have been exhausted.
         """
@@ -41,7 +42,7 @@ class TokenStream:
 
         return current_token
 
-    def current_token(self) -> Optional[Token]:
+    def current_token(self) -> Token | None:
         return self.__current_token
 
 

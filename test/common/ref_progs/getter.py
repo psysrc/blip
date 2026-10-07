@@ -1,10 +1,9 @@
-from typing import Optional
 from pathlib import Path
+
 from test.common.ref_progs.classes import ReferenceProgram
 from test.common.ref_progs.parser import ReferenceParser
 
-
-__reference_programs: Optional[list[ReferenceProgram]] = None
+__reference_programs: list[ReferenceProgram] | None = None
 
 
 def get_reference_programs() -> list[ReferenceProgram]:

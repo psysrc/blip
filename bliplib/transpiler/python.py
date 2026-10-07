@@ -1,7 +1,7 @@
 import ast
-from bliplib.transpiler.interface import Transpiler
-from bliplib.errors import TranspilerError
 
+from bliplib.errors import TranspilerError
+from bliplib.transpiler.interface import Transpiler
 
 # The `input` Blip identifier would shadow the Python `input` builtin function if we used it blindly
 # So ideally we should convert `input` to another name when transpiling to Python

@@ -1,19 +1,19 @@
 from bliplib.errors.exceptions import (
     BlipError,
-    TokenizerError,
-    ParserError,
-    IRError,
-    SemanticError,
     InterpreterError,
+    IRError,
+    ParserError,
+    SemanticError,
+    TokenizerError,
     TranspilerError,
 )
 
 __all__ = [
     "BlipError",
-    "TokenizerError",
-    "ParserError",
     "IRError",
-    "SemanticError",
     "InterpreterError",
+    "ParserError",
+    "SemanticError",
+    "TokenizerError",
     "TranspilerError",
 ]
