@@ -2,26 +2,26 @@ repos:
   - repo: local
     hooks:
       - id: ruff check
-        name: Linting (ruff)
+        name: Linting
         language: system
         entry: poetry run ruff check --fix
         types: [python]
 
       - id: ruff format
-        name: Formatting (ruff)
+        name: Formatting
         language: system
         entry: poetry run ruff format
         types: [python]
 
       - id: ty
-        name: Type checking (ty)
+        name: Type checking
         language: system
         entry: poetry run ty check
         types: [python]
         pass_filenames: false
 
       - id: pytest
-        name: Unit Tests (pytest)
+        name: Unit Tests
         language: system
         entry: poetry run pytest test/unit/
         types: [python]
