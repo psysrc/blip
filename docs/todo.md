@@ -12,6 +12,7 @@ In no particular order, here are the ideas that still need to be fleshed out.
 - Optimisations
 - Improved error messages
 - Arithmetic
+- Indexing into strings
 
 ## Implementation
 

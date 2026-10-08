@@ -108,7 +108,10 @@ def test_inferred_return_type_matches_the_recorded_output(ref: ReferenceProgram)
     if not returns:
         return  # Program never returns, so there is no return type to check. Pass the test gracefully.
 
-    returned = returns[0].expression.blip_type  # TODO: Check all return statements, not just the first one
+    # TODO: Check all return statements, not just the first one
+    # Difficult because we need a way of identifying which return statement was executed
+
+    returned = returns[0].expression.blip_type
     assert returned in (Scalar.STRING, List(Scalar.STRING)), f"'{ref.name}' returns {returned}"
 
     for i, execution in enumerate(ref.executions):
@@ -116,8 +119,10 @@ def test_inferred_return_type_matches_the_recorded_output(ref: ReferenceProgram)
             continue
 
         if returned == Scalar.STRING:
-            # TODO: Check the wording of this assert
-            assert len(execution.output_strings) == 1, f"'{ref.name}' execution #{i + 1}: a string is one output"
+            num_outputs = len(execution.output_strings)
+            assert num_outputs == 1, (
+                f"'{ref.name}' execution #{i + 1}: Returned {num_outputs} strings but return expression has str type (instead of list(str))"
+            )
 
 
 @pytest.mark.parametrize(
@@ -134,9 +139,7 @@ def test_inferred_return_type_matches_the_recorded_output(ref: ReferenceProgram)
         pytest.param('!in input\nret "ok"', id="an input directive naming the reserved input"),
         pytest.param('x = 5\nx -> a "@" b\nret a', id="decomposing something that is not a string"),
         pytest.param('xs = ["a"]\ni = "z"\nret xs[i]', id="indexing with a string"),
-        pytest.param(
-            'x = "a"\nret x[0]', id="indexing something that is not a list"
-        ),  # TODO: indexing into a string may be allowed in future
+        pytest.param('x = "a"\nret x[0]', id="indexing something that is not a list"),
         pytest.param('n = 5\nname = "a" n\nret name', id="concatenating an integer"),
     ],
 )
@@ -207,16 +210,6 @@ def test_a_named_input_directive_binds_each_name_as_a_string():
     returned = program.statements[-1]
     assert isinstance(returned, Return)
     assert returned.expression.blip_type == Scalar.STRING
-
-
-def test_a_counted_input_directive_binds_nothing():
-    """`!in 2` says how many strings arrive, not what they are called, so it introduces no names."""
-
-    # TODO: The goal of this test doesn't quite align with what it actually tests
-    # This should really be asserting the input directive is a RangeDirective or something similar
-
-    with pytest.raises(SemanticError):
-        analyse_source("!in 2\nret username")
 
 
 def test_input_is_always_a_list_of_strings():

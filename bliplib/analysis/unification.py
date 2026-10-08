@@ -101,14 +101,10 @@ class Unifier:
     def __describe(self, inferred: InferredType) -> str:
         """Render a type for an error message, resolved as deeply as possible so that an already-known hole does not leak in."""
 
-        # TODO: is this function really necessary? Doesn't `describe()` already "resolve deep"?
-
         return describe_inferred_type(self.__resolve_deep(inferred))
 
     def __resolve_deep(self, inferred: InferredType) -> InferredType:
         """Resolve at every depth, leaving any hole that nothing has been learned about yet in place."""
-
-        # TODO: is this function really necessary? Doesn't `resolve()` already "resolve deep"?
 
         resolved = self.resolve(inferred)
 
