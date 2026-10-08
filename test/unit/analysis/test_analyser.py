@@ -27,7 +27,7 @@ from bliplib.ir import (
 from bliplib.ir.types import List, Scalar
 from bliplib.parser import Parser
 from test.common.ref_progs.classes import ReferenceProgram
-from test.common.ref_progs.getter import get_reference_programs
+from test.common.ref_progs.getter import get_compiling_reference_programs
 
 
 def analyse_source(source: str) -> Program:
@@ -76,14 +76,14 @@ def _values_within(value: Value) -> Iterator[Value]:
             return
 
 
-@pytest.mark.parametrize("ref", get_reference_programs())
+@pytest.mark.parametrize("ref", get_compiling_reference_programs())
 def test_reference_program_analyses_cleanly(ref: ReferenceProgram):
     """No reference program is rejected: none of the analyser's rules is a behaviour change for code that already exists."""
 
     analyse_source(ref.blip_code)
 
 
-@pytest.mark.parametrize("ref", get_reference_programs())
+@pytest.mark.parametrize("ref", get_compiling_reference_programs())
 def test_every_value_of_a_reference_program_gets_a_type(ref: ReferenceProgram):
     """Invariant 1: analysis succeeding means every value node has a type."""
 
@@ -93,7 +93,7 @@ def test_every_value_of_a_reference_program_gets_a_type(ref: ReferenceProgram):
     assert all(value.blip_type is not None for value in values), f"untyped values in '{ref.name}'"
 
 
-@pytest.mark.parametrize("ref", get_reference_programs())
+@pytest.mark.parametrize("ref", get_compiling_reference_programs())
 def test_inferred_return_type_matches_the_recorded_output(ref: ReferenceProgram):
     """
     Conformance, built entirely out of fixtures that already existed.

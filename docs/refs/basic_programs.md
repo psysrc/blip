@@ -27,6 +27,7 @@ ret "Hello, World!"
             "type": "return",
             "expression": {
                 "type": "string_literal",
+                "blip_type": "string",
                 "value": "Hello, World!"
             }
         }
@@ -66,6 +67,7 @@ ret 'Hello, World!'
             "type": "return",
             "expression": {
                 "type": "string_literal",
+                "blip_type": "string",
                 "value": "Hello, World!"
             }
         }
@@ -138,6 +140,7 @@ ret input
             "type": "return",
             "expression": {
                 "type": "identifier",
+                "blip_type": "list[string]",
                 "name": "input"
             }
         }
@@ -188,10 +191,12 @@ ret top_ten_colours
             "type": "assignment",
             "identifier": {
                 "type": "identifier",
+                "blip_type": "integer",
                 "name": "fav_number"
             },
             "expression": {
                 "type": "integer_literal",
+                "blip_type": "integer",
                 "value": 987
             }
         },
@@ -199,10 +204,12 @@ ret top_ten_colours
             "type": "assignment",
             "identifier": {
                 "type": "identifier",
+                "blip_type": "boolean",
                 "name": "fav_bool"
             },
             "expression": {
                 "type": "boolean_literal",
+                "blip_type": "boolean",
                 "value": true
             }
         },
@@ -210,10 +217,12 @@ ret top_ten_colours
             "type": "assignment",
             "identifier": {
                 "type": "identifier",
+                "blip_type": "string",
                 "name": "fav_colour"
             },
             "expression": {
                 "type": "string_literal",
+                "blip_type": "string",
                 "value": "blue"
             }
         },
@@ -221,21 +230,26 @@ ret top_ten_colours
             "type": "assignment",
             "identifier": {
                 "type": "identifier",
+                "blip_type": "list[string]",
                 "name": "top_ten_colours"
             },
             "expression": {
                 "type": "list",
+                "blip_type": "list[string]",
                 "elements": [
                     {
                         "type": "identifier",
+                        "blip_type": "string",
                         "name": "fav_colour"
                     },
                     {
                         "type": "string_literal",
+                        "blip_type": "string",
                         "value": "black"
                     },
                     {
                         "type": "string_literal",
+                        "blip_type": "string",
                         "value": "red"
                     }
                 ]
@@ -245,6 +259,7 @@ ret top_ten_colours
             "type": "return",
             "expression": {
                 "type": "identifier",
+                "blip_type": "list[string]",
                 "name": "top_ten_colours"
             }
         }
@@ -286,21 +301,26 @@ ret my_str
             "type": "assignment",
             "identifier": {
                 "type": "identifier",
+                "blip_type": "string",
                 "name": "abc"
             },
             "expression": {
                 "type": "concatenation",
+                "blip_type": "string",
                 "operands": [
                     {
                         "type": "string_literal",
+                        "blip_type": "string",
                         "value": "A"
                     },
                     {
                         "type": "string_literal",
+                        "blip_type": "string",
                         "value": "B"
                     },
                     {
                         "type": "string_literal",
+                        "blip_type": "string",
                         "value": "C"
                     }
                 ]
@@ -310,21 +330,26 @@ ret my_str
             "type": "assignment",
             "identifier": {
                 "type": "identifier",
+                "blip_type": "string",
                 "name": "my_str"
             },
             "expression": {
                 "type": "concatenation",
+                "blip_type": "string",
                 "operands": [
                     {
                         "type": "identifier",
+                        "blip_type": "string",
                         "name": "abc"
                     },
                     {
                         "type": "string_literal",
+                        "blip_type": "string",
                         "value": "123"
                     },
                     {
                         "type": "identifier",
+                        "blip_type": "string",
                         "name": "abc"
                     }
                 ]
@@ -334,6 +359,7 @@ ret my_str
             "type": "return",
             "expression": {
                 "type": "identifier",
+                "blip_type": "string",
                 "name": "my_str"
             }
         }
@@ -376,16 +402,20 @@ ret first " " last  // Concatenate first and last name with a space
             "type": "assignment",
             "identifier": {
                 "type": "identifier",
+                "blip_type": "string",
                 "name": "email"
             },
             "expression": {
                 "type": "index",
+                "blip_type": "string",
                 "identifier": {
                     "type": "identifier",
+                    "blip_type": "list[string]",
                     "name": "input"
                 },
                 "index": {
                     "type": "integer_literal",
+                    "blip_type": "integer",
                     "value": 0
                 }
             }
@@ -394,15 +424,18 @@ ret first " " last  // Concatenate first and last name with a space
             "type": "decomposition",
             "identifier": {
                 "type": "identifier",
+                "blip_type": "string",
                 "name": "email"
             },
             "pattern": [
                 {
                     "type": "identifier",
+                    "blip_type": "string",
                     "name": "username"
                 },
                 {
                     "type": "string_literal",
+                    "blip_type": "string",
                     "value": "@"
                 },
                 {
@@ -414,19 +447,23 @@ ret first " " last  // Concatenate first and last name with a space
             "type": "decomposition",
             "identifier": {
                 "type": "identifier",
+                "blip_type": "string",
                 "name": "username"
             },
             "pattern": [
                 {
                     "type": "identifier",
+                    "blip_type": "string",
                     "name": "first"
                 },
                 {
                     "type": "string_literal",
+                    "blip_type": "string",
                     "value": "."
                 },
                 {
                     "type": "identifier",
+                    "blip_type": "string",
                     "name": "last"
                 }
             ]
@@ -435,17 +472,21 @@ ret first " " last  // Concatenate first and last name with a space
             "type": "return",
             "expression": {
                 "type": "concatenation",
+                "blip_type": "string",
                 "operands": [
                     {
                         "type": "identifier",
+                        "blip_type": "string",
                         "name": "first"
                     },
                     {
                         "type": "string_literal",
+                        "blip_type": "string",
                         "value": " "
                     },
                     {
                         "type": "identifier",
+                        "blip_type": "string",
                         "name": "last"
                     }
                 ]
@@ -492,12 +533,15 @@ ret input[0]
             "type": "return",
             "expression": {
                 "type": "index",
+                "blip_type": "string",
                 "identifier": {
                     "type": "identifier",
+                    "blip_type": "list[string]",
                     "name": "input"
                 },
                 "index": {
                     "type": "integer_literal",
+                    "blip_type": "integer",
                     "value": 0
                 }
             }

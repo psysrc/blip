@@ -14,7 +14,7 @@ BlipIR is the contract between the front end and every back end, and it exists i
 - **the `dict`**, which the parser produces and which the interpreter and every transpiler still consume, destructuring it with `match`/`case` on `{"type": ...}`;
 - **the object model** in `bliplib/ir/`, a class per node kind, which `load()` builds from that `dict` and validates completely.
 
-Only `--ir` goes through the object model today. Moving the transpilers and the interpreter onto it is staged work tracked in `docs/design_analysis.md`, so a change to the IR shape currently touches `bliplib/ir/`, the interpreter *and* every transpiler.
+Analysis runs in every mode, but only `--ir` reads the analysed tree back - the interpreter and the transpilers still take the parser's `dict`. Moving them onto the object model is staged work tracked in `docs/design_analysis.md`, so a change to the IR shape currently touches `bliplib/ir/`, the interpreter *and* every transpiler.
 
 | Path | Role |
 |------|------|
@@ -33,7 +33,7 @@ The markdown files in `docs/refs/` are parsed at test time by `test/common/ref_p
 
 Those parsed programs are then run against the parser, the interpreter, and each transpiler.
 
-**So: adding or changing a language feature means editing the documentation.** A new reference program in `docs/refs/` is immediately picked up by the parser, interpreter and transpiler test suites. Each reference program needs all four sections (`#### Blip code`, `#### Blip IR`, `#### Execution` table) in the existing format; follow `docs/refs/basic_programs.md`.
+**So: adding or changing a language feature means editing the documentation.** A new reference program in `docs/refs/` is immediately picked up by the parser, interpreter and transpiler test suites. A reference program that compiles needs `#### Blip code`, `#### Blip IR` and an `#### Execution` table; follow `docs/refs/basic_programs.md`. One that is *meant* to be rejected has a `#### Compilation` section naming the error instead of those last two; follow `docs/refs/static_errors.md`.
 
 Write unit tests in `test/unit/` only for things reference programs can't express — internal helpers, error paths, malformed IR.
 

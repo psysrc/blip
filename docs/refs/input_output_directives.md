@@ -17,21 +17,22 @@ ret "OK"
 ```json
 {
     "type": "program",
-    "directives": {
-        "input": {
-            "type": "fixed",
-            "value": 2
-        }
-    },
     "statements": [
         {
             "type": "return",
             "expression": {
                 "type": "string_literal",
+                "blip_type": "string",
                 "value": "OK"
             }
         }
-    ]
+    ],
+    "directives": {
+        "input": {
+            "type": "fixed",
+            "value": 2
+        }
+    }
 }
 ```
 
@@ -63,21 +64,22 @@ ret "OK"
 ```json
 {
     "type": "program",
-    "directives": {
-        "output": {
-            "type": "fixed",
-            "value": 1
-        }
-    },
     "statements": [
         {
             "type": "return",
             "expression": {
                 "type": "string_literal",
+                "blip_type": "string",
                 "value": "OK"
             }
         }
-    ]
+    ],
+    "directives": {
+        "output": {
+            "type": "fixed",
+            "value": 1
+        }
+    }
 }
 ```
 
@@ -106,21 +108,22 @@ ret "OK"
 ```json
 {
     "type": "program",
-    "directives": {
-        "output": {
-            "type": "fixed",
-            "value": 2
-        }
-    },
     "statements": [
         {
             "type": "return",
             "expression": {
                 "type": "string_literal",
+                "blip_type": "string",
                 "value": "OK"
             }
         }
-    ]
+    ],
+    "directives": {
+        "output": {
+            "type": "fixed",
+            "value": 2
+        }
+    }
 }
 ```
 
@@ -149,6 +152,16 @@ ret username
 ```json
 {
     "type": "program",
+    "statements": [
+        {
+            "type": "return",
+            "expression": {
+                "type": "identifier",
+                "blip_type": "string",
+                "name": "username"
+            }
+        }
+    ],
     "directives": {
         "input": {
             "type": "fixed",
@@ -158,16 +171,7 @@ ret username
                 "email"
             ]
         }
-    },
-    "statements": [
-        {
-            "type": "return",
-            "expression": {
-                "type": "identifier",
-                "name": "username"
-            }
-        }
-    ]
+    }
 }
 ```
 
@@ -198,22 +202,23 @@ ret "OK"
 ```json
 {
     "type": "program",
+    "statements": [
+        {
+            "type": "return",
+            "expression": {
+                "type": "string_literal",
+                "blip_type": "string",
+                "value": "OK"
+            }
+        }
+    ],
     "directives": {
         "input": {
             "type": "range",
             "min": 1,
             "max": 3
         }
-    },
-    "statements": [
-        {
-            "type": "return",
-            "expression": {
-                "type": "string_literal",
-                "value": "OK"
-            }
-        }
-    ]
+    }
 }
 ```
 
@@ -245,22 +250,23 @@ ret "OK"
 ```json
 {
     "type": "program",
+    "statements": [
+        {
+            "type": "return",
+            "expression": {
+                "type": "string_literal",
+                "blip_type": "string",
+                "value": "OK"
+            }
+        }
+    ],
     "directives": {
         "output": {
             "type": "range",
             "min": null,
             "max": 1
         }
-    },
-    "statements": [
-        {
-            "type": "return",
-            "expression": {
-                "type": "string_literal",
-                "value": "OK"
-            }
-        }
-    ]
+    }
 }
 ```
 
@@ -294,13 +300,16 @@ ret ["one", "two"]
             "type": "return",
             "expression": {
                 "type": "list",
+                "blip_type": "list[string]",
                 "elements": [
                     {
                         "type": "string_literal",
+                        "blip_type": "string",
                         "value": "one"
                     },
                     {
                         "type": "string_literal",
+                        "blip_type": "string",
                         "value": "two"
                     }
                 ]

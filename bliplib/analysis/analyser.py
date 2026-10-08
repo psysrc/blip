@@ -165,7 +165,7 @@ class Analyser:
                 raise SemanticError(f"'{INPUT}' is reserved and cannot be re-assigned")
 
             self.__unifier.unify(
-                inferred, existing, f"Binding identifier '{identifier.name}' to inferred type {describe_inferred_type(inferred)}''"
+                inferred, existing, f"Binding identifier '{identifier.name}' to inferred type '{describe_inferred_type(inferred)}'"
             )
             bound = existing
 

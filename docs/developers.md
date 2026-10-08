@@ -67,8 +67,8 @@ poetry run ruff format
 
 ## Type Checking
 
-Pyright is used as the static type checker.
+`ty` is used as the static type checker.
 
 ```bash
-poetry run pyright
+poetry run ty check
 ```

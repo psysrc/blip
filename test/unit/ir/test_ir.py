@@ -33,13 +33,15 @@ from bliplib.ir import (
     load_statement,
     load_value,
 )
+from bliplib.ir.types import BlipType, List, Scalar
 from bliplib.parser import Parser
 from test.common.ref_progs.classes import ReferenceProgram
-from test.common.ref_progs.getter import get_reference_programs
+from test.common.ref_progs.getter import get_compiling_reference_programs
 
 
-@pytest.mark.parametrize("ref", get_reference_programs())
+@pytest.mark.parametrize("ref", get_compiling_reference_programs())
 def test_reference_program_ir_serialisation_round_trip(ref: ReferenceProgram):
+    assert ref.blip_ir is not None
     assert load(ref.blip_ir).to_dict() == ref.blip_ir
 
 
@@ -123,11 +125,100 @@ def test_blip_type_is_not_serialised_while_it_is_unset():
     assert "blip_type" not in returned.expression.to_dict()
 
 
-def test_an_annotation_is_rejected_until_stage_3_adds_the_codec():
-    """Stage 1 predates `blip_type`, so it is an unknown key. Stage 3 deliberately changes this."""
+def test_an_annotation_is_read_back_into_the_object_model():
+    """Annotations are authoritative, so a loaded `.blipir` carries its types without needing to be re-analysed."""
+
+    value = load_value({"type": "identifier", "name": "x", "blip_type": "list[string]"})
+
+    assert value.blip_type == List(Scalar.STRING)
+
+
+@pytest.mark.parametrize(
+    ("annotation", "expected"),
+    [
+        pytest.param("string", Scalar.STRING, id="a string"),
+        pytest.param("integer", Scalar.INTEGER, id="an integer"),
+        pytest.param("boolean", Scalar.BOOLEAN, id="a boolean"),
+        pytest.param("list[string]", List(Scalar.STRING), id="a list"),
+        pytest.param("list[list[integer]]", List(List(Scalar.INTEGER)), id="a nested list"),
+    ],
+)
+def test_an_annotation_round_trips(annotation: str, expected: BlipType):
+    node = {"type": "identifier", "name": "x", "blip_type": annotation}
+    value = load_value(node)
+
+    assert value.blip_type == expected
+    assert value.to_dict() == node
+
+
+@pytest.mark.parametrize(
+    "annotation",
+    [
+        pytest.param("", id="empty"),
+        pytest.param("str", id="not a Blip type name"),
+        pytest.param("list[]", id="a list of nothing"),
+        pytest.param("list[string", id="unclosed"),
+        pytest.param("list[string]]", id="over-closed"),
+        pytest.param("list[nonsense]", id="a list of nonsense"),
+    ],
+)
+def test_an_unreadable_annotation_raises_ir_error(annotation: str):
+    with pytest.raises(IRError):
+        load_value({"type": "identifier", "name": "x", "blip_type": annotation})
+
+
+def test_a_non_string_annotation_raises_ir_error():
+    with pytest.raises(IRError):
+        load_value({"type": "identifier", "name": "x", "blip_type": 7})
+
+
+@pytest.mark.parametrize(
+    "blip_ir",
+    [
+        pytest.param({"type": "string_literal", "value": "a", "blip_type": "integer"}, id="a string literal claiming integer"),
+        pytest.param({"type": "integer_literal", "value": 1, "blip_type": "string"}, id="an integer literal claiming string"),
+        pytest.param({"type": "boolean_literal", "value": True, "blip_type": "string"}, id="a boolean literal claiming string"),
+        pytest.param(
+            {
+                "type": "concatenation",
+                "blip_type": "integer",
+                "operands": [{"type": "string_literal", "value": "a"}, {"type": "string_literal", "value": "b"}],
+            },
+            id="a concatenation claiming integer",
+        ),
+        pytest.param(
+            {"type": "list", "blip_type": "list[integer]", "elements": [{"type": "string_literal", "value": "a", "blip_type": "string"}]},
+            id="a list disagreeing with its elements",
+        ),
+        pytest.param(
+            {
+                "type": "index",
+                "blip_type": "integer",
+                "identifier": {"type": "identifier", "name": "xs", "blip_type": "list[string]"},
+                "index": {"type": "integer_literal", "value": 0, "blip_type": "integer"},
+            },
+            id="an index disagreeing with its target",
+        ),
+    ],
+)
+def test_an_annotation_that_contradicts_its_node_raises_ir_error(blip_ir: dict[str, Any]):
+    """The redundancy in an annotated IR is a checksum: what can be re-derived is checked rather than believed."""
 
     with pytest.raises(IRError):
-        load_value({"type": "identifier", "name": "x", "blip_type": "string"})
+        load_value(blip_ir)
+
+
+@pytest.mark.parametrize(
+    "blip_ir",
+    [
+        pytest.param({"type": "identifier", "name": "x", "blip_type": "integer"}, id="an identifier, whose type comes from scope"),
+        pytest.param({"type": "list", "blip_type": "list[string]", "elements": []}, id="an empty list, which only inference pins down"),
+    ],
+)
+def test_an_annotation_that_cannot_be_derived_is_taken_on_trust(blip_ir: dict[str, Any]):
+    """These two kinds are the reason `blip --check` exists: only a pass that rebuilds the environment can catch a lie here."""
+
+    assert load_value(blip_ir).to_dict() == blip_ir
 
 
 @pytest.mark.parametrize(

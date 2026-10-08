@@ -18,7 +18,11 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from bliplib.errors import IRError
-from bliplib.ir.types import BlipType
+from bliplib.ir.types import BlipType, List, Scalar, format_type, parse_type
+
+# The key a value node carries its type under. `type` is taken by the node kind.
+ANNOTATION = "blip_type"
+ANNOTATED = (ANNOTATION,)
 
 
 def _as_dict(blip_ir: object, what_error: str) -> dict[str, Any]:
@@ -97,6 +101,20 @@ def _get_boolean(node: dict[str, Any], key: str, kind: str) -> bool:
     return value
 
 
+def _get_blip_type(node: dict[str, Any], kind: str) -> BlipType | None:
+    """Read a value node's type annotation. Absent is legal - the parser emits none, and `--no-analysis` dumps none."""
+
+    annotation = node.get(ANNOTATION)
+
+    if annotation is None:
+        return None
+
+    if not isinstance(annotation, str):
+        raise IRError(f"Expected '{ANNOTATION}' of a '{kind}' node to be a string, but got {type(annotation).__name__}")
+
+    return parse_type(annotation)
+
+
 def _get_sequence(node: dict[str, Any], key: str, kind: str) -> list[Any]:
     value = node.get(key)
     if not isinstance(value, list):
@@ -121,9 +139,8 @@ class ValueNode:
         node: dict[str, Any] = {"type": kind}
 
         if self.blip_type is not None:
-            # Stage 3 adds the compact-string codec that belongs here. Until then this refuses rather than guesses: a `Scalar`
-            # is a `StrEnum` and would serialise correctly by luck, while a `List` would emit a dataclass repr or crash.
-            raise IRError("Serialising a type needs the compact-string codec, which does not exist yet")
+            # Written straight after `type`, so a reader meets a node's kind and its type together
+            node["blip_type"] = format_type(self.blip_type)
 
         node.update(fields)
         return node
@@ -135,8 +152,8 @@ class StringLiteral(ValueNode):
 
     @classmethod
     def from_dict(cls, blip_ir: dict[str, Any]) -> StringLiteral:
-        _validate_node(blip_ir, "string_literal", ("value",))
-        return cls(value=_get_string(blip_ir, "value", "string_literal"))
+        _validate_node(blip_ir, "string_literal", ("value",), ANNOTATED)
+        return cls(value=_get_string(blip_ir, "value", "string_literal"), blip_type=_get_blip_type(blip_ir, "string_literal"))
 
     def to_dict(self) -> dict[str, Any]:
         return self._value_to_dict("string_literal", value=self.value)
@@ -148,8 +165,8 @@ class IntegerLiteral(ValueNode):
 
     @classmethod
     def from_dict(cls, blip_ir: dict[str, Any]) -> IntegerLiteral:
-        _validate_node(blip_ir, "integer_literal", ("value",))
-        return cls(value=_get_integer(blip_ir, "value", "integer_literal"))
+        _validate_node(blip_ir, "integer_literal", ("value",), ANNOTATED)
+        return cls(value=_get_integer(blip_ir, "value", "integer_literal"), blip_type=_get_blip_type(blip_ir, "integer_literal"))
 
     def to_dict(self) -> dict[str, Any]:
         return self._value_to_dict("integer_literal", value=self.value)
@@ -161,8 +178,8 @@ class BooleanLiteral(ValueNode):
 
     @classmethod
     def from_dict(cls, blip_ir: dict[str, Any]) -> BooleanLiteral:
-        _validate_node(blip_ir, "boolean_literal", ("value",))
-        return cls(value=_get_boolean(blip_ir, "value", "boolean_literal"))
+        _validate_node(blip_ir, "boolean_literal", ("value",), ANNOTATED)
+        return cls(value=_get_boolean(blip_ir, "value", "boolean_literal"), blip_type=_get_blip_type(blip_ir, "boolean_literal"))
 
     def to_dict(self) -> dict[str, Any]:
         return self._value_to_dict("boolean_literal", value=self.value)
@@ -174,8 +191,8 @@ class Identifier(ValueNode):
 
     @classmethod
     def from_dict(cls, blip_ir: dict[str, Any]) -> Identifier:
-        _validate_node(blip_ir, "identifier", ("name",))
-        return cls(name=_get_string(blip_ir, "name", "identifier"))
+        _validate_node(blip_ir, "identifier", ("name",), ANNOTATED)
+        return cls(name=_get_string(blip_ir, "name", "identifier"), blip_type=_get_blip_type(blip_ir, "identifier"))
 
     def to_dict(self) -> dict[str, Any]:
         return self._value_to_dict("identifier", name=self.name)
@@ -187,8 +204,11 @@ class Concatenation(ValueNode):
 
     @classmethod
     def from_dict(cls, blip_ir: dict[str, Any]) -> Concatenation:
-        _validate_node(blip_ir, "concatenation", ("operands",))
-        return cls(operands=[_load_value(operand) for operand in _get_sequence(blip_ir, "operands", "concatenation")])
+        _validate_node(blip_ir, "concatenation", ("operands",), ANNOTATED)
+        return cls(
+            operands=[_load_value(operand) for operand in _get_sequence(blip_ir, "operands", "concatenation")],
+            blip_type=_get_blip_type(blip_ir, "concatenation"),
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return self._value_to_dict("concatenation", operands=[operand.to_dict() for operand in self.operands])
@@ -201,8 +221,10 @@ class Index(ValueNode):
 
     @classmethod
     def from_dict(cls, blip_ir: dict[str, Any]) -> Index:
-        _validate_node(blip_ir, "index", ("identifier", "index"))
-        return cls(target=_load_identifier(blip_ir["identifier"]), index=_load_value(blip_ir["index"]))
+        _validate_node(blip_ir, "index", ("identifier", "index"), ANNOTATED)
+        return cls(
+            target=_load_identifier(blip_ir["identifier"]), index=_load_value(blip_ir["index"]), blip_type=_get_blip_type(blip_ir, "index")
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return self._value_to_dict("index", identifier=self.target.to_dict(), index=self.index.to_dict())
@@ -214,8 +236,11 @@ class ListLiteral(ValueNode):
 
     @classmethod
     def from_dict(cls, blip_ir: dict[str, Any]) -> ListLiteral:
-        _validate_node(blip_ir, "list", ("elements",))
-        return cls(elements=[_load_value(element) for element in _get_sequence(blip_ir, "elements", "list")])
+        _validate_node(blip_ir, "list", ("elements",), ANNOTATED)
+        return cls(
+            elements=[_load_value(element) for element in _get_sequence(blip_ir, "elements", "list")],
+            blip_type=_get_blip_type(blip_ir, "list"),
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return self._value_to_dict("list", elements=[element.to_dict() for element in self.elements])
@@ -405,7 +430,72 @@ Directive = FixedDirective | RangeDirective
 # `dict[str, Any]` parameter, so every `from_dict` below is guaranteed to have been narrowed before it is reached.
 
 
+def _derive_type(value: Value) -> BlipType | None:
+    """
+    Work out a value's type from its own kind and its children, or return `None` where that is not possible.
+
+    Only two kinds carry type information the structure does not already pin down: an `identifier`, whose type comes from the
+    environment, and an empty `list`, whose element type only inference determines. Everything else is derivable, which is what
+    lets the annotations on them be checked rather than believed.
+    """
+
+    match value:
+        case StringLiteral():
+            return Scalar.STRING
+
+        case IntegerLiteral():
+            return Scalar.INTEGER
+
+        case BooleanLiteral():
+            return Scalar.BOOLEAN
+
+        case Concatenation():
+            return Scalar.STRING
+
+        case ListLiteral(elements=[first, *_]):
+            # A list is homogeneous, so the first element speaks for all of them. Elements that disagree with each other are a
+            # semantic error for the analyser to report, not a malformed file.
+            return None if first.blip_type is None else List(first.blip_type)
+
+        case Index():
+            match value.target.blip_type:
+                case List(element=element):
+                    return element
+
+                case _:
+                    return None
+
+        case Identifier() | ListLiteral():
+            return None
+
+
+def _check_annotation(value: Value) -> None:
+    """
+    Reject an annotation that contradicts the node it sits on.
+
+    `{"type": "integer_literal", "blip_type": "string"}` is a file at odds with itself, so something has to decide whether the
+    kind or the annotation wins. This decides by rejecting the file, which turns the redundancy in an annotated IR into a
+    checksum: a backend consuming a `.blipir` without re-analysing it still gets every derivable annotation verified.
+    """
+
+    if value.blip_type is None:
+        return
+
+    derived = _derive_type(value)
+
+    if derived is not None and derived != value.blip_type:
+        kind = value.to_dict()["type"]
+        raise IRError(f"A '{kind}' node is annotated '{format_type(value.blip_type)}' but its structure says '{format_type(derived)}'")
+
+
 def _load_value(blip_ir: object) -> Value:
+    value = _load_value_unchecked(blip_ir)
+    _check_annotation(value)
+
+    return value
+
+
+def _load_value_unchecked(blip_ir: object) -> Value:
     node = _as_dict(blip_ir, "a value")
 
     match _type_of(node, "a value"):

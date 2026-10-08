@@ -7,4 +7,7 @@ as you can expose yourself to lots of example programs and see exactly what the 
 The documents here are also the core Blip test suite!
 They are parsed automatically and executed in the unit tests, meaning they remain up to date as the code changes.
 
+Some programs are intentionally ill-formed and do not compile. The error they raise is recorded in a `#### Compilation` section,
+in place of the Blip IR and executions that a working program has - see [Static Errors](static_errors.md).
+
 If you're not sure where to start, check out [Basic Programs](basic_programs.md) first.

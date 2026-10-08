@@ -7,13 +7,14 @@ import pytest
 
 from bliplib.interpreter import Interpreter, InterpreterError
 from test.common.ref_progs.classes import ReferenceProgram
-from test.common.ref_progs.getter import get_reference_programs
+from test.common.ref_progs.getter import get_compiling_reference_programs
 
 
-@pytest.mark.parametrize("ref", get_reference_programs())
+@pytest.mark.parametrize("ref", get_compiling_reference_programs())
 def test_reference_program_interpreting(ref: ReferenceProgram):
     """Given a `ReferenceProgram`, test that the BlipIR is interpreted correctly."""
 
+    assert ref.blip_ir is not None
     interpreter = Interpreter(ref.blip_ir)
 
     for i, execution in enumerate(ref.executions):

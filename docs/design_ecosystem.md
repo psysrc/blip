@@ -12,24 +12,32 @@ The `blip` CLI tool provides both of these capabilities.
 Blip code is first parsed into an intermediate representation (IR) that is more convenient for computers to handle.
 This is dubbed BlipIR and takes the file extension `.blipir`.
 
-Using the Blip parser, Blip code (`.blip`) can be parsed into BlipIR (`.blipir`):
+Blip code (`.blip`) is parsed and then analysed to produce BlipIR (`.blipir`):
 
 ```mermaid
 flowchart LR
     blip(.blip)
     blipir(.blipir)
     parser[Blip Parser]
+    analyser[Blip Analyser]
 
-    blip --> parser
-    parser --> blipir
+    blip --> parser --> analyser --> blipir
 
     style blip fill:#55f,color:#fff,stroke:#333
     style blipir fill:#c5f,color:#fff,stroke:#333
     style parser fill:#555,color:#fff,stroke:#333
+    style analyser fill:#555,color:#fff,stroke:#333
 ```
+
+The parser handles the *syntax*; the analyser handles the *semantics*.
+BlipIR is the parsed *and analysed* representation, and every value in it carries its type.
 
 You can run `blip` in IR Mode with the `--ir` flag to see the BlipIR of a Blip program.
 BlipIR code is an Abstract Syntax Tree (AST) encoded in JSON.
+
+Analysis runs in every mode, so a program with a static error is refused whether it is being interpreted,
+transpiled or dumped as IR. `blip --check` runs the front end (parsing and analysis) and emits nothing on success, making it a cheap pre-commit hook
+for a repository containing Blip programs. `blip --ir --no-analysis` dumps the un-analysed IR, for debugging the analyser itself.
 
 BlipIR and the Blip parser are used for both transpiling and direct interpretation.
 Therefore they are a very important part of the Blip processing lifecycle.
