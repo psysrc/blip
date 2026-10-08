@@ -31,15 +31,14 @@ flowchart LR
     err(SemanticError)
     consumers[Interpreter / Transpilers]
 
-    blip --> parser --> parsed(IR dict) --> load
-    blipir --> load
-    load --> tree --> analyser
+    blip --> parser --> tree
+    blipir --> load --> tree
+    tree --> analyser
     analyser --> typed --> consumers
     analyser --> err
 
     style blip fill:#55f,color:#fff,stroke:#333
     style blipir fill:#c5f,color:#fff,stroke:#333
-    style parsed fill:#c5f,color:#fff,stroke:#333
     style parser fill:#555,color:#fff,stroke:#333
     style load fill:#555,color:#fff,stroke:#333
     style analyser fill:#555,color:#fff,stroke:#333
@@ -140,13 +139,18 @@ Removing it is a change to the file format, which is cheap now and never cheaper
 outside this repository consumes the shape. It also deletes a whole class of work — there is no per-slot re-wrapping table for `to_dict()` to
 encode, and no re-insertion fidelity risk to guard. [Stage 0.5](#implementation-stages) does it on its own, before any analysis work starts.
 
-### The parser emits a `dict` for now
+### The parser emits a `dict` until Stage 6
 
-`bliplib/parser/` keeps producing a `dict` rather than objects, and `load()` runs immediately afterwards. Rewriting the parser to build objects
-directly — making `to_dict()` the only code that knows the JSON shape — is a worthwhile cleanup with no user-visible effect, so it is deferred
-rather than bundled in. Until then, an unannotated IR `dict` exists briefly between the parser and the loader, and is never serialised except
-by `--no-analysis`. That `dict` is structurally identical to the serialised form and differs from it only by the absence of annotations, because
+The diagram above shows the parser handing back a `Program`. It does not do that yet: `bliplib/parser/` builds a `dict`, and `load()` runs
+immediately afterwards. So an unannotated IR `dict` exists briefly between the parser and the loader, and is never serialised except by
+`--no-analysis`. That `dict` is structurally identical to the serialised form and differs from it only by the absence of annotations, because
 Stage 0.5 removes the `expression` wrapper from the parser itself rather than hiding it behind the loader.
+
+The cost of that interim is not just an extra shape to know about. **Two places encode the JSON shape** — fourteen node kinds in the parser and
+fourteen in the loader — so adding a node kind means editing both, and missing one means the loader rejects what the parser emits. It also makes
+`bliplib/ir/nodes.py`'s own claim to be "the only place that knows the on-disk JSON shape" untrue for as long as the interim lasts.
+
+[Stage 6](#implementation-stages) closes it. It is placed last because its prerequisite is that nothing still wants a `dict`.
 
 ## Type annotations in BlipIR
 
@@ -247,6 +251,10 @@ catch them. That pass is `--check`.
 A `"variables": {"fav_colour": "string"}` map on the `program` node was considered, since a C backend wants to declare variables up front. It
 is rejected: it is strictly derived data, reconstructible by a short walk over an annotated tree, and a cache inside a file format that can
 disagree with the tree next to it is not worth the lines it saves. The object model exposes it as a computed property instead.
+
+That property needs annotated nodes to be worth anything, so it lands with the first backend that wants it — Stage 4 at the earliest, and a C
+backend is the real customer. It needs a walk over every value node, which `blip --check` also wants; one exists as `values_of()` in
+`test/unit/analysis/test_analyser.py` and belongs in `bliplib/ir/` rather than being written a second time.
 
 ## The type model
 
@@ -517,9 +525,27 @@ a lookup rather than a guess. This is where the Variables, Concatenation, Decomp
 matrix cells move.
 
 **Stage 5 — the interpreter consumes it.** Drop the `isinstance` checks that are now statically guaranteed, keeping the input-dependent
-ones. Optional, and lowest priority; the interpreter works today.
+ones.
 
-Stages 0.5 to 4 deliver the value; 5 is cleanup.
+**Stage 6 — the parser builds nodes.** `bliplib/parser/` returns a `Program` instead of a `dict`: the `__parse_*` methods construct nodes,
+`Parser.parse()` is typed `str -> Program`, and `blip.py` drops `load()` from the `.blip` path. `--no-analysis` becomes `parse(src).to_dict()`.
+The fixtures do not move, because `to_dict()` already generates them.
+
+Its prerequisite is **that no consumer takes a `dict`**, which is Stages 4 and 5. Done any earlier, the parser would hand back a `Program` that
+`blip.py` has to `to_dict()` straight back again to feed the old consumers: the duplication would go, but a conversion would appear on the
+interpretation path rather than disappearing.
+
+Two things it buys beyond deleting the duplication:
+
+- **A malformed tree becomes a type error.** The parser assembles untyped `dict`s today, and `load()` catches a bad shape at runtime. Once it
+  constructs nodes, putting a `StringLiteral` where `Index.target` wants an `Identifier` is rejected by the type checker at the construction
+  site. That is the same parse-don't-validate move the loader already makes, applied one layer up — and it is the last place in this design
+  where it has not been collected.
+- **`load()` stops being two things at once.** Today it validates untrusted `.blipir` input *and* the output of trusted code in this repository.
+  Afterwards it serves only the former, which is what its narrowing machinery was built for. Little code is deleted; it stops guarding
+  something that can no longer be wrong.
+
+Stages 0.5 to 4 deliver the value. Stage 5 is cleanup, and Stage 6 is the cleanup that depends on it.
 
 ## Risks
 
@@ -528,17 +554,15 @@ Stages 0.5 to 4 deliver the value; 5 is cleanup.
 - **Fixtures are the oracle for their own reshape.** Stage 0.5 edits the 15 `#### Blip IR` blocks that the tests compare against, so a mistake
   in the edit is a mistake in the oracle. Guarded by checking the reshape in the reverse direction and by constraining the shape of the diff,
   both described in that stage.
-- **Two shapes in flight.** Until the parser builds objects directly, an unannotated IR `dict` exists between the parser and the loader. It
-  is internal and short-lived, but it is a second shape that a reader has to know about. It differs from the serialised form only by the absence
-  of annotations — Stage 0.5 removes the wrapper from the parser, not just from the output — and it goes away once the parser builds objects
-  directly.
+- **Two shapes in flight.** Until the parser builds nodes, an unannotated IR `dict` exists between the parser and the loader. It is internal
+  and short-lived, and it differs from the serialised form only by the absence of annotations — Stage 0.5 removes the wrapper from the parser,
+  not just from the output. But it is a second shape a reader has to know about, and the JSON shape is encoded twice while it lasts. Stage 6
+  removes it; until that stage lands this is an accepted cost rather than a mitigated one.
 - **Scope creep into a general type checker.** The `docs/todo.md` analysis items are broader than this pass. Keep this one to types and
   binding.
 
 ## Deferred decisions
 
-- **The parser building objects directly.** Would make `to_dict()` the only code that knows the JSON shape. No user-visible effect, so it is
-  not bundled into this work.
 - **`.blipir` as CLI input.** Discussed under CLI surface.
 - **User-defined functions.** `docs/todo.md` lists functions as a feature still to be designed. Functions will likely be explicitly typed, but
   if Blip gets functions and they are meant to be generic, this is where unification's missing half — generalisation at the definition and
