@@ -5,7 +5,9 @@ import re
 from bliplib.ir import DecompPattern, Identifier, PatternElement, StringLiteral, Wildcard
 
 # Non-greedy throughout: a capture takes as little as possible, only going to the next literal rather than the last one.
-_CAPTURE = "(.*?)"
+# A capture is named after the Blip variable it binds: a Blip identifier is always spelled well enough to be a group name, and
+# the analyser rejects a pattern that captures a name twice, so the names are unique as group names have to be.
+_CAPTURE = "(?P<{name}>.*?)"
 _WILDCARD = ".*?"
 
 # A Blip string may contain newlines, and a bare `.` would refuse to cross one.
@@ -21,7 +23,7 @@ def pattern_regex(pattern: DecompPattern) -> str:
                 return re.escape(element.value)
 
             case Identifier():
-                return _CAPTURE
+                return _CAPTURE.format(name=element.name)
 
             case Wildcard():
                 return _WILDCARD

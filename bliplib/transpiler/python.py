@@ -175,10 +175,10 @@ def _decomposition(statement: Decomposition) -> list[ast.stmt]:
     ]
 
     # Binding every capture only after the match has been checked is what makes a failed decomposition leave the variables alone
-    for group, name in enumerate(pattern_captures(pattern), start=1):
+    for name in pattern_captures(pattern):
         captured = ast.Call(
             func=ast.Attribute(value=_load(_MATCH), attr="group", ctx=ast.Load()),
-            args=[ast.Constant(value=group)],
+            args=[ast.Constant(value=name)],
             keywords=[],
         )
         statements.append(ast.Assign(targets=[_store(_python_name(name))], value=captured))

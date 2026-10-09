@@ -4,7 +4,7 @@ Implements the Interpreter class.
 
 import re
 
-from bliplib.decomposition import FLAGS, describe_pattern, pattern_captures, pattern_regex
+from bliplib.decomposition import FLAGS, describe_pattern, pattern_regex
 from bliplib.errors import InterpreterError
 from bliplib.ir import (
     Assignment,
@@ -153,8 +153,7 @@ class Interpreter:
         if matched is None:
             raise InterpreterError(f"Decomposition failed: '{original}' does not match the pattern '{describe_pattern(pattern)}'")
 
-        for group, name in enumerate(pattern_captures(pattern), start=1):
-            self.__variables[name] = matched.group(group)
+        self.__variables.update(matched.groupdict())
 
     def __interpret_expression(self, value: Value) -> BlipValue:
         """Evaluate a Blip value."""
