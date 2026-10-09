@@ -55,7 +55,6 @@ Icon|Meaning
 - **`.blipir` as CLI input.** `blip` accepts `.blip` source only, and detecting the format is a separate decision. The annotation design is what
   makes the feature worth having, and `load()` is the code it will need.
 
-
 The following constructs are described in the [Language Reference](language_reference.md) but are not yet implemented by the parser. Their
 binding rules are settled here so that the analyser does not have to be redesigned when they land:
 
@@ -69,12 +68,12 @@ binding rules are settled here so that the analyser does not have to be redesign
 - **Loop variables.** `for item in items` binds `item` to the element type of `items`; `for num in 3` binds `num` to `INTEGER`. The loop
   variable is scoped to the body.
 
-- **User-defined functions.** `docs/todo.md` lists functions as a feature still to be designed. Functions will likely be explicitly typed, but
+- **User-defined functions.** Functions will likely be explicitly typed, but
   if Blip gets functions and they are meant to be generic, this is where unification's missing half — generalisation at the definition and
   instantiation at each use, the other half of Hindley–Milner — becomes necessary. That decision belongs with the functions design; the
   unification described above is the part that would not change.
 - **Source locations.** BlipIR carries none, so a semantic error can describe a conflict structurally but cannot point at a line. This bites
-  hardest when two distant constraint sites disagree. Tracked under the `docs/todo.md` "Improved error messages" item.
+  hardest when two distant constraint sites disagree. Tracked under the "Improved error messages" item.
 - **Comparison operators and arithmetic.** `if` and `while` conditions must be `BOOLEAN`, but no operator produces one yet, and arithmetic is
   still to be designed. Rules will be added when the operators are.
 - **Generalised decomposition targets.** The rule above is that the target must be `STRING`; the IR permits only an identifier, which is why
