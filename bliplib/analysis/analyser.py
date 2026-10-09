@@ -134,11 +134,24 @@ class Analyser:
         target = self.__infer(statement.target)
         self.__unifier.unify(target, Scalar.STRING, f"Only a string can be decomposed, and '{statement.target.name}' is not")
 
+        self.__check_pattern_literals_are_not_empty(statement.pattern)
         self.__check_pattern_adjacency(statement.pattern)
         self.__check_pattern_captures_are_distinct(statement.pattern)
 
         for element in statement.pattern:
             self.__analyse_pattern_element(element)
+
+    def __check_pattern_literals_are_not_empty(self, pattern: DecompPattern) -> None:
+        """Literals in a pattern cannot be empty.
+
+        An empty literal matches at every position, so it says nothing about the string. Worse, it smuggles a pattern past the
+        adjacency rule below: `x -> first "" second` separates two captures with a literal that cannot tell them apart, so it
+        would be accepted and leave `first` empty for every input, while the identical `x -> first second` is rejected.
+        """
+
+        for element in pattern:
+            if isinstance(element, StringLiteral) and element.value == "":
+                raise SemanticError("A decomposition pattern cannot contain an empty string literal")
 
     def __check_pattern_adjacency(self, pattern: DecompPattern) -> None:
         """

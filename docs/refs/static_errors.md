@@ -167,3 +167,26 @@ ret dup
 ```text
 SemanticError
 ```
+
+## Empty Decomposition Literal
+
+A string literal in a decomposition pattern cannot be empty.
+
+An empty literal matches at every position, so it says nothing about the string. Worse, it slips a pattern past the rule that
+captures must be separated: `x -> first "" second` separates the two captures with a literal that cannot tell them apart, so it
+would leave `first` empty for every input, while the identical `x -> first second` is rejected outright.
+
+#### Blip code
+
+```blip
+x = input[0]
+x -> "" rest
+
+ret rest
+```
+
+#### Compilation
+
+```text
+SemanticError
+```

@@ -210,6 +210,7 @@ Examples:
 | Heterogeneous list literal                        | Static  |
 | Ambiguous decomposition pattern                   | Static  |
 | Decomposition pattern capturing a name twice      | Static  |
+| Empty literal in a decomposition pattern          | Static  |
 | Empty list whose element type is never determined | Static  |
 | Decomposition pattern failure                     | Runtime |
 | Index out of bounds                               | Runtime |

@@ -262,7 +262,6 @@ def test_a_name_used_twice_in_one_decomposition_pattern_is_ill_formed():
         analyse_source('x = "abc"\nx -> dup "b" dup\nret dup')
 
 
-@pytest.mark.xfail(strict=True)  # TODO
 def test_empty_literals_in_decomposition_are_ill_formed():
     """Empty literals don't affect the pattern, so don't allow them. Keep it simple."""
 
