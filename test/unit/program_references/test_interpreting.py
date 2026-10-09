@@ -5,7 +5,9 @@ This ensures the Blip code produces the correct outputs when interpreted.
 
 import pytest
 
+from bliplib.analysis import analyse
 from bliplib.interpreter import Interpreter, InterpreterError
+from bliplib.ir import load
 from test.common.ref_progs.classes import ReferenceProgram
 from test.common.ref_progs.getter import get_compiling_reference_programs
 
@@ -15,7 +17,7 @@ def test_reference_program_interpreting(ref: ReferenceProgram):
     """Given a `ReferenceProgram`, test that the BlipIR is interpreted correctly."""
 
     assert ref.blip_ir is not None
-    interpreter = Interpreter(ref.blip_ir)
+    interpreter = Interpreter(analyse(load(ref.blip_ir)))
 
     for i, execution in enumerate(ref.executions):
         if execution.expect_success:

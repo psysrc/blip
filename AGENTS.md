@@ -9,12 +9,12 @@ Blip code -> Parser -> BlipIR -> Interpreter
                              \-> Python / C / C++ transpiler -> target code
 ```
 
-BlipIR is the contract between the front end and every back end, and it exists in two forms while the static analysis work lands:
+BlipIR is the contract between the front end and every back end, and it exists in two forms:
 
-- **the `dict`**, which the parser produces and which the interpreter and every transpiler still consume, destructuring it with `match`/`case` on `{"type": ...}`;
-- **the object model** in `bliplib/ir/`, a class per node kind, which `load()` builds from that `dict` and validates completely.
+- **the object model** in `bliplib/ir/`, a class per node kind, which every consumer walks. `load()` builds it and validates it completely, and the analyser then gives every value its type;
+- **the `dict`**, which is the serialised form on disk, what `--ir` prints, and - for now - what the parser hands to `load()`.
 
-Analysis runs in every mode. `--ir` and the transpilers read the analysed tree; the interpreter is the last consumer still taking the parser's `dict`, and moving it over is staged work tracked in `docs/design_analysis.md`. So a change to the IR shape currently touches `bliplib/ir/`, the parser *and* the interpreter.
+Analysis runs in every mode, and every consumer reads the analysed tree: `--ir`, the interpreter and the transpilers all take a `Program`. The parser is the one piece still producing a `dict`, which `load()` turns into objects immediately afterwards; closing that is Stage 6 of `docs/design_analysis.md`. So a change to the IR shape touches `bliplib/ir/` and the parser, and nothing else.
 
 | Path | Role |
 |------|------|

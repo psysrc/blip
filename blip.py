@@ -82,7 +82,7 @@ def main():
 
     if args.interpret:
         try:
-            interpreter = Interpreter(program.to_dict())
+            interpreter = Interpreter(program)
             input_strings: list[str] = args.input_strings
             output_strings: list[str] = interpreter.run(input_strings)
             print(json.dumps(output_strings))

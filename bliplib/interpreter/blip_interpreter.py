@@ -3,309 +3,263 @@ Implements the Interpreter class.
 """
 
 from bliplib.errors import InterpreterError
+from bliplib.ir import (
+    Assignment,
+    BooleanLiteral,
+    Concatenation,
+    Decomposition,
+    Directive,
+    FixedDirective,
+    Identifier,
+    Index,
+    IntegerLiteral,
+    ListLiteral,
+    Program,
+    RangeDirective,
+    Return,
+    Statement,
+    StringLiteral,
+    Value,
+    Wildcard,
+)
+from bliplib.ir.types import List, Scalar
 
-type BlipType = str | list[str] | int | list[int] | bool | list[bool]
+# A value a Blip program can hold while it runs. Recursive, because a list's elements are themselves values - which is what the
+# analyser's type model says too. Not to be confused with `bliplib.ir.types.BlipType`: that is a Blip *type*, this is a value.
+type BlipValue = str | int | bool | list[BlipValue]
+
+# The built-in holding the program's input strings
+INPUT = "input"
+
+
+def _as_string(value: BlipValue) -> str:
+    """
+    Narrow a value the analyser has already typed as a string.
+
+    Analysis has run by the time a program is interpreted, so this cannot fail on a program that got here legitimately. It is
+    an assertion rather than a raise for exactly that reason: there is no error for a caller to handle, only a broken promise.
+    """
+
+    if not isinstance(value, str):
+        raise InterpreterError(f"Expected a string, but got {type(value).__name__}")
+
+    return value
 
 
 class Interpreter:
-    def __init__(self, blip_ir: dict) -> None:
-        self.__code = blip_ir
-        self.__variables: dict[str, BlipType]
+    """Executes a Blip program."""
+
+    def __init__(self, program: Program) -> None:
+        self.__program = program
+        self.__variables: dict[str, BlipValue] = {}
 
     def run(self, input_strings: list[str]) -> list[str]:
         self.__variables = {}
 
         return self.__interpret_program(input_strings)
 
-    def __ensure_code_type(self, code: dict, code_type: str):
-        if code["type"] != code_type:
-            raise InterpreterError(f"Expected code type '{code_type}' but got '{code['type']}'")
-
     def __interpret_program(self, input_strings: list[str]) -> list[str]:
-        directives: dict = self.__code.get("directives", {})
+        directives = self.__program.directives
 
-        # Validate and assign input variables according to directives
-        input_directive = directives.get("input")
-        if input_directive is not None:
-            self.__validate_program_input(input_strings, input_directive)
-            if input_directive.get("names"):
-                for idx, name in enumerate(input_directive["names"]):
-                    self.__variables[name] = input_strings[idx]
+        if directives is not None and directives.input is not None:
+            self.__validate_program_input(input_strings, directives.input)
+            self.__bind_input_names(input_strings, directives.input)
 
-        self.__variables["input"] = input_strings
+        inputs: list[BlipValue] = [*input_strings]
+        self.__variables[INPUT] = inputs
 
-        match self.__code:
-            case {"type": "program", "statements": [*statements]}:
-                for statement in statements:
-                    result = self.__interpret_statement(statement)
-                    if result is not None:
-                        # Validate outputs according to directives before returning
-                        output_dir = directives.get("output")
-                        if output_dir is not None:
-                            self.__validate_program_output(result, output_dir)
+        for statement in self.__program.statements:
+            result = self.__interpret_statement(statement)
 
-                        return result
+            if result is not None:
+                if directives is not None and directives.output is not None:
+                    self.__validate_program_output(result, directives.output)
 
-            case _:
-                raise InterpreterError("Unexpected program code")
+                return result
 
         raise InterpreterError("Program halted without returning a value")
 
-    def __interpret_statement(self, statement: dict) -> list[str] | None:
+    def __validate_program_input(self, inputs: list[str], directive: Directive) -> None:
+        try:
+            self.__validate_strings_against_directive(inputs, directive)
+        except InterpreterError as err:
+            raise InterpreterError(f"Program input validation failed: {err}") from err
+
+    def __validate_program_output(self, outputs: list[str], directive: Directive) -> None:
+        try:
+            self.__validate_strings_against_directive(outputs, directive)
+        except InterpreterError as err:
+            raise InterpreterError(f"Program output validation failed: {err}") from err
+
+    def __bind_input_names(self, input_strings: list[str], directive: Directive) -> None:
+        """A named input directive gives each input string a name. A counted or ranged one names nothing."""
+
+        match directive:
+            case FixedDirective(names=[*names]):
+                for index, name in enumerate(names):
+                    self.__variables[name] = input_strings[index]
+
+            case _:
+                return
+
+    def __interpret_statement(self, statement: Statement) -> list[str] | None:
+        """
+        Interpret a Blip statement.
+
+        This function returns `None` for most statements.
+        If the statement is a Blip return statement, this function returns the list of Blip program output strings.
+        """
+
         match statement:
-            case {"type": "return"}:
+            case Return():
                 return self.__interpret_return(statement)
 
-            case {"type": "assignment"}:
-                return self.__interpret_assignment(statement)
+            case Assignment():
+                self.__interpret_assignment(statement)
+                return None
 
-            case {"type": "decomposition"}:
-                return self.__interpret_decomposition(statement)
+            case Decomposition():
+                self.__interpret_decomposition(statement)
+                return None
 
-            case _:
-                raise InterpreterError(f"Unexpected statement '{statement}'")
+    def __interpret_assignment(self, statement: Assignment) -> None:
+        self.__variables[statement.target.name] = self.__interpret_expression(statement.expression)
 
-    def __interpret_decomposition(self, code: dict) -> None:
-        self.__ensure_code_type(code, "decomposition")
+    def __interpret_return(self, statement: Return) -> list[str]:
+        """A program returns a string or a list of strings, and always hands back a list of them."""
 
-        identifier_name = code["identifier"]["name"]
-        original_string = self.__variables[identifier_name]
-        string = original_string
+        returned = self.__interpret_expression(statement.expression)
 
-        if not isinstance(string, str):
-            raise InterpreterError(f"Decomposition failure: Only strings can be decomposed (variable is of type '{type(string)}')")
+        match statement.expression.blip_type:
+            case Scalar.STRING:
+                return [_as_string(returned)]
+            case List(element=Scalar.STRING):
+                if not isinstance(returned, list):
+                    raise InterpreterError(f"Expected a list, but got {type(returned).__name__}")
+                return [_as_string(i) for i in returned]
+            case unreturnable:
+                raise InterpreterError(f"Blip programs cannot return '{type(unreturnable).__name__}'")
 
-        pattern: list[dict] = code["pattern"]
-        current_operand_idx = 0
+    def __interpret_decomposition(self, statement: Decomposition) -> None:
+        """
+        Decompose a string according to a pattern, binding any variables the pattern captures.
 
-        while current_operand_idx < len(pattern):
-            current_operand = pattern[current_operand_idx]
+        TODO: Note that a literal only has to be *found*, not to consume the string up to it, so `"abc" -> "a"` succeeds and discards
+        the rest. The Python transpiler lowers the same algorithm, so the two agree about what a pattern means.
+        This may be true for the current code but is a design flaw and will need fixing in future.
+        """
 
-            match current_operand:
-                case {"type": "string_literal"}:
-                    op_value = current_operand["value"]
-                    idx = string.find(op_value)
-                    if idx == -1:
-                        raise InterpreterError(
-                            f"Decomposition failed: Operand '{op_value}' not found in '{identifier_name}' (which has value '{original_string}')"
-                        )
+        try:
+            original = _as_string(self.__interpret_identifier(statement.target))
+            remainder = original
+            pattern = statement.pattern
 
-                    string = string[idx + len(op_value) :]  # Skip ahead in the string to get past the first operand
-                    current_operand_idx += 1
+            index = 0
+            while index < len(pattern):
+                element = pattern[index]
+                following = pattern[index + 1] if index + 1 < len(pattern) else None
 
-                case {"type": "identifier"}:
-                    if current_operand_idx + 1 < len(pattern):
-                        next_operand = pattern[current_operand_idx + 1]
+                match element:
+                    case StringLiteral():
+                        remainder = self.__step_over_in_string(remainder, element.value)
+                        index += 1
 
-                        if next_operand["type"] != "string_literal":
-                            raise InterpreterError(
-                                f"Decomposition semantic error: Variable was followed by something other than a string literal ({next_operand['type']})"
-                            )
+                    case Identifier() | Wildcard():
+                        if following is None:
+                            # Nothing follows, so this element takes whatever is left
+                            if isinstance(element, Identifier):
+                                self.__variables[element.name] = remainder
 
-                        next_op_value = next_operand["value"]
-                        idx = string.find(next_op_value)
-                        if idx == -1:
-                            raise InterpreterError(
-                                f"Decomposition failed: Operand '{next_op_value}' not found in '{identifier_name}' (which has value '{original_string}')"
-                            )
+                            index += 1
+                            continue
 
-                        self.__variables[current_operand["name"]] = string[:idx]
-                        string = string[idx + len(next_op_value) :]
-                        current_operand_idx += 2
+                        # The analyser does not yet reject a pattern whose capturing elements are adjacent, so this is reachable
+                        if not isinstance(following, StringLiteral):
+                            raise InterpreterError(f"A decomposition pattern element must be followed by a string literal: {following}")
 
-                    else:
-                        self.__variables[current_operand["name"]] = string
-                        current_operand_idx += 1
+                        at = self.__find_in_string(remainder, following.value)
 
-                case {"type": "decomposition_wildcard"}:
-                    if current_operand_idx + 1 < len(pattern):
-                        next_operand = pattern[current_operand_idx + 1]
+                        if isinstance(element, Identifier):
+                            self.__variables[element.name] = remainder[:at]
 
-                        if next_operand["type"] != "string_literal":
-                            raise InterpreterError(
-                                f"Decomposition semantic error: Wildcard was followed by something other than a string literal ({next_operand['type']})"
-                            )
+                        remainder = remainder[at + len(following.value) :]
+                        index += 2
 
-                        next_op_value = next_operand["value"]
-                        idx = string.find(next_op_value)
-                        if idx == -1:
-                            raise InterpreterError(
-                                f"Decomposition failed: Operand '{next_op_value}' not found in '{identifier_name}' (which has value '{original_string}')"
-                            )
+        except InterpreterError as err:
+            raise InterpreterError(f"Decomposition failed: {err}") from err
 
-                        string = string[idx + len(next_op_value) :]
-                        current_operand_idx += 2
+    def __find_in_string(self, string: str, literal: str) -> int:
+        """Locate a literal in a string. If it does not exist, raise an `InterpreterError`."""
 
-                    else:
-                        current_operand_idx += 1
+        at = string.find(literal)
 
-                case _:
-                    raise InterpreterError(f"Unexpected operand in decomposition: '{current_operand}'")
+        if at == -1:
+            raise InterpreterError(f"Cannot find '{literal}' in '{string}'")
 
-    def __interpret_assignment(self, code: dict) -> None:
-        self.__ensure_code_type(code, "assignment")
+        return at
 
-        variable_name: str = code["identifier"]["name"]
-        expression = code["expression"]
+    def __step_over_in_string(self, string: str, literal: str) -> str:
+        """Locate a literal in a string and step over it. If it does not exist, raise an `InterpreterError`."""
 
-        value: BlipType = self.__interpret_expression(expression)
+        at = self.__find_in_string(string, literal)
 
-        self.__variables[variable_name] = value
+        return string[at + len(literal) :]
 
-    def __interpret_return(self, code: dict) -> list[str]:
-        self.__ensure_code_type(code, "return")
-
-        expression: dict = code["expression"]
-        value: BlipType = self.__interpret_expression(expression)
+    def __interpret_expression(self, value: Value) -> BlipValue:
+        """Evaluate a Blip value."""
 
         match value:
-            case string if isinstance(string, str):
-                return [string]
-            case [*items] if all(isinstance(item, str) for item in items):
-                return items  # type: ignore (Pylance thinks this could be a list[int], but the guard clause prevents that)
-            case _:
-                raise InterpreterError(f"Unexpected expression type in return statement: '{type(value)}'")
+            case StringLiteral() | IntegerLiteral() | BooleanLiteral():
+                return value.value
 
-    def __interpret_expression(self, code: dict) -> BlipType:
-        match code:
-            case {"type": "string_literal"}:
-                return self.__interpret_string_literal(code)
+            case Identifier():
+                return self.__interpret_identifier(value)
 
-            case {"type": "integer_literal"}:
-                return self.__interpret_integer_literal(code)
+            case Concatenation():
+                return "".join(_as_string(self.__interpret_expression(operand)) for operand in value.operands)
 
-            case {"type": "boolean_literal"}:
-                return self.__interpret_boolean_literal(code)
+            case Index():
+                return self.__interpret_index(value)
 
-            case {"type": "identifier"}:
-                return self.__interpret_identifier(code)
+            case ListLiteral():
+                elements: list[BlipValue] = [self.__interpret_expression(element) for element in value.elements]
+                return elements
 
-            case {"type": "concatenation"}:
-                return self.__interpret_concatenation(code)
+    def __interpret_index(self, value: Index) -> BlipValue:
+        """Index into a list."""
 
-            case {"type": "index"}:
-                return self.__interpret_indexed_expression(code)
+        indexed = self.__interpret_identifier(value.target)
+        if not isinstance(indexed, list):
+            raise InterpreterError(f"Expected a list here, but got {type(indexed).__name__}")
 
-            case {"type": "list"}:
-                return self.__interpret_list(code)
+        position = self.__interpret_expression(value.index)
+        if not isinstance(position, int) and not isinstance(position, bool):
+            raise InterpreterError(f"Expected an int here, but got {type(position).__name__}")
 
-            case _:
-                raise InterpreterError(f"Unexpected codetype in expression: {code}")
+        if position >= len(indexed):
+            raise InterpreterError(f"Index out of bounds (list has {len(indexed)} elements, index is {position})")
 
-    def __interpret_list(self, code: dict) -> BlipType:
-        self.__ensure_code_type(code, "list")
+        return indexed[position]
 
-        the_list = []
-        for elem in code["elements"]:
-            the_list.append(self.__interpret_expression(elem))
+    def __interpret_identifier(self, identifier: Identifier) -> BlipValue:
+        """Read a variable."""
 
-        # Known type error: Stage 5 of the static analysis implementation will fix this by overhauling the type system
-        return the_list  # ty: ignore[invalid-return-type]
+        if identifier.name not in self.__variables:
+            raise InterpreterError(f"Identifier '{identifier.name}' does not exist")
 
-    def __interpret_indexed_expression(self, code: dict) -> BlipType:
-        self.__ensure_code_type(code, "index")
+        return self.__variables[identifier.name]
 
-        variable = self.__interpret_identifier(code["identifier"])
+    def __validate_strings_against_directive(self, operands: list[str], directive: Directive) -> None:
+        """Runtime check comparing directive arity against a number of input or output strings."""
 
-        match idx := code["index"]:
-            case {"type": "integer_literal"}:
-                index = self.__interpret_integer_literal(idx)
-            case {"type": "identifier"}:
-                raise InterpreterError("Indexing with an identifier is not yet supported")
-            case _:
-                raise InterpreterError(f"Unexpected codetype in indexed expression value: {idx}")
+        match directive:
+            case FixedDirective(count=expected):
+                if len(operands) != expected:
+                    raise InterpreterError(f"Directive expected {expected} operands, got {len(operands)}")
 
-        if not isinstance(variable, list):
-            raise InterpreterError(f"Cannot index into non-list type ({type(variable)})")
+            case RangeDirective(min=minimum, max=maximum):
+                if minimum is not None and len(operands) < minimum:
+                    raise InterpreterError(f"Directive expected at least {minimum} operands, got {len(operands)}")
 
-        if index >= len(variable):
-            raise InterpreterError(f"Index out of bounds (list has {len(variable)} elements, index is {index})")
-
-        element = variable[index]
-        return element
-
-    def __interpret_integer_literal(self, code: dict) -> int:
-        self.__ensure_code_type(code, "integer_literal")
-
-        value = code["value"]
-
-        if not isinstance(value, int):
-            raise InterpreterError(f"Expected integer literal but value type is '{type(value)}'")
-
-        return value
-
-    def __interpret_concatenation(self, code: dict) -> str:
-        self.__ensure_code_type(code, "concatenation")
-
-        string = ""
-
-        for operand_code in code["operands"]:
-            operand_value = self.__interpret_expression(operand_code)
-
-            if isinstance(operand_value, str):
-                string += operand_value
-            else:
-                raise InterpreterError(f"Unexpected type in string concatenation: {type(operand_value)}")
-
-        return string
-
-    def __interpret_string_literal(self, code: dict) -> str:
-        self.__ensure_code_type(code, "string_literal")
-
-        value = code["value"]
-
-        if not isinstance(value, str):
-            raise InterpreterError(f"Expected string literal but value type is '{type(value)}'")
-
-        return value
-
-    def __interpret_boolean_literal(self, code: dict) -> bool:
-        self.__ensure_code_type(code, "boolean_literal")
-
-        value = code["value"]
-
-        if not isinstance(value, bool):
-            raise InterpreterError(f"Expected boolean literal but value type is '{type(value)}'")
-
-        return value
-
-    def __validate_program_input(self, inputs: list[str], directive: dict) -> None:
-        try:
-            self.__validate_in_or_out_directive(inputs, directive)
-        except InterpreterError as err:
-            raise InterpreterError(f"Program input validation failed: {err}")
-
-    def __validate_program_output(self, outputs: list[str], directive: dict) -> None:
-        try:
-            self.__validate_in_or_out_directive(outputs, directive)
-        except InterpreterError as err:
-            raise InterpreterError(f"Program output validation failed: {err}")
-
-    def __validate_in_or_out_directive(self, operands: list[str], directive: dict) -> None:
-        directive_type = directive.get("type")
-
-        if directive_type == "fixed":
-            expected_num_operands = directive.get("value")
-            if len(operands) != expected_num_operands:
-                raise InterpreterError(f"Directive expected {expected_num_operands} operands, got {len(operands)}")
-
-        elif directive_type == "range":
-            mn = directive.get("min")
-            mx = directive.get("max")
-            if mn is not None and len(operands) < mn:
-                raise InterpreterError(f"Directive expected at least {mn} operands, got {len(operands)}")
-            if mx is not None and len(operands) > mx:
-                raise InterpreterError(f"Directive expected at most {mx} operands, got {len(operands)}")
-
-        else:
-            raise InterpreterError(f"Unknown directive type: {directive_type}")
-
-    def __interpret_identifier(self, code: dict) -> BlipType:
-        self.__ensure_code_type(code, "identifier")
-
-        name = code["name"]
-
-        if name not in self.__variables:
-            raise InterpreterError(f"Identifier '{name}' does not exist")
-
-        return self.__variables[name]
+                if maximum is not None and len(operands) > maximum:
+                    raise InterpreterError(f"Directive expected at most {maximum} operands, got {len(operands)}")

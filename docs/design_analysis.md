@@ -5,9 +5,10 @@ Once the functionality here is fully implemented, this file should be updated to
 
 Blip programs are fully type-inferred: there is no type syntax in the language, and there is no plan to add any.
 Every consumer of BlipIR nevertheless needs to know the type of every expression — the interpreter to validate operations, and the
-transpilers to emit correctly typed target code. Today each consumer re-derives that knowledge, inconsistently: the interpreter re-checks
+transpilers to emit correctly typed target code. Each consumer used to re-derive that knowledge, inconsistently: the interpreter re-checked
 types dynamically at every operation, and the Python transpiler kept a crude static approximation with an `UnknownType` escape hatch that
-reached code generation and produced silently wrong output. Stage 4 deleted that hatch; the interpreter's half is Stage 5.
+reached code generation and produced silently wrong output. Stage 4 deleted that hatch and Stage 5 deleted the interpreter's dynamic
+re-checking; both now read the type the analyser worked out.
 
 This document describes two changes that together fix that:
 
@@ -402,6 +403,21 @@ not be conflated.
 | Input / output directive arity                    | Runtime |
 | Program halted without returning a value          | Runtime |
 
+### A check that is missing
+
+TODO
+
+One static error the rules above do not catch: a decomposition pattern whose capturing elements are **adjacent**. `x -> a b`,
+`x -> * b` and `x -> a *` all analyse cleanly, because the rules bind every pattern identifier as `STRING` and say nothing about
+what may sit next to what. They then fail at execution, with an interpreter message that calls itself a semantic error.
+
+It belongs here: a capturing element needs a following literal to say where it stops, so a pattern without one is unsatisfiable
+whatever the input — input-independent, and a question of the pattern's structure rather than of arity or reachability. The rule
+would be that every `identifier` and `decomposition_wildcard` in a pattern is either last or followed by a `string_literal`.
+
+It is not implemented. Adding it means an inference rule, a row in the table below, a reference program, and deleting the
+interpreter's check — which is the only reason that check still exists.
+
 ### Deliberate non-checks
 
 Four things the analyser could plausibly check, and does not:
@@ -413,8 +429,9 @@ Four things the analyser could plausibly check, and does not:
   *length* tracking, which is not in the type model. It would also be inconsistent: provable for a literal, unknowable for `ret input`.
   Arity stays a runtime check, so both "Error case" directive reference programs are unaffected.
 - **Constant index bounds.** `input[0]` is well-typed; whether the input has an element 0 is input-dependent.
-- **Indexing with an identifier.** `input[i]` is well-typed when `i` is `INTEGER`. The interpreter currently rejects it at runtime as
-  unimplemented, but that is an implementation gap, not a semantic one, and static analysis is the wrong place to express "not built yet".
+- **Indexing with an identifier.** `input[i]` is well-typed when `i` is `INTEGER`. The interpreter used to reject it at runtime as
+  unimplemented, but that was an implementation gap rather than a semantic one, and static analysis is the wrong place to express "not built
+  yet". Stage 5 closed the gap without meaning to: reading the index through the ordinary expression path handles an identifier for free.
 
 ## CLI surface
 
