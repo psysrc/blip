@@ -123,3 +123,23 @@ ret "done"
 ```text
 SemanticError
 ```
+
+## Ambiguous Decomposition Patterns
+
+Captures and wildcards in a decomposition pattern must be separated by string literals,
+otherwise it's ambiguous which part of the string belongs to which capture/wildcard.
+
+#### Blip code
+
+```blip
+x = "hello world"
+x -> first second
+
+ret first
+```
+
+#### Compilation
+
+```text
+SemanticError
+```

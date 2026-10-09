@@ -10,6 +10,8 @@ value, holes and all, and the second walk turns each of those into a ground type
 stored on a node - `blip_type` cannot hold one - so a node's type is either absent or serialisable, with nothing in between.
 """
 
+from itertools import pairwise
+
 from bliplib.analysis.environment import INPUT, Environment
 from bliplib.analysis.types import InferredType, Var, describe_inferred_type
 from bliplib.analysis.unification import Unifier
@@ -131,8 +133,27 @@ class Analyser:
         target = self.__infer(statement.target)
         self.__unifier.unify(target, Scalar.STRING, f"Only a string can be decomposed, and '{statement.target.name}' is not")
 
+        self.__check_pattern_adjacency(statement.pattern)
+
         for element in statement.pattern:
             self.__analyse_pattern_element(element)
+
+    def __check_pattern_adjacency(self, pattern: list[PatternElement]) -> None:
+        """
+        Every capturing element in a pattern is either last or followed by a string literal.
+
+        A capture runs up to the literal that follows it, so two capturing elements side by side leave the first with nothing to say
+        where it ends. No input can satisfy that, which is what makes it a static error rather than a failed match. This is not a
+        typing rule, but it is the same kind of input-independent wrongness, and the analyser is the pass that owns those.
+        """
+
+        for element, following in pairwise(pattern):
+            if isinstance(element, StringLiteral) or isinstance(following, StringLiteral):
+                continue
+
+            raise SemanticError(
+                f"Ambiguous decomposition pattern: {describe_pattern_element(element)} is followed by {describe_pattern_element(following)}"
+            )
 
     def __analyse_pattern_element(self, element: PatternElement) -> None:
         match element:
@@ -220,6 +241,20 @@ class Analyser:
 
     def __record(self, value: Value, inferred: InferredType) -> None:
         self.__inferred.append((value, inferred))
+
+
+def describe_pattern_element(element: PatternElement) -> str:
+    """Render a decomposition pattern element into a human-friendly string."""
+
+    match element:
+        case Identifier():
+            return f"the capture '{element.name}'"
+
+        case Wildcard():
+            return "a wildcard"
+
+        case StringLiteral():
+            return f"the literal '{element.value}'"
 
 
 def describe_value(value: Value) -> str:

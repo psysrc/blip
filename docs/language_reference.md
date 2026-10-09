@@ -74,6 +74,9 @@ xml -> "<foo>" content "</foo>"  // content == "Bar"
 If decomposition fails because the string doesn't fit the pattern, an error is automatically raised.
 As a result, decomposition can be used as a convenient pattern matching syntax.
 
+A variable or wildcard matches up to the literal that follows it, so it must either be the last element of the pattern - where it
+takes whatever is left - or be followed by a literal. Two of them side by side, as in `email -> name *`, is rejected at compile
+time, because nothing can determine where `name` ends and `*` begins in the string.
 
 ```
 // This example validates that the string is surrounded by square brackets, without extracting any text into a variable:

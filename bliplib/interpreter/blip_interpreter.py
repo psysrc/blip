@@ -173,7 +173,6 @@ class Interpreter:
                             index += 1
                             continue
 
-                        # The analyser does not yet reject a pattern whose capturing elements are adjacent, so this is reachable
                         if not isinstance(following, StringLiteral):
                             raise InterpreterError(f"A decomposition pattern element must be followed by a string literal: {following}")
 

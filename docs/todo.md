@@ -45,11 +45,6 @@ Icon|Meaning
 
 ## Outstanding work to consider
 
-- **Decomposition adjacency check.** A decomposition pattern whose capturing elements are adjacent — `x -> a b`, `x -> * b`, `x -> a *` — analyses
-  cleanly and then fails at execution. It belongs here: a capturing element needs a following literal to say where it stops, so a pattern
-  without one is unsatisfiable whatever the input. The rule would be that every `identifier` and `decomposition_wildcard` in a pattern is
-  either last or followed by a `string_literal`. Adding it means an inference rule, an error-table row, a reference program, and deleting the
-  interpreter's check — which is the only reason that check still exists.
 - **`Program.variables` and a value walker.** The computed property that replaces the derived variable map is not implemented. It needs a walk
   over every value node, which `blip --check` also wants; one exists as `values_of()` in `test/unit/analysis/test_analyser.py` and belongs in
   `bliplib/ir/` rather than being written a second time. A C backend is the real customer.

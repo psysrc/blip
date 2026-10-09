@@ -147,6 +147,36 @@ def test_bad_program_raises_semantic_error(source: str):
         analyse_source(source)
 
 
+@pytest.mark.parametrize(
+    "source",
+    [
+        pytest.param('x = "ab"\nx -> a b\nret a', id="two captures side by side"),
+        pytest.param('x = "ab"\nx -> * b\nret b', id="a wildcard and a capture"),
+        pytest.param('x = "ab"\nx -> a *\nret a', id="a capture and a wildcard"),
+        pytest.param('x = "ab"\nx -> "<" a b ">"\nret a', id="adjacent captures in the middle of a pattern"),
+    ],
+)
+def test_adjacent_capturing_pattern_elements_raise_semantic_error(source: str):
+    """A capture ends where the literal after it begins, so nothing can satisfy a pattern that puts two captures together."""
+
+    with pytest.raises(SemanticError, match="Ambiguous decomposition pattern"):
+        analyse_source(source)
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        pytest.param('x = "a@b"\nx -> a "@" b\nret a', id="captures separated by a literal"),
+        pytest.param('x = "a@b"\nx -> a "@" *\nret a', id="a trailing wildcard"),
+        pytest.param('x = "a@b"\nx -> * "@" b\nret b', id="a leading wildcard"),
+        pytest.param('x = "ab"\nx -> "a" "b"\nret x', id="literals only"),
+        pytest.param('x = "ab"\nx -> a\nret a', id="a single capture taking everything"),
+    ],
+)
+def test_a_pattern_whose_captures_are_separated_is_accepted(source: str):
+    analyse_source(source)
+
+
 def test_a_rejected_program_is_not_left_half_annotated():
     """Types are written only once the whole program has analysed, so a rejected program carries none of them."""
 

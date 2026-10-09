@@ -10,7 +10,7 @@ static analysis can rule out.
 import pytest
 
 from bliplib.analysis import analyse
-from bliplib.errors import InterpreterError
+from bliplib.errors import InterpreterError, SemanticError
 from bliplib.interpreter import Interpreter
 from bliplib.parser import Parser
 
@@ -45,15 +45,14 @@ def test_a_decomposition_whose_literal_is_missing_is_an_error():
         interpret('email = input[0]\nemail -> user "@" *\nret user', ["not-an-email"])
 
 
-def test_adjacent_capturing_pattern_elements_are_an_error():
+def test_adjacent_capturing_pattern_elements_never_reach_the_interpreter():
     """
     A capturing element has to be followed by a literal, or there is nothing to tell it where to stop.
 
-    TODO: This is input-independent and ought to be a `SemanticError`, but the analyser does not check pattern adjacency yet, so the
-    interpreter is still the thing that catches it for now.
+    This is input-independent, so the analyser should reject this before it reaches the interpreter.
     """
 
-    with pytest.raises(InterpreterError, match="followed by a string literal"):
+    with pytest.raises(SemanticError, match="Ambiguous decomposition pattern"):
         interpret('x = "ab"\nx -> a b\nret a', [])
 
 

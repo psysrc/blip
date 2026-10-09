@@ -158,7 +158,7 @@ Three details matter to anyone working on the analyser:
 - **A final resolution pass.** Once the walk is complete, everything inferred is turned into a grounded type and written to its node. A `Var`
   still unbound is a `SemanticError` — the program is ill-formed.
 
-### Inference rules
+### Type inference rules
 
 | Node                                                     | Rule                                                                |
 | -------------------------------------------------------- | ------------------------------------------------------------------- |
@@ -208,6 +208,7 @@ Examples:
 | Non-string decomposition target                   | Static  |
 | Reassignment that changes a variable's type       | Static  |
 | Heterogeneous list literal                        | Static  |
+| Ambiguous decomposition pattern                   | Static  |
 | Empty list whose element type is never determined | Static  |
 | Decomposition pattern failure                     | Runtime |
 | Index out of bounds                               | Runtime |
