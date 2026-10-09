@@ -288,7 +288,7 @@ class Return:
 @dataclass
 class Decomposition:
     target: Identifier
-    pattern: list[PatternElement]
+    pattern: DecompPattern
 
     @classmethod
     def from_dict(cls, blip_ir: dict[str, Any]) -> Decomposition:
@@ -417,6 +417,7 @@ class Program:
 # These unions are closed, so a `match` over one can be checked for exhaustiveness
 Value = StringLiteral | IntegerLiteral | BooleanLiteral | Identifier | Concatenation | Index | ListLiteral
 PatternElement = Identifier | StringLiteral | Wildcard
+DecompPattern = list[PatternElement]
 Statement = Assignment | Return | Decomposition
 Directive = FixedDirective | RangeDirective
 

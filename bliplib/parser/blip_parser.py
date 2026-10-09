@@ -6,6 +6,7 @@ from bliplib.ir import (
     BooleanLiteral,
     Concatenation,
     Decomposition,
+    DecompPattern,
     Directive,
     Directives,
     FixedDirective,
@@ -13,7 +14,6 @@ from bliplib.ir import (
     Index,
     IntegerLiteral,
     ListLiteral,
-    PatternElement,
     Program,
     RangeDirective,
     Return,
@@ -158,23 +158,23 @@ class Parser:
     def __parse_decomposition_statement(self, identifier: Identifier) -> Decomposition:
         self.__consume_token("->")
 
-        operands: list[PatternElement] = []
+        pattern: DecompPattern = []
 
         while self.__token.type not in {"EOL", "EOF"}:
             match self.__token.type:
                 case "IDENTIFIER":
-                    operands.append(self.__parse_identifier())
+                    pattern.append(self.__parse_identifier())
                 case "STRING_LITERAL":
-                    operands.append(self.__parse_string_literal())
+                    pattern.append(self.__parse_string_literal())
                 case "*":
-                    operands.append(self.__parse_decomposition_wildcard())
+                    pattern.append(self.__parse_decomposition_wildcard())
 
                 case _:
                     raise ParserError(f"Unexpected token {self.__token.type} while parsing decomposition statement")
 
         self.__consume_token("EOL", "EOF")
 
-        return Decomposition(target=identifier, pattern=operands)
+        return Decomposition(target=identifier, pattern=pattern)
 
     def __parse_decomposition_wildcard(self) -> Wildcard:
         self.__consume_token("*")

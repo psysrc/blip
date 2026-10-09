@@ -50,7 +50,7 @@ Program(statements, directives)
 
 Statement = Assignment(target: Identifier, expression: Value)
           | Return(expression: Value)
-          | Decomposition(target: Identifier, pattern: list[PatternElement])
+          | Decomposition(target: Identifier, pattern: DecompPattern)
 
 Value     = StringLiteral(value) | IntegerLiteral(value) | BooleanLiteral(value)
           | Identifier(name)
@@ -59,7 +59,7 @@ Value     = StringLiteral(value) | IntegerLiteral(value) | BooleanLiteral(value)
           | ListLiteral(elements: list[Value])
 
 PatternElement = Identifier | StringLiteral | Wildcard
-
+DecompPattern = list[PatternElement]
 Directives(input: Directive | None, output: Directive | None)
 Directive = FixedDirective(count, names) | RangeDirective(min, max)
 ```

@@ -2,6 +2,9 @@
 Implements the Interpreter class.
 """
 
+import re
+
+from bliplib.decomposition import FLAGS, describe_pattern, pattern_captures, pattern_regex
 from bliplib.errors import InterpreterError
 from bliplib.ir import (
     Assignment,
@@ -20,7 +23,6 @@ from bliplib.ir import (
     Statement,
     StringLiteral,
     Value,
-    Wildcard,
 )
 from bliplib.ir.types import List, Scalar
 
@@ -141,68 +143,18 @@ class Interpreter:
                 raise InterpreterError(f"Blip programs cannot return '{type(unreturnable).__name__}'")
 
     def __interpret_decomposition(self, statement: Decomposition) -> None:
-        """
-        Decompose a string according to a pattern, binding any variables the pattern captures.
+        """Decompose a string according to a pattern, binding any variables that the pattern captures."""
 
-        TODO: Note that a literal only has to be *found*, not to consume the string up to it, so `"abc" -> "a"` succeeds and discards
-        the rest. The Python transpiler lowers the same algorithm, so the two agree about what a pattern means.
-        This may be true for the current code but is a design flaw and will need fixing in future.
-        """
+        original = _as_string(self.__interpret_identifier(statement.target))
+        pattern = statement.pattern
 
-        try:
-            original = _as_string(self.__interpret_identifier(statement.target))
-            remainder = original
-            pattern = statement.pattern
+        matched = re.fullmatch(pattern_regex(pattern), original, flags=FLAGS)
 
-            index = 0
-            while index < len(pattern):
-                element = pattern[index]
-                following = pattern[index + 1] if index + 1 < len(pattern) else None
+        if matched is None:
+            raise InterpreterError(f"Decomposition failed: '{original}' does not match the pattern '{describe_pattern(pattern)}'")
 
-                match element:
-                    case StringLiteral():
-                        remainder = self.__step_over_in_string(remainder, element.value)
-                        index += 1
-
-                    case Identifier() | Wildcard():
-                        if following is None:
-                            # Nothing follows, so this element takes whatever is left
-                            if isinstance(element, Identifier):
-                                self.__variables[element.name] = remainder
-
-                            index += 1
-                            continue
-
-                        if not isinstance(following, StringLiteral):
-                            raise InterpreterError(f"A decomposition pattern element must be followed by a string literal: {following}")
-
-                        at = self.__find_in_string(remainder, following.value)
-
-                        if isinstance(element, Identifier):
-                            self.__variables[element.name] = remainder[:at]
-
-                        remainder = remainder[at + len(following.value) :]
-                        index += 2
-
-        except InterpreterError as err:
-            raise InterpreterError(f"Decomposition failed: {err}") from err
-
-    def __find_in_string(self, string: str, literal: str) -> int:
-        """Locate a literal in a string. If it does not exist, raise an `InterpreterError`."""
-
-        at = string.find(literal)
-
-        if at == -1:
-            raise InterpreterError(f"Cannot find '{literal}' in '{string}'")
-
-        return at
-
-    def __step_over_in_string(self, string: str, literal: str) -> str:
-        """Locate a literal in a string and step over it. If it does not exist, raise an `InterpreterError`."""
-
-        at = self.__find_in_string(string, literal)
-
-        return string[at + len(literal) :]
+        for group, name in enumerate(pattern_captures(pattern), start=1):
+            self.__variables[name] = matched.group(group)
 
     def __interpret_expression(self, value: Value) -> BlipValue:
         """Evaluate a Blip value."""

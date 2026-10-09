@@ -71,12 +71,46 @@ xml = "<foo>Bar</foo>"
 xml -> "<foo>" content "</foo>"  // content == "Bar"
 ```
 
-If decomposition fails because the string doesn't fit the pattern, an error is automatically raised.
+If decomposition fails because the string doesn't fit the pattern, an error is raised.
 As a result, decomposition can be used as a convenient pattern matching syntax.
+
+### The decomposition pattern must match the entire string
+
+The decomposition pattern is not a search; every character of the string has to be accounted for by
+some element of the pattern. A literal at the start of a pattern must match the start of the string,
+a literal at the end must match the end of it, and any text falling outside the pattern makes the decomposition fail.
+
+```plaintext
+x = "abc"
+
+x -> "b"        // FAILS: the pattern accounts for neither the 'a' nor the 'c'
+x -> * "b" *    // SUCCEEDS: the wildcards account for everything around the 'b'
+```
+
+So if you don't care what surrounds the part you are interested in, say so with a wildcard `*`.
+
+```plaintext
+greeting = "hello world"
+
+greeting -> "hello"         // FAILS: ' world' is unaccounted for
+greeting -> "hello" *       // SUCCEEDS: wildcard captures the rest of the string
+greeting -> "hello " rest   // SUCCEEDS: rest == "world"
+```
 
 A variable or wildcard matches up to the literal that follows it, so it must either be the last element of the pattern - where it
 takes whatever is left - or be followed by a literal. Two of them side by side, as in `email -> name *`, is rejected at compile
 time, because nothing can determine where `name` ends and `*` begins in the string.
+
+A capture runs up to the *first* occurrence of the literal after it. Where the whole-string rule makes that occurrence
+impossible, the capture carries on to the next one instead.
+
+```plaintext
+dotted = "a.b.c"
+dotted -> head "." tail     // head == "a", tail == "b.c" - the first '.' wins
+
+archive = "backup.gz.gz"
+archive -> stem ".gz"       // stem == "backup.gz" - the first '.gz' would leave a trailing '.gz' unaccounted for
+```
 
 ```
 // This example validates that the string is surrounded by square brackets, without extracting any text into a variable:
@@ -86,6 +120,8 @@ data = "bad"
 
 data -> "[" * "]"  // Throws an error if 'data' doesn't fit the pattern
 ```
+
+### Alternatives
 
 Alternative decompositions can be provided. If a decomposition fails, subsequent alternatives will be tried.
 

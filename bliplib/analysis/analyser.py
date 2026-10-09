@@ -21,6 +21,7 @@ from bliplib.ir.nodes import (
     BooleanLiteral,
     Concatenation,
     Decomposition,
+    DecompPattern,
     Directives,
     FixedDirective,
     Identifier,
@@ -138,7 +139,7 @@ class Analyser:
         for element in statement.pattern:
             self.__analyse_pattern_element(element)
 
-    def __check_pattern_adjacency(self, pattern: list[PatternElement]) -> None:
+    def __check_pattern_adjacency(self, pattern: DecompPattern) -> None:
         """
         Every capturing element in a pattern is either last or followed by a string literal.
 

@@ -255,3 +255,17 @@ def test_a_nested_list_is_well_typed_even_though_it_cannot_be_returned():
     assignment = program.statements[0]
     assert isinstance(assignment, Assignment)
     assert assignment.expression.blip_type == List(List(Scalar.STRING))
+
+
+@pytest.mark.xfail(strict=True)  # TODO
+def test_a_name_used_twice_in_one_decomposition_pattern_is_ill_formed():
+    with pytest.raises(SemanticError):
+        analyse_source('x = "abc"\nx -> dup "b" dup\nret dup')
+
+
+@pytest.mark.xfail(strict=True)  # TODO
+def test_empty_literals_in_decomposition_are_ill_formed():
+    """Empty literals don't affect the pattern, so do not allow them."""
+
+    with pytest.raises(SemanticError):
+        analyse_source('x = input[0]\nx -> "" rest\nret rest')

@@ -380,6 +380,8 @@ ret my_str
 Strings can be decomposed into constituent parts using the decomposition operator `->`.
 This allows extraction of substrings into variables and also verifies that the string matches an expected pattern.
 
+The pattern has to match the *entire* string - see [Decomposition](decomposition.md) for more detail.
+
 #### Blip code
 
 ```blip
