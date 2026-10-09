@@ -30,7 +30,7 @@ def pattern_regex(pattern: DecompPattern) -> str:
 
 
 def pattern_captures(pattern: DecompPattern) -> list[str]:
-    """The names a decomposition pattern captures, in the order."""
+    """The names a decomposition pattern captures, in order."""
 
     return [element.name for element in pattern if isinstance(element, Identifier)]
 

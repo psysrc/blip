@@ -143,3 +143,27 @@ ret first
 ```text
 SemanticError
 ```
+
+## Duplicate capture names in decomposition pattern
+
+A decomposition pattern captures each name at most once.
+
+`x -> dup "," dup` looks as though it might assert that both halves of the string are equal, but it doesn't, the captures are independent.
+
+Note that this rule only applies to named captures within the same pattern.
+Two separate decomposition statements can capture using the same names, just not two instances of the same name within the same pattern.
+
+#### Blip code
+
+```blip
+x = "a,b"
+x -> dup "," dup
+
+ret dup
+```
+
+#### Compilation
+
+```text
+SemanticError
+```

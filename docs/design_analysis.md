@@ -209,6 +209,7 @@ Examples:
 | Reassignment that changes a variable's type       | Static  |
 | Heterogeneous list literal                        | Static  |
 | Ambiguous decomposition pattern                   | Static  |
+| Decomposition pattern capturing a name twice      | Static  |
 | Empty list whose element type is never determined | Static  |
 | Decomposition pattern failure                     | Runtime |
 | Index out of bounds                               | Runtime |

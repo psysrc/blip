@@ -135,6 +135,7 @@ class Analyser:
         self.__unifier.unify(target, Scalar.STRING, f"Only a string can be decomposed, and '{statement.target.name}' is not")
 
         self.__check_pattern_adjacency(statement.pattern)
+        self.__check_pattern_captures_are_distinct(statement.pattern)
 
         for element in statement.pattern:
             self.__analyse_pattern_element(element)
@@ -155,6 +156,20 @@ class Analyser:
             raise SemanticError(
                 f"Ambiguous decomposition pattern: {describe_pattern_element(element)} is followed by {describe_pattern_element(following)}"
             )
+
+    def __check_pattern_captures_are_distinct(self, pattern: DecompPattern) -> None:
+        """A pattern can only capture each name at most once."""
+
+        captured: set[str] = set()
+
+        for element in pattern:
+            if not isinstance(element, Identifier):
+                continue
+
+            if element.name in captured:
+                raise SemanticError(f"A decomposition pattern cannot capture '{element.name}' more than once")
+
+            captured.add(element.name)
 
     def __analyse_pattern_element(self, element: PatternElement) -> None:
         match element:
