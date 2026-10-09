@@ -11,10 +11,10 @@ Blip code -> Parser -> BlipIR -> Interpreter
 
 BlipIR is the contract between the front end and every back end, and it exists in two forms:
 
-- **the object model** in `bliplib/ir/`, a class per node kind, which every consumer walks. `load()` builds it and validates it completely, and the analyser then gives every value its type;
-- **the `dict`**, which is the serialised form on disk, what `--ir` prints, and - for now - what the parser hands to `load()`.
+- **the object model** in `bliplib/ir/`, a class per node kind. The parser builds it, the analyser gives every value its type, and every consumer walks it;
+- **the `dict`**, which is purely the serialised form: what `--ir` prints and what a `.blipir` file holds. `load()` turns one back into objects, validating it completely.
 
-Analysis runs in every mode, and every consumer reads the analysed tree: `--ir`, the interpreter and the transpilers all take a `Program`. The parser is the one piece still producing a `dict`, which `load()` turns into objects immediately afterwards; closing that is Stage 6 of `docs/design_analysis.md`. So a change to the IR shape touches `bliplib/ir/` and the parser, and nothing else.
+Analysis runs in every mode, and every consumer reads the analysed tree: `--ir`, the interpreter and the transpilers all take a `Program`. No `dict` exists on the `.blip` path at all, so **a change to the IR shape touches `bliplib/ir/` and nothing else** - the parser, interpreter and transpilers contain no node-kind strings.
 
 | Path | Role |
 |------|------|

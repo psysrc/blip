@@ -22,7 +22,6 @@ from bliplib.ir import (
     Return,
     Value,
     Wildcard,
-    load,
 )
 from bliplib.ir.types import List, Scalar
 from bliplib.parser import Parser
@@ -33,7 +32,7 @@ from test.common.ref_progs.getter import get_compiling_reference_programs
 def analyse_source(source: str) -> Program:
     """Parse, load and analyse Blip source, the way every consumer will from Stage 3 onwards."""
 
-    return analyse(load(Parser().parse(source)))
+    return analyse(Parser().parse(source))
 
 
 def values_of(program: Program) -> Iterator[Value]:
@@ -151,7 +150,7 @@ def test_bad_program_raises_semantic_error(source: str):
 def test_a_rejected_program_is_not_left_half_annotated():
     """Types are written only once the whole program has analysed, so a rejected program carries none of them."""
 
-    program = load(Parser().parse('ret "fine"\nret 5'))
+    program = Parser().parse('ret "fine"\nret 5')
 
     with pytest.raises(SemanticError):
         analyse(program)

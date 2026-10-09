@@ -12,14 +12,14 @@ import pytest
 
 from bliplib.analysis import analyse
 from bliplib.errors import TranspilerError
-from bliplib.ir import Program, Return, StringLiteral, load
+from bliplib.ir import Program, Return, StringLiteral
 from bliplib.ir.types import Scalar
 from bliplib.parser import Parser
 from bliplib.transpiler.python import PythonTranspiler
 
 
 def compile_program(blip_code: str) -> Program:
-    return analyse(load(Parser().parse(blip_code)))
+    return analyse(Parser().parse(blip_code))
 
 
 def transpile_function(blip_code: str) -> str:
@@ -243,7 +243,7 @@ def test_a_leading_literal_in_a_decomposition_is_asserted_and_skipped():
 
 
 def test_an_unanalysed_program_is_refused_rather_than_guessed_at():
-    unanalysed = load(Parser().parse('ret "Hello World!"'))
+    unanalysed = Parser().parse('ret "Hello World!"')
     returned = unanalysed.statements[0]
     assert isinstance(returned, Return)
     assert returned.expression.blip_type is None

@@ -11,7 +11,6 @@ import pytest
 
 from bliplib.analysis import analyse
 from bliplib.errors import BlipError, ParserError, SemanticError
-from bliplib.ir import load
 from bliplib.parser import Parser
 from test.common.ref_progs.classes import ReferenceProgram
 from test.common.ref_progs.getter import get_compiling_reference_programs, get_failing_reference_programs
@@ -26,7 +25,7 @@ COMPILE_ERRORS: dict[str, type[BlipError]] = {
 def compile_program(blip_code: str):
     """Run the whole front end: parse, load and analyse."""
 
-    return analyse(load(Parser().parse(blip_code)))
+    return analyse(Parser().parse(blip_code))
 
 
 @pytest.mark.parametrize("ref", get_compiling_reference_programs())

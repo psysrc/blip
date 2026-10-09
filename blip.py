@@ -6,7 +6,6 @@ from pathlib import Path
 from bliplib.analysis import analyse
 from bliplib.errors import InterpreterError, ParserError, SemanticError, TranspilerError
 from bliplib.interpreter import Interpreter
-from bliplib.ir import IRError, load
 from bliplib.parser import Parser
 from bliplib.transpiler import factory as transpiler_factory
 from bliplib.transpiler.interface import Transpiler
@@ -52,17 +51,10 @@ def main():
         sys.exit(1)
 
     try:
-        blip_ir = Parser().parse(blip_code)
+        program = Parser().parse(blip_code)
 
     except ParserError as err:
         print(f"Parser error: {err}", file=sys.stderr)
-        sys.exit(1)
-
-    try:
-        program = load(blip_ir)
-
-    except IRError as err:
-        print(f"IR error: {err}", file=sys.stderr)
         sys.exit(1)
 
     try:

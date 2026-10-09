@@ -39,6 +39,12 @@ from test.common.ref_progs.classes import ReferenceProgram
 from test.common.ref_progs.getter import get_compiling_reference_programs
 
 
+def parsed_dict(blip_code: str) -> dict[str, Any]:
+    """Parse the Blip source code and serialise it to JSON."""
+
+    return Parser().parse(blip_code).to_dict()
+
+
 @pytest.mark.parametrize("ref", get_compiling_reference_programs())
 def test_reference_program_ir_serialisation_round_trip(ref: ReferenceProgram):
     assert ref.blip_ir is not None
@@ -50,13 +56,13 @@ def test_ir_error_is_a_blip_error():
 
 
 def test_nested_program_loads_into_the_expected_tree():
-    program = load(Parser().parse("ret input[0]"))
+    program = load(parsed_dict("ret input[0]"))
 
     assert program == Program(statements=[Return(expression=Index(target=Identifier(name="input"), index=IntegerLiteral(value=0)))])
 
 
 def test_every_statement_kind_loads():
-    program = load(Parser().parse('name = "bob" "@" domain\nemail -> user "@" *\nret name'))
+    program = load(parsed_dict('name = "bob" "@" domain\nemail -> user "@" *\nret name'))
 
     assert program == Program(
         statements=[
@@ -74,7 +80,7 @@ def test_every_statement_kind_loads():
 
 
 def test_literals_and_lists_load():
-    program = load(Parser().parse('things = ["a", 1, true]\nempty = []\nret things'))
+    program = load(parsed_dict('things = ["a", 1, true]\nempty = []\nret things'))
 
     assert program.statements[0] == Assignment(
         target=Identifier(name="things"),
@@ -84,7 +90,7 @@ def test_literals_and_lists_load():
 
 
 def test_directives_load():
-    program = load(Parser().parse("!in username email\n!out 1..3\nret username"))
+    program = load(parsed_dict("!in username email\n!out 1..3\nret username"))
 
     assert program.directives == Directives(input=FixedDirective(count=2, names=["username", "email"]), output=RangeDirective(min=1, max=3))
 
@@ -117,7 +123,7 @@ def test_open_ended_range_directive_round_trips():
 def test_blip_type_is_not_serialised_while_it_is_unset():
     """Stage 1 has no type model, so every value loads with no type and nothing is written for it."""
 
-    program = load(Parser().parse("ret input[0]"))
+    program = load(parsed_dict("ret input[0]"))
     returned = program.statements[0]
     assert isinstance(returned, Return)
 

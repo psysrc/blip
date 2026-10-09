@@ -56,8 +56,8 @@ Two new packages:
 | `bliplib/ir/`       | Node classes, `load` / `to_dict`, the ground type model and its compact-string codec            |
 | `bliplib/analysis/` | The environment, unification, the `Var` type hole, and `SemanticError`                          |
 
-`bliplib/ir/` owns the JSON shape — it is the only module that knows what `{"type": "index"}` looks like on disk. `bliplib/analysis/` owns
-inference. The split is load-bearing in one specific way: the type *hole* used during inference lives in `analysis/`, and the serialisation
+`bliplib/ir/` owns the JSON shape — it is the only module that knows what `{"type": "index"}` looks like on disk, which since Stage 6 is
+literally true rather than aspirational. `bliplib/analysis/` owns inference. The split is load-bearing in one specific way: the type *hole* used during inference lives in `analysis/`, and the serialisation
 codec lives in `ir/`, so "no unresolved hole can reach a serialised IR" is a structural fact rather than a convention — there is nowhere for
 `format_type(Var)` to be defined.
 
@@ -140,18 +140,17 @@ Removing it is a change to the file format, which is cheap now and never cheaper
 outside this repository consumes the shape. It also deletes a whole class of work — there is no per-slot re-wrapping table for `to_dict()` to
 encode, and no re-insertion fidelity risk to guard. [Stage 0.5](#implementation-stages) does it on its own, before any analysis work starts.
 
-### The parser emits a `dict` until Stage 6
+### The parser builds nodes
 
-The diagram above shows the parser handing back a `Program`. It does not do that yet: `bliplib/parser/` builds a `dict`, and `load()` runs
-immediately afterwards. So an unannotated IR `dict` exists briefly between the parser and the loader, and is never serialised except by
-`--no-analysis`. That `dict` is structurally identical to the serialised form and differs from it only by the absence of annotations, because
-Stage 0.5 removes the `expression` wrapper from the parser itself rather than hiding it behind the loader.
+The parser constructs the node classes directly and `Parser.parse()` is typed `str -> Program`, so no `dict` exists anywhere on the `.blip`
+path. `load()` is reached only by something reading a serialised `.blipir`.
 
-The cost of that interim is not just an extra shape to know about. **Two places encode the JSON shape** — fourteen node kinds in the parser and
-fourteen in the loader — so adding a node kind means editing both, and missing one means the loader rejects what the parser emits. It also makes
-`bliplib/ir/nodes.py`'s own claim to be "the only place that knows the on-disk JSON shape" untrue for as long as the interim lasts.
+Two things follow, and both are checked rather than hoped for. **The JSON shape is written down once**: `bliplib/parser/`,
+`bliplib/interpreter/` and `bliplib/transpiler/` contain no node-kind strings at all, so adding a node kind is an edit to `bliplib/ir/` and
+nowhere else. And **a malformed tree is a type error**: putting a `StringLiteral` where `Index.target` wants an `Identifier` is rejected at the
+construction site, rather than surfacing as an `IRError` when something later tries to read it.
 
-[Stage 6](#implementation-stages) closes it. It is placed last because its prerequisite is that nothing still wants a `dict`.
+[Stage 6](#implementation-stages) did this, last, because its prerequisite was that nothing still wanted a `dict`.
 
 ## Type annotations in BlipIR
 
@@ -571,10 +570,6 @@ Stages 0.5 to 4 deliver the value. Stage 5 is cleanup, and Stage 6 is the cleanu
 - **Fixtures are the oracle for their own reshape.** Stage 0.5 edits the 15 `#### Blip IR` blocks that the tests compare against, so a mistake
   in the edit is a mistake in the oracle. Guarded by checking the reshape in the reverse direction and by constraining the shape of the diff,
   both described in that stage.
-- **Two shapes in flight.** Until the parser builds nodes, an unannotated IR `dict` exists between the parser and the loader. It is internal
-  and short-lived, and it differs from the serialised form only by the absence of annotations — Stage 0.5 removes the wrapper from the parser,
-  not just from the output. But it is a second shape a reader has to know about, and the JSON shape is encoded twice while it lasts. Stage 6
-  removes it; until that stage lands this is an accepted cost rather than a mitigated one.
 - **Scope creep into a general type checker.** The `docs/todo.md` analysis items are broader than this pass. Keep this one to types and
   binding.
 

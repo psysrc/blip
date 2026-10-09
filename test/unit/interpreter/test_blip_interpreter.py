@@ -12,12 +12,11 @@ import pytest
 from bliplib.analysis import analyse
 from bliplib.errors import InterpreterError
 from bliplib.interpreter import Interpreter
-from bliplib.ir import load
 from bliplib.parser import Parser
 
 
 def interpret(blip_code: str, input_strings: list[str]) -> list[str]:
-    program = analyse(load(Parser().parse(blip_code)))
+    program = analyse(Parser().parse(blip_code))
 
     return Interpreter(program).run(input_strings)
 
