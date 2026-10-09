@@ -97,9 +97,9 @@ def main():
             transpiler: Transpiler = transpiler_factory.get_transpiler(args.transpile)
 
             if args.prog:
-                target_code = transpiler.transpile_program(program.to_dict())
+                target_code = transpiler.transpile_program(program)
             else:
-                target_code = transpiler.transpile_function(program.to_dict())
+                target_code = transpiler.transpile_function(program)
 
             print(target_code)
             sys.exit(0)

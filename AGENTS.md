@@ -14,7 +14,7 @@ BlipIR is the contract between the front end and every back end, and it exists i
 - **the `dict`**, which the parser produces and which the interpreter and every transpiler still consume, destructuring it with `match`/`case` on `{"type": ...}`;
 - **the object model** in `bliplib/ir/`, a class per node kind, which `load()` builds from that `dict` and validates completely.
 
-Analysis runs in every mode, but only `--ir` reads the analysed tree back - the interpreter and the transpilers still take the parser's `dict`. Moving them onto the object model is staged work tracked in `docs/design_analysis.md`, so a change to the IR shape currently touches `bliplib/ir/`, the interpreter *and* every transpiler.
+Analysis runs in every mode. `--ir` and the transpilers read the analysed tree; the interpreter is the last consumer still taking the parser's `dict`, and moving it over is staged work tracked in `docs/design_analysis.md`. So a change to the IR shape currently touches `bliplib/ir/`, the parser *and* the interpreter.
 
 | Path | Role |
 |------|------|

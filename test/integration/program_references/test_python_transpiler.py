@@ -10,10 +10,6 @@ from test.integration.conftest import run_blip
 
 def __get_progs():
     xfail_progs = [
-        "Variable Assignment",
-        "Concatenation",
-        "Decomposition",
-        "Indexing into Lists",
         "Fixed Input Directive",
         "Fixed Output Directive (Error case)",
         "Named Input Directive",

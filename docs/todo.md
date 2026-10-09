@@ -21,14 +21,14 @@ Once a feature has been sufficiently designed, it needs to be implemented.
 Feature|Parser|Interpreter|Transpiler (Python)|Transpiler (C)|Transpiler (C++)
 -------|:----:|:---------:|:-----------------:|:------------:|:--------------:
 Return statement|:white_check_mark:|:white_check_mark:|:white_check_mark:|:x:|:x:
-Concatenation|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
-Decomposition|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
-Variables|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
+Concatenation|:white_check_mark:|:white_check_mark:|:white_check_mark:|:x:|:x:
+Decomposition|:white_check_mark:|:white_check_mark:|:white_check_mark:|:x:|:x:
+Variables|:white_check_mark:|:white_check_mark:|:white_check_mark:|:x:|:x:
 String type|:white_check_mark:|:white_check_mark:|:white_check_mark:|:x:|:x:
-List type|:white_check_mark:|:white_check_mark:|:construction:|:x:|:x:
-Integer type|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
-List indexing|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
-Boolean type|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
+List type|:white_check_mark:|:white_check_mark:|:white_check_mark:|:x:|:x:
+Integer type|:white_check_mark:|:white_check_mark:|:white_check_mark:|:x:|:x:
+List indexing|:white_check_mark:|:white_check_mark:|:white_check_mark:|:x:|:x:
+Boolean type|:white_check_mark:|:white_check_mark:|:white_check_mark:|:x:|:x:
 Input directives|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
 Output directives|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
 If-conditionals|:x:|:x:|:x:|:x:|:x:

@@ -139,7 +139,6 @@ class ValueNode:
         node: dict[str, Any] = {"type": kind}
 
         if self.blip_type is not None:
-            # Written straight after `type`, so a reader meets a node's kind and its type together
             node["blip_type"] = format_type(self.blip_type)
 
         node.update(fields)

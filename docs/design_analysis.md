@@ -6,8 +6,8 @@ Once the functionality here is fully implemented, this file should be updated to
 Blip programs are fully type-inferred: there is no type syntax in the language, and there is no plan to add any.
 Every consumer of BlipIR nevertheless needs to know the type of every expression — the interpreter to validate operations, and the
 transpilers to emit correctly typed target code. Today each consumer re-derives that knowledge, inconsistently: the interpreter re-checks
-types dynamically at every operation, and the Python transpiler keeps a crude static approximation with an `UnknownType` escape hatch that
-reaches code generation and produces silently wrong output.
+types dynamically at every operation, and the Python transpiler kept a crude static approximation with an `UnknownType` escape hatch that
+reached code generation and produced silently wrong output. Stage 4 deleted that hatch; the interpreter's half is Stage 5.
 
 This document describes two changes that together fix that:
 
@@ -280,8 +280,8 @@ Three invariants hold if, and only if, analysis succeeds:
 3. Every `blip_type` is therefore expressible as a compact string.
 
 Invariant 1 is checked against the corpus. Invariants 2 and 3 need no checking: the resolution pass is typed `InferredType -> BlipType`, so the
-only way it can compile is to turn an unresolved hole into an error. This is the precise difference from the Python transpiler's current
-`UnknownType`, which reaches codegen and produces silently wrong output.
+only way it can compile is to turn an unresolved hole into an error. This is the precise difference from the `UnknownType` the Python transpiler
+used to carry, which reached codegen and produced silently wrong output.
 
 ### Error recovery is deferred
 
