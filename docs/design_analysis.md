@@ -1,31 +1,19 @@
 # Blip Static Analysis Design
 
-This file documents the plan for adding static analysis to Blip.
-Once the functionality here is fully implemented, this file should be updated to read in present-tense.
+This file documents how static analysis works in Blip.
 
-Blip programs are fully type-inferred: there is no type syntax in the language, and there is no plan to add any.
-Every consumer of BlipIR nevertheless needs to know the type of every expression — the interpreter to validate operations, and the
-transpilers to emit correctly typed target code. Each consumer used to re-derive that knowledge, inconsistently: the interpreter re-checked
-types dynamically at every operation, and the Python transpiler kept a crude static approximation with an `UnknownType` escape hatch that
-reached code generation and produced silently wrong output. Stage 4 deleted that hatch and Stage 5 deleted the interpreter's dynamic
-re-checking; both now read the type the analyser worked out.
-
-This document describes two changes that together fix that:
-
-1. **BlipIR carries types.** Every value node gains a `blip_type` key. BlipIR becomes the parsed *and analysed* representation, and the
-   **Analyser** — a new pass that assigns a concrete type to every expression and variable, and reports input-independent semantic errors —
-   is a BlipIR-to-BlipIR transformation.
-2. **BlipIR is loaded into objects.** A new object model gives every consumer a validated tree of typed nodes to walk, instead of a raw
-   `dict` to destructure defensively.
+Blip programs are fully type-inferred: there is no type syntax in the language. Every consumer of Blip IR (interpreter, transpilers)
+nevertheless needs the type of every expression — the interpreter to validate operations, the transpilers to emit correctly typed target code.
+Rather than have each one re-derive that knowledge individually, **Blip IR carries inferred types.** Every value node has a `blip_type` key,
+so Blip IR is the parsed *and analysed* representation. The **Analyser** gives every expression and variable a concrete type,
+reports input-independent semantic errors, and is a BlipIR-to-BlipIR transformation.
 
 ## Where it sits
 
 ```mermaid
 flowchart LR
     blip(.blip)
-    blipir(.blipir)
     parser[Blip Parser]
-    load[IR Loader]
     analyser[Blip Analyser]
     tree(Program)
     typed(Program, typed)
@@ -33,15 +21,12 @@ flowchart LR
     consumers[Interpreter / Transpilers]
 
     blip --> parser --> tree
-    blipir --> load --> tree
     tree --> analyser
     analyser --> typed --> consumers
     analyser --> err
 
     style blip fill:#55f,color:#fff,stroke:#333
-    style blipir fill:#c5f,color:#fff,stroke:#333
     style parser fill:#555,color:#fff,stroke:#333
-    style load fill:#555,color:#fff,stroke:#333
     style analyser fill:#555,color:#fff,stroke:#333
     style tree fill:#2a9,color:#fff,stroke:#333
     style typed fill:#2a9,color:#fff,stroke:#333
@@ -49,41 +34,16 @@ flowchart LR
     style err fill:#c33,color:#fff,stroke:#333
 ```
 
-Two new packages:
+| Package             | Contents                                                                              |
+| ------------------- | ------------------------------------------------------------------------------------- |
+| `bliplib/ir/`       | Node classes, `load` / `to_dict`, the ground type model and its compact-string codec  |
+| `bliplib/analysis/` | The environment, unification, the `Var` type hole, and `SemanticError`                |
 
-| Package             | Contents                                                                                        |
-| ------------------- | ----------------------------------------------------------------------------------------------- |
-| `bliplib/ir/`       | Node classes, `load` / `to_dict`, the ground type model and its compact-string codec            |
-| `bliplib/analysis/` | The environment, unification, the `Var` type hole, and `SemanticError`                          |
-
-`bliplib/ir/` owns the JSON shape — it is the only module that knows what `{"type": "index"}` looks like on disk, which since Stage 6 is
-literally true rather than aspirational. `bliplib/analysis/` owns inference. The split is load-bearing in one specific way: the type *hole* used during inference lives in `analysis/`, and the serialisation
-codec lives in `ir/`, so "no unresolved hole can reach a serialised IR" is a structural fact rather than a convention — there is nowhere for
-`format_type(Var)` to be defined.
-
-## Why types belong in BlipIR
-
-An earlier revision of this document had the analyser emit a *mirror tree*: a parallel typed structure, leaving BlipIR untyped. That was
-wrong, for three reasons.
-
-- **`.blipir` is a file format.** [The ecosystem design](design_ecosystem.md) gives BlipIR its own file extension. Under the mirror-tree
-  design, a `.blipir` file is a half-compiled artifact that every consumer must re-analyse, which means every consumer needs the analyser,
-  and the format's self-description stops at syntax. A C transpiler handed a typed `.blipir` needs no inference at all.
-- **Optimisations want IR-to-IR.** `docs/todo.md` lists optimisations as a feature to be designed. Passes compose when they share one shape.
-  With a mirror tree, a future pass either runs before analysis without type information, or operates on a second representation that has to
-  be maintained in step. Annotated BlipIR makes the analyser the first of a pipeline, not a fork in it.
-- **The cost was overstated.** Annotating every value node across all 15 reference programs adds 53 lines to the 489 in the `#### Blip IR`
-  blocks — roughly 11%. The IR is already one key per line and the blocks live inside collapsed `<details>` elements, so a type key per
-  value node disappears into the noise. Removing the `expression` wrapper in the same work takes 78 lines back out, so the annotated IR is
-  about 5% *shorter* than today's.
-
-The mirror tree's genuine benefit was that backends could not be handed a node with a missing field. That benefit does not require a second
-tree — it requires a loader, which is the next section.
+`bliplib/ir/` owns the program shape and `bliplib/analysis/` owns the type inference and semantics.
 
 ## The object model
 
-`bliplib/ir/` defines a small class per node kind. Consumers call `load()` once and walk objects thereafter; no backend destructures a
-`dict`.
+`bliplib/ir/` defines a small class per node kind. The parser builds the node structure directly.
 
 ```
 Program(statements, directives)
@@ -101,56 +61,10 @@ Value     = StringLiteral(value) | IntegerLiteral(value) | BooleanLiteral(value)
 PatternElement = Identifier | StringLiteral | Wildcard
 
 Directives(input: Directive | None, output: Directive | None)
-Directive = FixedDirective(count, names) | Range(min, max)
+Directive = FixedDirective(count, names) | RangeDirective(min, max)
 ```
 
 Every `Value` carries a `blip_type` field; no other node does. `Wildcard`, the statements, the directives and `Program` itself have no type.
-
-Three properties matter:
-
-- **`load()` validates totally.** An unknown node kind, a missing field, an unrecognised type string, or an annotation that contradicts the
-  node it sits on raises `IRError`, a new subclass of `BlipError`. This is neither a `ParserError` (nothing was parsed) nor a `SemanticError`
-  (nothing was analysed) — a malformed `.blipir` is its own failure mode, and it is the failure mode that lets every backend delete its
-  defensive `case _: raise` fallbacks. The contradiction check is described under [Annotating what is derivable](#annotating-what-is-derivable).
-- **Nodes are mutable.** `blip_type` starts as `None`, and the analyser's resolution pass fills it in place once it has a ground type to
-  write — which is natural on a mutable tree and awkward on a frozen one. A node is never left holding a hole in the meantime: holes live in
-  the analyser's own record of what it inferred, so a value node's type is either absent or serialisable, with no third state. These are data
-  carriers that backends read, so their fields are public: a deliberate departure from the `self.__private` convention used elsewhere.
-- **The round trip is exact.** `load(d).to_dict() == d` for any well-formed `d`. This is already tested for the whole corpus at no cost,
-  because the reference-program test parses `blip --ir` output and compares it against the fixture as a `dict`. Note that this is structural
-  equality, not textual: JSON object keys are unordered, so key order and whitespace in the fixtures carry no meaning and nothing should be
-  built on them matching the tool's output byte for byte.
-
-### The `expression` wrapper is removed
-
-BlipIR used to wrap some values in `{"type": "expression", "value": ...}`. It is deleted from the format outright — not collapsed in the object
-model and re-inserted on the way out — so every value slot holds a value node directly.
-
-The wrapper was not merely uninformative; it was *asymmetrically* uninformative, and that is what condemned it. Only the parser's
-`__parse_expression` ever produced one, so the wrapper marked "this slot was filled by the general expression production" — a fact about the
-parser's call graph, not about the program. It appeared in `assignment.expression`, `return.expression` and `list.elements[*]`, and not in
-`concatenation.operands[*]`, `decomposition.pattern[*]` or `index.index`, which are filled by narrower parser helpers. It did not even work as
-a reliable grammar marker, since the narrow slots accept kinds that also appear wrapped elsewhere: `index.index` takes an `integer_literal` or
-an `identifier`, both of which are wrapped in the slots above.
-
-A uniformly applied but useless convention would have been tolerable. Present in three value slots out of six, it invited every reader to infer
-that the wrapped slots differ semantically from the unwrapped ones. They do not.
-
-Removing it is a change to the file format, which is cheap now and never cheaper later: `blip` does not read `.blipir` as input yet, so nothing
-outside this repository consumes the shape. It also deletes a whole class of work — there is no per-slot re-wrapping table for `to_dict()` to
-encode, and no re-insertion fidelity risk to guard. [Stage 0.5](#implementation-stages) does it on its own, before any analysis work starts.
-
-### The parser builds nodes
-
-The parser constructs the node classes directly and `Parser.parse()` is typed `str -> Program`, so no `dict` exists anywhere on the `.blip`
-path. `load()` is reached only by something reading a serialised `.blipir`.
-
-Two things follow, and both are checked rather than hoped for. **The JSON shape is written down once**: `bliplib/parser/`,
-`bliplib/interpreter/` and `bliplib/transpiler/` contain no node-kind strings at all, so adding a node kind is an edit to `bliplib/ir/` and
-nowhere else. And **a malformed tree is a type error**: putting a `StringLiteral` where `Index.target` wants an `Identifier` is rejected at the
-construction site, rather than surfacing as an `IRError` when something later tries to read it.
-
-[Stage 6](#implementation-stages) did this, last, because its prerequisite was that nothing still wanted a `dict`.
 
 ## Type annotations in BlipIR
 
@@ -160,9 +74,7 @@ construction site, rather than surfacing as an `IRError` when something later tr
 blip_type ::= "string" | "integer" | "boolean" | "list[" blip_type "]"
 ```
 
-Nested lists are nameable — `"list[list[string]]"` — because the type model is recursive. The alternative, a nested object such as
-`{"kind": "list", "element": {"kind": "string"}}`, is more self-describing JSON but costs five lines per annotation at `indent=4` instead of
-one. The compact form needs a short reader, and it reads the way this documentation already talks about types.
+Nested lists are nameable — `"list[list[string]]"` because the type model is recursive. 
 
 For `ret input[0]`:
 
@@ -194,200 +106,100 @@ For `ret input[0]`:
 Identifiers are annotated in binding positions too — an assignment target, a decomposition target, a decomposition pattern identifier — since
 that is the variable's type, and a statically typed backend wants it in order to emit a declaration.
 
-### Annotating what is derivable
+### Redundant `blip_type` annotations
 
-Most of these annotations are redundant. Of the seven value kinds, only two can carry type information that the structure does not already pin
-down — an `identifier` always, and a `list` when it is empty:
+A lot of `blip_type` annotations are redundant. Some node types such as `string_literal` can only ever have one valid `blip_type`,
+but this redundancy is accepted to simplify the consumers of the data structure.
 
-| Node                                                     | Derivable from structure alone?                            |
-| -------------------------------------------------------- | ---------------------------------------------------------- |
-| `string_literal` / `integer_literal` / `boolean_literal` | yes — fixed by the node kind                                |
-| `concatenation`                                          | yes — always `STRING`                                       |
-| `list`, non-empty                                        | yes — from the elements' own annotations                     |
-| `list`, empty                                            | **no** — only inference determines the element type          |
-| `index`                                                  | yes — strip one `list[…]` from the target's annotation       |
-| `identifier`                                             | **no** — the type comes from the environment                 |
+### Idempotent analysis
 
-`index` only appears in the first column because identifiers are annotated; it is derivable *given* annotation, not instead of it.
-
-Every value node is annotated anyway, and the reason is not information content — it is that **the rule a reader would have to know costs more
-than the lines it saves.** Under a partial scheme, "what is this node's type?" stops being a key lookup and becomes a seven-case function that
-every consumer needs and that all consumers must implement identically — a smaller instance of the problem this document opens with. It would
-also mean a `.blipir` can only be read by something that already knows Blip's typing rules, which is the self-description argument made against
-the mirror tree, one level down: a formatter, a linter, an ad-hoc `jq` query and a prototype backend all get the answer for free, where
-otherwise each would embed "concatenation is always a string". This is the same trade LLVM makes by writing `i32` on operands that could be
-inferred — an IR is read far more often than it is written.
-
-Invariant 1 below is the other reason. "Every `Value` node has a `blip_type` that is not `None`" is checkable mechanically over the whole
-corpus; its partial-scheme equivalent cannot even be stated without the table above.
-
-The redundancy does create a failure mode that a minimal scheme would not have: `{"type": "integer_literal", "blip_type": "string"}` is a file
-that contradicts *itself*, so something has to decide whether the kind or the annotation wins. **`load()` decides by rejecting the file.** It
-re-derives every annotation in the first column — bottom-up, since each rule needs only the node and its children, both of which the loader
-has — and raises `IRError` on any disagreement. This is what makes the redundancy a checksum rather than a liability, and it means a backend
-that consumes an annotated `.blipir` without running the analyser still has every derivable annotation verified for free.
-
-An *absent* annotation is not an error at load time: the loader must accept the parser's unannotated `dict`, and `--no-analysis` emits one. The
-check applies to whatever annotations are present. Requiring them to be present at all is the analyser's job, via the invariants below.
-
-### Annotations are output, never input
-
-The analyser is a pure function of the *unannotated* structure. It ignores any `blip_type` already present and overwrites it, which makes
-analysis idempotent and keeps the analyser from growing a second "trusting" mode.
-
-This creates one exposure, stated here so that it is a decision rather than an oversight: **a serialised type can lie.** A hand-edited or
-tool-generated `.blipir` can carry annotations that its structure does not support, and a backend that consumes the file without re-analysing
-it will believe them. The position taken is that the annotations are authoritative and garbage in is garbage out — the same bargain Java
-bytecode and LLVM IR make, minus the verifier. `blip --check` is the verifier: it re-derives every type and reports any disagreement with the
-annotations already in the file.
-
-The loader's consistency check narrows the exposure but does not close it. What survives is a lie that is *internally consistent* and anchored
-on an `identifier` or an empty `list` — annotating a variable as `integer` at every one of its occurrences, say, when its binding gives it
-`STRING`. Those are precisely the positions where the environment is the only source of truth, so only a pass that rebuilds the environment can
-catch them. That pass is `--check`.
+The analyser is a pure function of the *unannotated* Blip IR structure. It ignores any existing `blip_type` fields overwrites them, which makes
+analysis idempotent.
 
 ### No derived variable map
 
-A `"variables": {"fav_colour": "string"}` map on the `program` node was considered, since a C backend wants to declare variables up front. It
-is rejected: it is strictly derived data, reconstructible by a short walk over an annotated tree, and a cache inside a file format that can
-disagree with the tree next to it is not worth the lines it saves. The object model exposes it as a computed property instead.
-
-That property needs annotated nodes to be worth anything, so it lands with the first backend that wants it — Stage 4 at the earliest, and a C
-backend is the real customer. It needs a walk over every value node, which `blip --check` also wants; one exists as `values_of()` in
-`test/unit/analysis/test_analyser.py` and belongs in `bliplib/ir/` rather than being written a second time.
+The idea of a `"variables": {"fav_colour": "string"}` map on the `program` node was considered but rejected: it is strictly derived data,
+reconstructible by a short walk over an annotated tree, and a cache inside a file format that can disagree with the tree next to it is not
+worth the lines it saves.
 
 ## The type model
 
 ```
-BlipType    = Scalar(STRING | INTEGER | BOOLEAN)        # bliplib/ir/
-            | List[element]
+BlipType     = Scalar(STRING | INTEGER | BOOLEAN)       # bliplib/ir/
+             | List[BlipType]
 
 InferredType = Scalar | List[InferredType] | Var(id)    # bliplib/analysis/
 ```
 
-`List` is recursive, so nested lists are nameable. This is more honest than a flat type alias, which cannot express what the interpreter can
-already build at runtime. `Scalar` is an enum whose members are their own serialised form, so it is also the whole of the scalar codec.
+`Var` is a type that has not yet been determined. It is not serialisable, and lives only in `bliplib/analysis/`.
+If `Var` holes still exist in a program after the analyser has finished its mass, the program is considered ill-formed. 
 
-`Var` is a type not yet determined — see the next section. It is **not serialisable, and lives only in `bliplib/analysis/`**, which is enforced
-rather than merely intended. `List` is generic and frozen, so its element parameter is covariant, and therefore `List[Var]` is not assignable to
-a `BlipType` at any depth. A hole cannot be stored on a value node, cannot be handed to the codec, and cannot be written to a `.blipir` —
-because the type checker rejects it, not because nothing happens to do it.
-
-Three invariants hold if, and only if, analysis succeeds:
+If analysis of a program succeeds, two invariants hold:
 
 1. Every `Value` node has a `blip_type` that is not `None`.
-2. No `blip_type` contains an unresolved `Var`.
-3. Every `blip_type` is therefore expressible as a compact string.
-
-Invariant 1 is checked against the corpus. Invariants 2 and 3 need no checking: the resolution pass is typed `InferredType -> BlipType`, so the
-only way it can compile is to turn an unresolved hole into an error. This is the precise difference from the `UnknownType` the Python transpiler
-used to carry, which reached codegen and produced silently wrong output.
-
-### Error recovery is deferred
-
-An earlier revision of this document gave the type model a fourth case, `Unknown`, as an error-recovery value so that one bad expression could
-not cascade into twenty errors. It is not implemented, because the analyser raises on the first `SemanticError` it finds — the same way the
-parser and the loader behave, and the same way `ParserError` and `IRError` already read.
-
-`Unknown` earns its place only once the analyser reports several errors at once, which is worth having when `blip --check` becomes a pre-commit
-hook and one error per run gets tedious. Adding it then means a value for "this expression is already wrong, do not complain about it again",
-a diagnostic list in place of a raise, and one more case for the resolution pass to reject. Until then it would be a case nothing produces.
+2. No `blip_type` contains unresolved `Var` holes.
 
 ## Type inference by unification
 
-Some expressions do not determine their own type. The empty list literal `[]` is "a list of *something*": `List(?1)`, where `?1` is a
-**type variable** — a hole in a type, represented by `Var`.
+Some expressions do not determine their own type. The empty list literal `[]` is "a list of *something*": `List(?1)`, where `?1` is a **type
+variable** — a hole in a type, represented by `Var`.
 
 Holes are filled by constraints collected from how the program *uses* the value. `ret things` requires `things` to be `STRING` or
 `List(STRING)`; if `things` is `List(?1)`, the shape already rules out `STRING`, so `?1` must be `STRING`.
 
-**Unification** is the algorithm that solves these constraints. It takes two types and determines what the holes must be for the two to
-become identical, or reports that no such solution exists:
-
-- a hole against anything — fill the hole (this is the only place where anything is learned);
-- two `List`s — recurse into their element types;
-- two identical scalars — nothing to do;
-- anything else — `SemanticError`. This is the only place type errors are raised.
+**Unification** solves these constraints (which is part of the analyser). It takes two types and determines what the holes must
+be for the two to become identical, or reports that no such solution exists.
 
 Three details matter to anyone working on the analyser:
 
-- **The occurs check.** Before filling a hole, verify the type being assigned does not contain that same hole. `?1 = List(?1)` denotes an
-  infinite type, and without the check the analyser builds a cyclic structure and hangs. Close to unreachable in Blip today, but it is three
-  lines of insurance against a non-terminating compiler.
-- **Holes chain.** Unifying two holes binds one to the other, so resolving a type means following the chain to its end. This is a
-  stripped-down union-find; at Blip's scale the naive loop is fine.
-- **A final resolution pass.** Once the walk is complete, the tree is walked again and every `Var` replaced by the type it resolved to. Any
-  `Var` still unbound is a `SemanticError` — the program never said what it wanted. This pass is also what establishes invariant 3 above, and
-  therefore what makes the tree serialisable.
-
-Reassignment **unifies** rather than compares. An earlier revision of this document had it compare two fully-formed types and reject any
-mismatch, keeping it distinct from unification. That is wrong when the existing type still holds a hole: `x = []` followed by `x = ["a"]` would
-be rejected, because `List(?1)` and `List(STRING)` are not equal, even though the second assignment is exactly what determines the first.
-
-Unifying instead gets both cases right, because unification on two types that are already ground *is* a comparison. So `x = []` followed by
-`x = ["a"]` refines `?1` to `STRING`, while `x = "a"` followed by `x = 1` is still an error. The monomorphic rule is about a name's type never
-*changing*; a hole being filled in is the same type becoming known.
-
-Because Blip variables are monomorphic and Blip has no functions yet, unification is *all* that is required — there is no generalisation and no
-instantiation, which is the difference between this and a full Hindley–Milner implementation. See Deferred decisions.
+- **Recursive check.** Before filling a hole, verify the type being assigned does not contain that same hole. `?1 = List(?1)` denotes an
+  infinite type, and without the check the substitution turns cyclic and resolution never ends.
+- **Hole chains.** Unifying two holes binds one to the other, so resolving a type means following the chain to its end.
+- **A final resolution pass.** Once the walk is complete, everything inferred is turned into a grounded type and written to its node. A `Var`
+  still unbound is a `SemanticError` — the program is ill-formed.
 
 ### Inference rules
 
-| Node                                                     | Rule                                                                  |
-| -------------------------------------------------------- | --------------------------------------------------------------------- |
-| `string_literal` / `integer_literal` / `boolean_literal` | `STRING` / `INTEGER` / `BOOLEAN`                                      |
-| `list`                                                   | `List(T)` where all elements unify to `T`; `[]` is `List(Var)`        |
-| `identifier`                                             | looked up in the environment; unbound is an error                     |
-| `concatenation`                                          | every operand unifies with `STRING`; result `STRING`                  |
-| `index`                                                  | target `List(T)`, index unifies with `INTEGER`; result `T`            |
-| `assignment`                                             | binds the name to the expression's type                               |
-| `decomposition`                                          | target must be `STRING`; binds every pattern identifier as `STRING`   |
-| `return`                                                 | expression must be `STRING` or `List(STRING)`                         |
-| built-in `input`                                         | `List(STRING)`                                                        |
-| `!in username email`                                     | binds each name as `STRING`                                           |
+| Node                                                     | Rule                                                                |
+| -------------------------------------------------------- | ------------------------------------------------------------------- |
+| `string_literal` / `integer_literal` / `boolean_literal` | `STRING` / `INTEGER` / `BOOLEAN`                                    |
+| `list`                                                   | `List(T)` where all elements unify to `T`; `[]` is `List(Var)`      |
+| `identifier`                                             | looked up in the environment; unbound is an error                   |
+| `concatenation`                                          | every operand unifies with `STRING`; result `STRING`                |
+| `index`                                                  | target `List(T)`, index unifies with `INTEGER`; result `T`          |
+| `assignment`                                             | binds the name to the expression's type                             |
+| `decomposition`                                          | target must be `STRING`; binds every pattern identifier as `STRING` |
+| `return`                                                 | expression must be `STRING` or `List(STRING)`                       |
+| built-in `input`                                         | `List(STRING)`                                                      |
+| `!in username email`                                     | binds each name as `STRING`                                         |
 
-The `return` rule is a *disjunction*, which unification does not handle natively. It is resolved by shape first: a `List` unifies its
-element with `STRING`, a scalar unifies with `STRING`, and a bare unresolved `Var` is genuinely ambiguous and is an error.
+The `return` rule is a *disjunction*, which unification does not handle natively. It is resolved by shape first: a `List` unifies its element
+with `STRING`, a scalar unifies with `STRING`, and a bare unresolved `Var` is genuinely ambiguous and is an error.
 
-Lists are **homogeneous** — `["a", 1]` is a `SemanticError`. Nested lists are permitted by the type model, though `ret` accepts only
-`STRING` and `List(STRING)`, so a nested list cannot currently be returned.
+Lists are **homogeneous** — `["a", 1]` is a `SemanticError`. Nested lists are permitted by the type model,
+just remember that `ret` still accepts only `STRING` and `List(STRING)`.
 
 ## Scope and binding
 
 **Variables are monomorphic: a name has one type for its entire lifetime within a scope.** Reassignment to a different type is a
 `SemanticError`.
 
-This is not merely analyser convenience — it is what makes the planned backends tractable. C is statically typed. If a Blip variable could
-change type, every C variable would need a tagged union plus a discriminant check at every use. The monomorphic rule is the difference
-between a backend that emits `char *name;` and one that emits a runtime type system. It also keeps the analyser a single forward pass with
-no fixpoint iteration over loop bodies.
+This is what makes the planned transpiler backends tractable. C and C++, for example, are both statically typed. If a Blip variable could
+change type, every C variable would need a tagged union plus a discriminant check at every use. The monomorphic rule is the difference between
+a backend that emits `char *name;` and one that emits a whole runtime type system. It also keeps the analyser a single forward pass with no fixpoint
+iteration over loop bodies.
 
-`input` is **reserved**. It is always bound to `List(STRING)`, and rebinding it — by assignment, by decomposition, or by naming it in an
-input directive — is a `SemanticError`.
-
-The following constructs are described in the [Language Reference](language_reference.md) but are not yet implemented by the parser. Their
-binding rules are settled here so that the analyser does not have to be redesigned when they land:
-
-- **`if` / `else` branches.** A variable bound in only one branch is **not** bound after the `if`. A variable bound in all branches must
-  have the same type in each.
-- **Conditional decomposition** (`if email -> name "@" domain { ... }`). Bindings are visible **inside the block only**, since they do not
-  exist when the decomposition fails.
-- **Decomposition alternatives** (`a | b`). All alternatives must bind the same names at the same types. This rules out a nasty class of bug
-  where the set of bound variables depends on which alternative matched.
-- **Loops.** The body is analysed once. A variable assigned in the body must keep the type it had before the loop.
-- **Loop variables.** `for item in items` binds `item` to the element type of `items`; `for num in 3` binds `num` to `INTEGER`. The loop
-  variable is scoped to the body.
+`input` is **reserved**. It is always bound to `List(STRING)`, and rebinding it — by assignment, by decomposition, or by naming it in an input
+directive — is a `SemanticError`.
 
 ## Static versus runtime errors
 
 The boundary is:
 
-> **Static:** input-independent errors of *type or binding*.
-> **Runtime:** everything input-dependent, plus everything outside the type-and-binding remit.
+> **Static:** input-independent errors.
+> **Runtime:** input-dependent errors.
 
-The second half of that definition is load-bearing. "Input-independent" alone would drag in reachability analysis, arity arithmetic and
-constant folding — the `docs/todo.md` "Definite-return analysis, static directive arity checks" item is a separate pass, and the two should
-not be conflated.
+Examples:
 
 | Error                                             | Phase   |
 | ------------------------------------------------- | ------- |
@@ -402,55 +214,14 @@ not be conflated.
 | Input / output directive arity                    | Runtime |
 | Program halted without returning a value          | Runtime |
 
-### A check that is missing
+## Blip CLI
 
-TODO
-
-One static error the rules above do not catch: a decomposition pattern whose capturing elements are **adjacent**. `x -> a b`,
-`x -> * b` and `x -> a *` all analyse cleanly, because the rules bind every pattern identifier as `STRING` and say nothing about
-what may sit next to what. They then fail at execution, with an interpreter message that calls itself a semantic error.
-
-It belongs here: a capturing element needs a following literal to say where it stops, so a pattern without one is unsatisfiable
-whatever the input — input-independent, and a question of the pattern's structure rather than of arity or reachability. The rule
-would be that every `identifier` and `decomposition_wildcard` in a pattern is either last or followed by a `string_literal`.
-
-It is not implemented. Adding it means an inference rule, a row in the table below, a reference program, and deleting the
-interpreter's check — which is the only reason that check still exists.
-
-### Deliberate non-checks
-
-Four things the analyser could plausibly check, and does not:
-
-- **A program with no `ret`.** Input-independent, but it is a reachability question rather than a type-and-binding one, and it gets harder
-  the moment `if` and `while` land. The "Empty Program" reference program documents this as a valid program that fails at execution, and
-  that stays true. Definite-return analysis is a separate feature for another day.
-- **Directive arity against a literal return.** `!out 2` with `ret "OK"` is provably wrong without running the program, but proving it needs
-  *length* tracking, which is not in the type model. It would also be inconsistent: provable for a literal, unknowable for `ret input`.
-  Arity stays a runtime check, so both "Error case" directive reference programs are unaffected.
-- **Constant index bounds.** `input[0]` is well-typed; whether the input has an element 0 is input-dependent.
-- **Indexing with an identifier.** `input[i]` is well-typed when `i` is `INTEGER`. The interpreter used to reject it at runtime as
-  unimplemented, but that was an implementation gap rather than a semantic one, and static analysis is the wrong place to express "not built
-  yet". Stage 5 closed the gap without meaning to: reading the index through the ordinary expression path handles an identifier for free.
-
-## CLI surface
-
-Analysis runs in **every** mode, so a static error surfaces identically whether interpreting, transpiling or dumping IR. `--ir` output is
-always fully analysed.
-
-| Flag            | Behaviour                                                                                          |
-| --------------- | -------------------------------------------------------------------------------------------------- |
-| `--check`       | Parse, load and analyse; emit nothing on success. Also re-verifies annotations already present      |
-| `--no-analysis` | Dump the unannotated IR. For debugging the analyser itself; not a supported interchange format      |
-
-`--check` is the verifier that the "annotations are authoritative" bargain above depends on. It is also the cheapest possible pre-commit
-hook for a repository of Blip programs.
-
-Reading a `.blipir` file as CLI input is **not** part of this work — `blip` accepts `.blip` source only today, and detecting the format is a
-separate decision. The annotation design is what makes that feature worth having later, and `load()` is the code it will need.
+Analysis is required before a program can be interpreter or transpiled. Therefore, analysis runs in almost every mode, with one exception.
+The `--no-analysis` flag can be used to suppress the analysis stage when used with the `--ir` flag.
 
 ## Reference programs that fail to compile
 
-A program that raises `ParserError` or `SemanticError` produces no BlipIR and therefore cannot be executed. Such a program is written with a
+A program that raises `ParserError` or `SemanticError` produces no BlipIR and cannot be executed. Such a program is written with a
 `#### Compilation` section in place of the `#### Blip IR` and `#### Execution` sections:
 
 ````markdown
@@ -472,119 +243,4 @@ SemanticError
 ```
 ````
 
-The absence of a `#### Compilation` section means the program is expected to compile, so all existing reference programs are unaffected.
-
-Consequences for the test suite:
-
-- `ReferenceProgram.blip_ir` becomes optional, and the class gains the expected compile error. The reference-program parser currently reaches
-  the end of its token stream if a section is missing, so its section handling has to become conditional rather than sequential.
-- The IR test asserts that `blip --ir` exits non-zero for these programs.
-- The interpreter and transpiler tests assert the same non-zero exit, and run no executions.
-
-Two existing tests also change meaning, because `--ir` output now includes types:
-
-- `test/integration/program_references/test_parser.py` becomes a parse-*and*-analyse test. The file and its test function should be renamed
-  to say so; `test_ir.py::test_reference_program_ir` reflects what it actually covers.
-- `test/unit/program_references/test_parsing.py` compares the analysed tree's `to_dict()` against the fixture, for the same reason.
-
-## Evidence from the existing corpus
-
-Before committing to the monomorphic rule, all 15 reference programs were checked against the semantics described here — for reassignments
-that change type, heterogeneous lists, nested lists, bad return types and unbound identifiers.
-
-**All 15 are clean.** No existing program is rejected by any rule in this document, so none of these decisions is a behaviour change for
-code that exists today.
-
-## Implementation stages
-
-Ordered so that nothing lands half-wired, and so that the riskiest mechanical change is proven before any semantics depend on it.
-
-**Stage 0 — this document.** Plus `AGENTS.md`, which states that BlipIR "is an ordinary `dict` — there are no IR node classes" and tells
-consumers to destructure with `match`/`case`. Both become false at Stage 1, so `AGENTS.md` is updated then, not now.
-
-**Stage 0.5 — delete the `expression` wrapper.** No new packages, no analysis, no object model: just the removal of a node kind from the format
-and from the parser that produces it and the two consumers that read it. `__parse_expression` returns its value instead of wrapping it; the
-interpreter's `__interpret_expression` becomes an unwrap of nothing and its three call sites collapse onto `__interpret_expression_value`; the
-Python transpiler loses the outer `case {"type": "expression"}` in `PythonExpression.from_blip_ir`. The 15 `#### Blip IR` fixtures lose three
-lines per wrapper, 78 in total.
-
-This is its own stage, before the loader, for two reasons. It keeps a format change out of a refactor — the existing execution and IR tests
-already cover it end to end, with no new code in play to confuse a failure. And it restores Stage 1's most useful property: with the fixtures
-already reshaped, the loader's output compares equal to them, so the round trip is proven without the fixtures moving underneath it.
-
-The fixture edit is mechanical but is being made to the files that are the test oracle, so it is verified in the direction that does not beg the
-question: re-wrapping the new fixtures must reproduce the old ones exactly, and the diff must consist only of removed `"type": "expression"` and
-`"value": {` lines, removed closing braces, and dedents.
-
-**Stage 1 — `bliplib/ir/`, no types.** Node classes, `load`, `to_dict`, `IRError`. Wire `--ir` to print `load(parse(src)).to_dict()`.
-Output is unchanged, so every existing test stays green — which is the point: the round trip is proven against the whole corpus before any
-semantics exist. Because the wrapper is already gone, `to_dict()` has no per-slot special cases and every value slot serialises the same way.
-
-**Stage 2 — the analyser, no consumers.** The ground type model in `bliplib/ir/`, then `bliplib/analysis/`: the `Var` hole, environment,
-unification, occurs check, resolution pass, the monomorphic rule, `SemanticError`. Validated against the corpus — no errors on any of the 15
-valid programs, and for every row of every `#### Execution` table, the statically inferred return type matches the shape of the recorded
-output. That is a real conformance check built entirely from fixtures that already exist. Unit tests cover the error paths.
-
-Nothing consumes the analyser yet, so `blip.py`, the interpreter and the transpilers are untouched and `--ir` output does not change. One
-consequence of annotating a tree before the codec exists: `to_dict()` on an analysed tree raises, rather than guessing at a format it does not
-have. Stage 3 replaces that with the codec.
-
-**Stage 3 — wire it in, annotate the fixtures.** Analysis runs in every mode. All 15 `#### Blip IR` blocks gain `blip_type` keys, 53 lines in
-total. This is the first stage in which a file can carry an annotation, so the compact-string codec and the loader's annotation consistency
-check land here, with unit tests for the contradictions they reject. Add
-`--check` and `--no-analysis`, the `#### Compilation` reference-program category, the first static-error reference programs, and the test
-renames described above. [The ecosystem design](design_ecosystem.md) describes BlipIR as the output of the parser and needs the analyser
-adding to its pipeline diagram and its `--ir` description.
-
-**Stage 4 — the Python transpiler consumes the typed tree.** Delete `UnknownType`. `PythonReturnStatement`'s list-wrapping decision becomes
-a lookup rather than a guess. This is where the Variables, Concatenation, Decomposition and Indexing `xfail`s come off and the `docs/todo.md`
-matrix cells move.
-
-**Stage 5 — the interpreter consumes it.** Drop the `isinstance` checks that are now statically guaranteed, keeping the input-dependent
-ones.
-
-**Stage 6 — the parser builds nodes.** `bliplib/parser/` returns a `Program` instead of a `dict`: the `__parse_*` methods construct nodes,
-`Parser.parse()` is typed `str -> Program`, and `blip.py` drops `load()` from the `.blip` path. `--no-analysis` becomes `parse(src).to_dict()`.
-The fixtures do not move, because `to_dict()` already generates them.
-
-Its prerequisite is **that no consumer takes a `dict`**, which is Stages 4 and 5. Done any earlier, the parser would hand back a `Program` that
-`blip.py` has to `to_dict()` straight back again to feed the old consumers: the duplication would go, but a conversion would appear on the
-interpretation path rather than disappearing.
-
-Two things it buys beyond deleting the duplication:
-
-- **A malformed tree becomes a type error.** The parser assembles untyped `dict`s today, and `load()` catches a bad shape at runtime. Once it
-  constructs nodes, putting a `StringLiteral` where `Index.target` wants an `Identifier` is rejected by the type checker at the construction
-  site. That is the same parse-don't-validate move the loader already makes, applied one layer up — and it is the last place in this design
-  where it has not been collected.
-- **`load()` stops being two things at once.** Today it validates untrusted `.blipir` input *and* the output of trusted code in this repository.
-  Afterwards it serves only the former, which is what its narrowing machinery was built for. Little code is deleted; it stops guarding
-  something that can no longer be wrong.
-
-Stages 0.5 to 4 deliver the value. Stage 5 is cleanup, and Stage 6 is the cleanup that depends on it.
-
-## Risks
-
-- **A serialised type can lie.** Discussed above. Narrowed to internally consistent lies on identifiers and empty lists by the loader's
-  consistency check, and mitigated beyond that by `--check`, but not eliminated. This is acceptable.
-- **Fixtures are the oracle for their own reshape.** Stage 0.5 edits the 15 `#### Blip IR` blocks that the tests compare against, so a mistake
-  in the edit is a mistake in the oracle. Guarded by checking the reshape in the reverse direction and by constraining the shape of the diff,
-  both described in that stage.
-- **Scope creep into a general type checker.** The `docs/todo.md` analysis items are broader than this pass. Keep this one to types and
-  binding.
-
-## Deferred decisions
-
-- **`.blipir` as CLI input.** Discussed under CLI surface.
-- **User-defined functions.** `docs/todo.md` lists functions as a feature still to be designed. Functions will likely be explicitly typed, but
-  if Blip gets functions and they are meant to be generic, this is where unification's missing half — generalisation at the definition and
-  instantiation at each use, the other half of Hindley–Milner — becomes necessary. That decision belongs with the functions design, not here;
-  the unification described above is the part that would not change.
-- **Source locations.** BlipIR carries none, so a semantic error can describe a conflict structurally but cannot point at a line. This bites
-  hardest when two distant constraint sites disagree. Tracked under the `docs/todo.md` "Improved error messages" item.
-- **Comparison operators and arithmetic.** `if` and `while` conditions must be `BOOLEAN`, but no operator produces one yet, and arithmetic
-  is still to be designed. Rules will be added when the operators are.
-- **Generalised decomposition targets.** The rule is stated above as "the target must be `STRING`"; the IR currently permits only an
-  identifier, which is why `Decomposition.target` and `Index.target` are typed as `Identifier` in the object model. The alternative
-  assignment syntax `"John" -> name` in the Language Reference implies a target that is an arbitrary `STRING`-typed expression, which is a
-  parser change first.
+The absence of a `#### Compilation` section means the program is expected to compile.
