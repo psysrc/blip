@@ -11,6 +11,7 @@ import pytest
 
 from bliplib.analysis import analyse
 from bliplib.errors import BlipError, ParserError, SemanticError
+from bliplib.ir import Program
 from bliplib.parser import Parser
 from test.common.ref_progs.classes import ReferenceProgram
 from test.common.ref_progs.getter import get_compiling_reference_programs, get_failing_reference_programs
@@ -22,7 +23,7 @@ COMPILE_ERRORS: dict[str, type[BlipError]] = {
 }
 
 
-def compile_program(blip_code: str):
+def compile_program(blip_code: str) -> Program:
     """Run the whole front end: parse, load and analyse."""
 
     return analyse(Parser().parse(blip_code))
@@ -35,7 +36,7 @@ def test_reference_program_ir(ref: ReferenceProgram):
     try:
         program = compile_program(ref.blip_code)
     except BlipError as err:
-        pytest.fail(reason=f"Program reference '{ref.name}': {type(err).__name__}: {err}")
+        pytest.fail(reason=f"Program reference '{ref.name}': Failed to compile: {type(err).__name__}: {err}")
 
     assert program.to_dict() == ref.blip_ir, f"Program reference '{ref.name}': Incorrect Blip IR"
 
