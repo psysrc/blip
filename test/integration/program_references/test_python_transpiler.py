@@ -8,22 +8,7 @@ from test.common.ref_progs.getter import get_compiling_reference_programs, get_f
 from test.integration.conftest import run_blip
 
 
-def __get_progs():
-    xfail_progs = [
-        "Fixed Input Directive",
-        "Fixed Output Directive (Error case)",
-        "Named Input Directive",
-        "Range Input Directive",
-        "Range Output Directive (Error case)",
-    ]
-
-    # See https://docs.pytest.org/en/latest/how-to/skipping.html#skip-xfail-with-parametrize
-    return [
-        pytest.param(p, marks=pytest.mark.xfail(strict=True)) if p.name in xfail_progs else p for p in get_compiling_reference_programs()
-    ]
-
-
-@pytest.mark.parametrize("ref", __get_progs())
+@pytest.mark.parametrize("ref", get_compiling_reference_programs())
 def test_reference_program_transpile_python(ref: ReferenceProgram):
     """Given a `ReferenceProgram`, test that the BlipIR is transpiled into Python and the Python code behaves correctly."""
 

@@ -7,11 +7,14 @@ from bliplib.ir import (
     BooleanLiteral,
     Concatenation,
     Decomposition,
+    Directive,
+    FixedDirective,
     Identifier,
     Index,
     IntegerLiteral,
     ListLiteral,
     Program,
+    RangeDirective,
     Return,
     Statement,
     StringLiteral,
@@ -28,6 +31,10 @@ _INPUT = "_blip_input"
 # Scratch name holding the result of the last decomposition. Each one assigns it afresh and reads it back immediately, so
 # reusing the name is safe.
 _MATCH = "_blip_match"
+
+# Scratch name holding the value a `ret` produced, so that an output directive can measure it before it is handed back. Only
+# emitted when there is an output directive to check.
+_OUTPUT = "_blip_output"
 
 # A decomposition is a regex match, so the generated function needs `re`. The import goes inside the function body rather than
 # beside the program's other imports, because `transpile_function` emits the function alone for a caller to drop into their own
@@ -96,9 +103,71 @@ def _store(name: str) -> ast.Name:
     return ast.Name(id=name, ctx=ast.Store())
 
 
-def _raise(message: str) -> ast.stmt:
-    error = ast.Call(func=_load("RuntimeError"), args=[ast.Constant(value=message)], keywords=[])
+def _raise(message: str | ast.expr) -> ast.stmt:
+    """A `raise RuntimeError()` statement."""
+
+    if isinstance(message, str):
+        message = ast.Constant(value=message)
+
+    error = ast.Call(func=_load("RuntimeError"), args=[message], keywords=[])
     return ast.Raise(exc=error)
+
+
+def _length(operands: ast.expr) -> ast.expr:
+    """A `len()` call."""
+
+    return ast.Call(func=_load("len"), args=[operands], keywords=[])
+
+
+def _arity_guard(operands: ast.expr, in_or_out: str, comparison: ast.cmpop, bound: int, description: str) -> ast.stmt:
+    """One `if len(...) <op> N: raise` guard."""
+
+    failed = ast.Compare(left=_length(operands), ops=[comparison], comparators=[ast.Constant(value=bound)])
+
+    message = ast.JoinedStr(
+        values=[
+            ast.Constant(value=f"Program {in_or_out} validation failed: Directive expected {description}, got "),
+            ast.FormattedValue(value=_length(operands), conversion=-1),
+        ]
+    )
+
+    return ast.If(test=failed, body=[_raise(message)], orelse=[])
+
+
+def _arity_guards(operands: ast.expr, reason: str, directive: Directive) -> list[ast.stmt]:
+    """Lower a directive into the `if` guards that enforce it."""
+
+    match directive:
+        case FixedDirective(count=count):
+            return [_arity_guard(operands, reason, ast.NotEq(), count, f"{count} operands")]
+
+        case RangeDirective(min=minimum, max=maximum):
+            guards: list[ast.stmt] = []
+
+            if minimum is not None:
+                guards.append(_arity_guard(operands, reason, ast.Lt(), minimum, f"at least {minimum} operands"))
+
+            if maximum is not None:
+                guards.append(_arity_guard(operands, reason, ast.Gt(), maximum, f"at most {maximum} operands"))
+
+            return guards
+
+
+def _input_bindings(directive: Directive) -> list[ast.stmt]:
+    """A named input directive gives each input string a name. A counted or ranged one names nothing."""
+
+    match directive:
+        case FixedDirective(names=[*names]):
+            return [
+                ast.Assign(
+                    targets=[_store(_python_name(name))],
+                    value=ast.Subscript(value=_load(_INPUT), slice=ast.Constant(value=index), ctx=ast.Load()),
+                )
+                for index, name in enumerate(names)
+            ]
+
+        case _:
+            return []
 
 
 def _expression(value: Value) -> ast.expr:
@@ -128,26 +197,30 @@ def _expression(value: Value) -> ast.expr:
             return ast.List(elts=[_expression(element) for element in value.elements], ctx=ast.Load())
 
 
-def _return(statement: Return) -> ast.stmt:
-    """
-    Lower a Blip `ret` into a Python `return`.
-
-    The generated function always returns a list of strings, so a program returning a single string has it wrapped. Before the
-    analyser existed this was a guess, with an `UnknownType` escape hatch for the cases the transpiler could not work out. It is
-    now a lookup: the analyser has already decided, and a type it cannot be is a bug rather than something to accommodate.
-    """
+def _return(statement: Return, output: Directive | None) -> list[ast.stmt]:
+    """Lower a Blip `ret` into a Python `return`."""
 
     returned = _expression(statement.expression)
 
     match statement.expression.blip_type:
         case Scalar.STRING:
-            return ast.Return(value=ast.List(elts=[returned], ctx=ast.Load()))
+            outputs: ast.expr = ast.List(elts=[returned], ctx=ast.Load())
 
         case List(element=Scalar.STRING):
-            return ast.Return(value=returned)
+            outputs = returned
 
         case unreturnable:
             raise TranspilerError(f"A Blip program cannot return '{unreturnable}'")
+
+    if output is None:
+        return [ast.Return(value=outputs)]
+
+    # The outputs have to be measured before they are handed back, and measuring them twice would evaluate them twice
+    return [
+        ast.Assign(targets=[_store(_OUTPUT)], value=outputs),
+        *_arity_guards(_load(_OUTPUT), "output", output),
+        ast.Return(value=_load(_OUTPUT)),
+    ]
 
 
 def _decomposition(statement: Decomposition) -> list[ast.stmt]:
@@ -186,8 +259,8 @@ def _decomposition(statement: Decomposition) -> list[ast.stmt]:
     return statements
 
 
-def _statement(statement: Statement) -> list[ast.stmt]:
-    """Lower one Blip statement. A decomposition becomes several Python statements; everything else becomes one."""
+def _statement(statement: Statement, output: Directive | None) -> list[ast.stmt]:
+    """Lower one Blip statement. A decomposition or a checked `ret` becomes several Python statements; an assignment becomes one."""
 
     match statement:
         case Assignment():
@@ -195,7 +268,7 @@ def _statement(statement: Statement) -> list[ast.stmt]:
             return [ast.Assign(targets=[target], value=_expression(statement.expression))]
 
         case Return():
-            return [_return(statement)]
+            return _return(statement, output)
 
         case Decomposition():
             return _decomposition(statement)
@@ -211,13 +284,21 @@ class PythonFunction:
         if not isinstance(function, ast.FunctionDef):
             raise TranspilerError("Internal error: the function scaffold is not a function definition")
 
+        directives = self.__program.directives
+        declared_input = directives.input if directives is not None else None
+        declared_output = directives.output if directives is not None else None
+
         body: list[ast.stmt] = []
 
         if any(isinstance(statement, Decomposition) for statement in self.__program.statements):
             body += ast.parse(_DECOMPOSITION_IMPORT).body
 
+        if declared_input is not None:
+            body += _arity_guards(_load(_INPUT), "input", declared_input)
+            body += _input_bindings(declared_input)
+
         for statement in self.__program.statements:
-            body += _statement(statement)
+            body += _statement(statement, declared_output)
 
         # A Blip program that can run off the end never returned a value, which is an error at execution time rather than a
         # static one. An empty program is just the simplest case of that.

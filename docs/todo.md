@@ -29,8 +29,8 @@ List type|:white_check_mark:|:white_check_mark:|:white_check_mark:|:white_check_
 Integer type|:white_check_mark:|:white_check_mark:|:white_check_mark:|:white_check_mark:|:x:|:x:
 List indexing|:white_check_mark:|:white_check_mark:|:white_check_mark:|:white_check_mark:|:x:|:x:
 Boolean type|:white_check_mark:|:white_check_mark:|:white_check_mark:|:white_check_mark:|:x:|:x:
-Input directives|:white_check_mark:|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
-Output directives|:white_check_mark:|:white_check_mark:|:white_check_mark:|:x:|:x:|:x:
+Input directives|:white_check_mark:|:white_check_mark:|:white_check_mark:|:white_check_mark:|:x:|:x:
+Output directives|:white_check_mark:|:white_check_mark:|:white_check_mark:|:white_check_mark:|:x:|:x:
 If-conditionals|:x:|:x:|:x:|:x:|:x:|:x:
 For-loops|:x:|:x:|:x:|:x:|:x:|:x:
 While-loops|:x:|:x:|:x:|:x:|:x:|:x:

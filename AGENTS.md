@@ -40,10 +40,9 @@ Write unit tests in `test/unit/` only for things reference programs can't expres
 
 ## Feature-completeness bookkeeping
 
-Two places track which backend supports what, and both go stale silently:
+**`docs/todo.md`** has a per-feature, per-backend status matrix (:white_check_mark: / :construction: / :x:) that goes stale silently. Update the relevant cell when a feature lands.
 
-- **`test/integration/program_references/test_python_transpiler.py`** holds an `xfail_progs` list naming reference programs the Python backend can't handle yet. The marks are `strict=True`, so a program that starts passing will **fail** the suite until you remove it from the list. That's intentional — it's the signal that you've finished a feature.
-- **`docs/todo.md`** has a per-feature, per-backend status matrix (:white_check_mark: / :construction: / :x:). Update the relevant cell when a feature lands.
+The `xfail` feature of Pytest can be used if appropriate; particularly if new reference programs are added and certain staged (parsing/analysis/interpreting/transpiling) don't support it just yet. This can be useful, for example, when implementing new transpiler backends: the programs it can't handle can be put in an `xfail_progs` list and mark them `strict=True`, so that a program which starts passing **fails** the suite until it is taken off the list. That's the signal a feature is finished. Git history has the Python transpiler's version of this if you need (before commit `66605a1d1`).
 
 ## Commands
 
@@ -60,7 +59,7 @@ poetry run ruff format
 
 Integration tests are slow-ish: the session-scoped autouse fixture in `test/integration/conftest.py` runs `./build.sh`, which invokes PyInstaller to produce `./build/bin/blip`, and the tests then drive that binary as a subprocess. Prefer `pytest test/unit/` while iterating.
 
-CI (`.github/workflows/build.yml`) runs unit tests with coverage, integration tests, `ruff check` and `ruff format --check` — all four must pass.
+CI (`.github/workflows/build.yml`) runs unit tests with coverage, integration tests, `ty check`, `ruff check` and `ruff format --check` — all five must pass. `.pre-commit-config.yaml` runs the same checks bar the integration tests.
 
 ## Code conventions
 
