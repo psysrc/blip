@@ -233,6 +233,62 @@ ret "OK"
 |`["a","b","c"]`|`["OK"]`|
 |`["a","b","c","d"]`|`Error`|
 
+## Unbounded Range Directives
+
+A range bounded at neither end accepts any number of strings, which is what a program with no directive at all does. Writing
+it says so explicitly.
+
+#### Blip code
+
+```blip
+!in ..
+!out ..
+ret "OK"
+```
+
+#### Blip IR
+
+<details>
+<summary><i>Expand...</i></summary>
+
+```json
+{
+    "type": "program",
+    "statements": [
+        {
+            "type": "return",
+            "expression": {
+                "type": "string_literal",
+                "blip_type": "string",
+                "value": "OK"
+            }
+        }
+    ],
+    "directives": {
+        "input": {
+            "type": "range",
+            "min": null,
+            "max": null
+        },
+        "output": {
+            "type": "range",
+            "min": null,
+            "max": null
+        }
+    }
+}
+```
+
+</details>
+
+#### Execution
+
+|Input|Output|
+|-----|------|
+|`[]`|`["OK"]`|
+|`["a"]`|`["OK"]`|
+|`["a","b","c"]`|`["OK"]`|
+
 ## Range Output Directive (Success case)
 
 #### Blip code

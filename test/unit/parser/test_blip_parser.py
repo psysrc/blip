@@ -181,15 +181,39 @@ def test_counted_input_directive_names_nothing(parser: Parser):
 
 
 @pytest.mark.parametrize(
-    ("blip_code", "expected"),
+    ("directive", "expected"),
     [
-        pytest.param("!out 1..3", RangeDirective(min=1, max=3), id="a closed range"),
-        pytest.param("!out 2..", RangeDirective(min=2, max=None), id="open at the top"),
-        pytest.param("!out ..4", RangeDirective(min=None, max=4), id="open at the bottom"),
+        pytest.param("!in 1..3", RangeDirective(min=1, max=3), id="a closed range"),
+        pytest.param("!in 2..", RangeDirective(min=2, max=None), id="open at the end"),
+        pytest.param("!in ..4", RangeDirective(min=None, max=4), id="open at the front"),
+        pytest.param("!in ..", RangeDirective(min=None, max=None), id="open at both ends"),
     ],
 )
-def test_range_output_directive(parser: Parser, blip_code: str, expected: RangeDirective):
-    assert parser.parse(f'{blip_code}\nret "ok"').directives == Directives(output=expected)
+def test_range_input_directive(parser: Parser, directive: str, expected: RangeDirective):
+    assert parser.parse(f'{directive}\nret "ok"').directives == Directives(input=expected)
+
+
+@pytest.mark.parametrize(
+    ("directive", "expected"),
+    [
+        pytest.param("!out 1..3", RangeDirective(min=1, max=3), id="a closed range"),
+        pytest.param("!out 2..", RangeDirective(min=2, max=None), id="open at the end"),
+        pytest.param("!out ..4", RangeDirective(min=None, max=4), id="open at the front"),
+        pytest.param("!out ..", RangeDirective(min=None, max=None), id="open at both ends"),
+    ],
+)
+def test_range_output_directive(parser: Parser, directive: str, expected: RangeDirective):
+    assert parser.parse(f'{directive}\nret "ok"').directives == Directives(output=expected)
+
+
+def test_an_input_directive_bounded_at_neither_end_is_still_a_directive(parser: Parser):
+    assert parser.parse('!in ..\nret "ok"').directives == Directives(input=RangeDirective(min=None, max=None))
+    assert parser.parse('ret "ok"').directives is None
+
+
+def test_an_output_directive_bounded_at_neither_end_is_still_a_directive(parser: Parser):
+    assert parser.parse('!out ..\nret "ok"').directives == Directives(output=RangeDirective(min=None, max=None))
+    assert parser.parse('ret "ok"').directives is None
 
 
 def test_a_repeated_directive_replaces_the_earlier_one(parser: Parser):

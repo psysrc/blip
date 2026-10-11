@@ -284,7 +284,8 @@ class Parser:
         # 2) INTEGER_LITERAL '..' INTEGER_LITERAL => range
         # 3) INTEGER_LITERAL '..'                 => range min..
         # 4) '..' INTEGER_LITERAL                 => range ..max
-        # 5) IDENTIFIER IDENTIFIER ...            => fixed named
+        # 5) '..'                                 => range bounded at neither end
+        # 6) IDENTIFIER IDENTIFIER ...            => fixed named
 
         if self.__token.type == "INTEGER_LITERAL":
             lower = int(self.__consume_token("INTEGER_LITERAL"))
@@ -305,10 +306,9 @@ class Parser:
             self.__consume_token("..")
 
             if self.__token.type == "INTEGER_LITERAL":
-                upper = int(self.__consume_token("INTEGER_LITERAL"))
-                return RangeDirective(min=None, max=upper)
+                return RangeDirective(min=None, max=int(self.__consume_token("INTEGER_LITERAL")))
 
-            raise ParserError("Malformed directive range")
+            return RangeDirective(min=None, max=None)
 
         if self.__token.type == "IDENTIFIER":
             names = []

@@ -10,7 +10,7 @@ def test_number_of_reference_programs():
     """
 
     # NOTE: This needs manually updating when reference programs are added/removed
-    expected_programs = 28
+    expected_programs = 29
 
     actual_programs = len(get_reference_programs())
 

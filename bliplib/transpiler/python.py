@@ -212,13 +212,14 @@ def _return(statement: Return, output: Directive | None) -> list[ast.stmt]:
         case unreturnable:
             raise TranspilerError(f"A Blip program cannot return '{unreturnable}'")
 
-    if output is None:
+    guards = _arity_guards(_load(_OUTPUT), "output", output) if output is not None else []
+
+    if not guards:
         return [ast.Return(value=outputs)]
 
-    # The outputs have to be measured before they are handed back, and measuring them twice would evaluate them twice
     return [
         ast.Assign(targets=[_store(_OUTPUT)], value=outputs),
-        *_arity_guards(_load(_OUTPUT), "output", output),
+        *guards,
         ast.Return(value=_load(_OUTPUT)),
     ]
 
