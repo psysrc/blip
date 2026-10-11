@@ -21,13 +21,6 @@ Example:
 name = "John"
 ```
 
-Here is an alternative assignment syntax. It is semantically equivalent to the above but uses different syntax.
-This exists because it looks like the logical opposite to a decomposition statement, so gives a nice symmetry:
-
-```plaintext
-"John" -> name
-```
-
 ## String Concatenation
 
 Blip automatically concatenates any strings that appear side by side, similar to Python.
@@ -119,18 +112,6 @@ data = "[good]"
 data = "bad"
 
 data -> "[" * "]"  // Throws an error if 'data' doesn't fit the pattern
-```
-
-### Alternatives
-
-Alternative decompositions can be provided. If a decomposition fails, subsequent alternatives will be tried.
-
-```plaintext
-// This example extracts a name from the string.
-// The string can be in one of two formats, either "user: <name>" or "email: <name>@<rest of email>".
-// This decomposition supports both.
-
-user_data -> "user: " name | "email: " name "@" *
 ```
 
 ## Input and Output Directives

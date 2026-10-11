@@ -11,7 +11,7 @@
 // This Blip program simply returns the hard-coded string "Hello, World!"
 // The `ret` keyword is used to return the expression from the program.
 
-ret "Hello, World!"
+ret "Hello World!"
 ```
 
 #### Blip IR
@@ -28,7 +28,7 @@ ret "Hello, World!"
             "expression": {
                 "type": "string_literal",
                 "blip_type": "string",
-                "value": "Hello, World!"
+                "value": "Hello World!"
             }
         }
     ]
@@ -41,17 +41,18 @@ ret "Hello, World!"
 
 |Input|Output|
 |-----|------|
-|`[]`|`["Hello, World!"]`|
-|`["input isn't used"]`|`["Hello, World!"]`|
+|`[]`|`["Hello World!"]`|
+|`["input isn't used"]`|`["Hello World!"]`|
 
 ## Hello World (alternative)
 
 #### Blip code
 
 ```blip
-// This version of Hello World uses single-quotes ' instead of double quotes "
+// Blip programs can return a list of strings, in this case ["Hello", "World!"]
+// It also uses single quotes ' instead of double quotes " (either can be used just like in Python)
 
-ret 'Hello, World!'
+ret ['Hello', 'World!']
 ```
 
 #### Blip IR
@@ -66,9 +67,20 @@ ret 'Hello, World!'
         {
             "type": "return",
             "expression": {
-                "type": "string_literal",
-                "blip_type": "string",
-                "value": "Hello, World!"
+                "type": "list",
+                "blip_type": "list[string]",
+                "elements": [
+                    {
+                        "type": "string_literal",
+                        "blip_type": "string",
+                        "value": "Hello"
+                    },
+                    {
+                        "type": "string_literal",
+                        "blip_type": "string",
+                        "value": "World!"
+                    }
+                ]
             }
         }
     ]
@@ -81,7 +93,7 @@ ret 'Hello, World!'
 
 |Input|Output|
 |-----|------|
-|`[]`|`["Hello, World!"]`|
+|`[]`|`["Hello", "World!"]`|
 
 ## Empty Program
 

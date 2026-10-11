@@ -62,8 +62,6 @@ binding rules are settled here so that the analyser does not have to be redesign
   the same type in each.
 - **Conditional decomposition** (`if email -> name "@" domain { ... }`). Bindings are visible **inside the block only**, since they do not
   exist when the decomposition fails.
-- **Decomposition alternatives** (`a | b`). All alternatives must bind the same names at the same types. This rules out a nasty class of bug
-  where the set of bound variables depends on which alternative matched.
 - **Loops.** The body is analysed once. A variable assigned in the body must keep the type it had before the loop.
 - **Loop variables.** `for item in items` binds `item` to the element type of `items`; `for num in 3` binds `num` to `INTEGER`. The loop
   variable is scoped to the body.
@@ -76,9 +74,6 @@ binding rules are settled here so that the analyser does not have to be redesign
   hardest when two distant constraint sites disagree. Tracked under the "Improved error messages" item.
 - **Comparison operators and arithmetic.** `if` and `while` conditions must be `BOOLEAN`, but no operator produces one yet, and arithmetic is
   still to be designed. Rules will be added when the operators are.
-- **Generalised decomposition targets.** The rule above is that the target must be `STRING`; the IR permits only an identifier, which is why
-  `Decomposition.target` and `Index.target` are typed as `Identifier` in the object model. The alternative assignment syntax `"John" -> name` in
-  the Language Reference implies a target that is an arbitrary `STRING`-typed expression, which is a parser change first.
 
 - **A program with no `ret`.** Input-independent, but a reachability question rather than a type-and-binding one, and it gets harder the moment
   `if` and `while` land. The "Empty Program" reference program documents this as a valid program that fails at execution. Definite-return
