@@ -100,6 +100,15 @@ def test_boolean_variable(parser: Parser):
     )
 
 
+@pytest.mark.parametrize("name", ["retry", "return", "true_colour", "falsehood", "inputs"])
+def test_an_identifier_may_start_with_a_keyword(parser: Parser, name: str):
+    """Every keyword is matched on a word boundary, so a name that merely begins with one is an ordinary identifier."""
+
+    assert parser.parse(f'{name} = "x"') == Program(
+        statements=[Assignment(target=Identifier(name=name), expression=StringLiteral(value="x"))]
+    )
+
+
 def test_concatenation(parser: Parser):
     assert parser.parse('greeting = "hello" " " name') == Program(
         statements=[

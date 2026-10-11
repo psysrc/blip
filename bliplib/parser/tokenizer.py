@@ -63,7 +63,7 @@ class Tokenizer:
             r"^!in\b": "DIRECTIVE_IN",
             r"^!out\b": "DIRECTIVE_OUT",
             r"^\.\.": "..",
-            r"^ret": "RETURN",
+            r"^ret\b": "RETURN",
             r"^true\b": "BOOLEAN_LITERAL",
             r"^false\b": "BOOLEAN_LITERAL",
             r'^"[^"]*"': "STRING_LITERAL",

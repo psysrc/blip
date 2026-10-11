@@ -18,11 +18,11 @@ Analysis runs in every mode, and every consumer reads the analysed tree: `--ir`,
 
 | Path | Role |
 |------|------|
-| `blip.py` | CLI entry point (`--interpret`, `--transpile LANG`, `--ir`, `--prog`) |
-| `bliplib/parser/` | Tokenizer and parser; produces BlipIR as a `dict` |
+| `blip.py` | CLI entry point (`--interpret`, `--transpile LANG`, `--ir`, `--check`, `--prog`, `--no-analysis`) |
+| `bliplib/parser/` | Tokenizer and parser; builds the BlipIR object model, with every type left unset |
 | `bliplib/ir/` | BlipIR object model: a class per node kind, `load()` and `to_dict()` |
 | `bliplib/decomposition.py` | What a decomposition pattern means, as one regex lowering shared by every back end |
-| `bliplib/analysis/` | The Blip Analyser: gives every value a type, rejects programs that cannot have one. Not yet wired into the CLI |
+| `bliplib/analysis/` | The Blip Analyser: gives every value a type, rejects programs that cannot have one. Runs in every CLI mode |
 | `bliplib/interpreter/` | Executes BlipIR directly |
 | `bliplib/transpiler/` | `interface.py` (ABC), `factory.py` (name -> transpiler), one module per target |
 | `bliplib/errors/` | All exceptions subclass `BlipError` |
