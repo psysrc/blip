@@ -193,10 +193,115 @@ ret "found"
 |`["ac"]`|`Error`|
 |`[""]`|`Error`|
 
-## Decomposition Backtracks
+## Captures Are Lazy
 
-A capture runs up to the *first* following occurrence of the literal after it. If after that the pattern doesn't match, the decomposition
+A capture runs up to the *first* following occurrence of the literal after it.
+
+#### Blip code
+
+```blip
+dotted = input[0]
+dotted -> head "." tail
+
+ret [head, tail]
+```
+
+#### Blip IR
+
+<details>
+<summary><i>Expand...</i></summary>
+
+```json
+{
+    "type": "program",
+    "statements": [
+        {
+            "type": "assignment",
+            "identifier": {
+                "type": "identifier",
+                "blip_type": "string",
+                "name": "dotted"
+            },
+            "expression": {
+                "type": "index",
+                "blip_type": "string",
+                "identifier": {
+                    "type": "identifier",
+                    "blip_type": "list[string]",
+                    "name": "input"
+                },
+                "index": {
+                    "type": "integer_literal",
+                    "blip_type": "integer",
+                    "value": 0
+                }
+            }
+        },
+        {
+            "type": "decomposition",
+            "identifier": {
+                "type": "identifier",
+                "blip_type": "string",
+                "name": "dotted"
+            },
+            "pattern": [
+                {
+                    "type": "identifier",
+                    "blip_type": "string",
+                    "name": "head"
+                },
+                {
+                    "type": "string_literal",
+                    "blip_type": "string",
+                    "value": "."
+                },
+                {
+                    "type": "identifier",
+                    "blip_type": "string",
+                    "name": "tail"
+                }
+            ]
+        },
+        {
+            "type": "return",
+            "expression": {
+                "type": "list",
+                "blip_type": "list[string]",
+                "elements": [
+                    {
+                        "type": "identifier",
+                        "blip_type": "string",
+                        "name": "head"
+                    },
+                    {
+                        "type": "identifier",
+                        "blip_type": "string",
+                        "name": "tail"
+                    }
+                ]
+            }
+        }
+    ]
+}
+```
+
+</details>
+
+#### Execution
+
+|Input|Output|
+|-----|------|
+|`["a.b.c"]`|`["a", "b.c"]`|
+|`["one.two.three.four"]`|`["one", "two.three.four"]`|
+|`["a.b"]`|`["a", "b"]`|
+|`["no dot"]`|`Error`|
+
+## Backtracking
+
+A capture runs up to the *first* following occurrence of the literal after it.
+However, if after that the pattern doesn't match, the decomposition
 can backtrack and try the *next* occurrence of the literal and check the pattern again.
+This is because the decomposition pattern must match the entire string, not a subset of it.
 
 Here `archive.gz.gz` can match with `stem == "archive.gz"`, but by stopping at the first `.gz` it would leave a trailing `.gz`, failing
 the pattern. So, the decomposition tries the next occurrence of `.gz` and tries again.

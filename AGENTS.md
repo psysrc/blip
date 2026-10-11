@@ -21,7 +21,7 @@ Analysis runs in every mode, and every consumer reads the analysed tree: `--ir`,
 | `blip.py` | CLI entry point (`--interpret`, `--transpile LANG`, `--ir`, `--check`, `--prog`, `--no-analysis`) |
 | `bliplib/parser/` | Tokenizer and parser; builds the BlipIR object model, with every type left unset |
 | `bliplib/ir/` | BlipIR object model: a class per node kind, `load()` and `to_dict()` |
-| `bliplib/decomposition.py` | What a decomposition pattern means, as one regex lowering shared by every back end |
+| `bliplib/decomposition.py` | What a decomposition pattern means: its capture names, its error text, and its lowering to a regex |
 | `bliplib/analysis/` | The Blip Analyser: gives every value a type, rejects programs that cannot have one. Runs in every CLI mode |
 | `bliplib/interpreter/` | Executes BlipIR directly |
 | `bliplib/transpiler/` | `interface.py` (ABC), `factory.py` (name -> transpiler), one module per target |
@@ -66,6 +66,24 @@ CI (`.github/workflows/build.yml`) runs unit tests with coverage, integration te
 - Ruff, line length **140** (configured in `pyproject.toml`; there is no other lint config).
 - Private attributes use the double-underscore name-mangled form (`self.__expression`), consistently throughout.
 - Transpilers must implement both `transpile_function` and `transpile_program` from `bliplib/transpiler/interface.py`, and register in `factory.py`.
+
+## Lowering decomposition into regexes
+
+Decomposition is trivially implementable as a regex "find all" search. The interpreter and Python transpiler both do this using
+`decomposition.py`.
+However, this file is Python/PCRE specific regex syntax; it is not necessarily usable for other transpiler backends:
+
+| | `(?P<name>…)` | lazy `.*?` | `.` matches newline |
+|---|---|---|---|
+| Python + `re.DOTALL` | yes | yes | yes |
+| C++ `std::regex` (ECMAScript) | **rejected at compile time** | yes | **no** - needs `[\s\S]` |
+| C POSIX `<regex.h>` | **rejected at compile time** | **compiles, but matches greedily** | yes |
+
+The **"The First Occurrence Wins"** reference program in `docs/refs/decomposition.md` exists to catch these kinds of disagreements.
+
+So a new back end may need its own lowering of `DecompPattern`. What is shared is the *meaning* - non-greedy captures, the
+whole-string rule, a capture named after the variable it binds - and `docs/refs/decomposition.md` is where that meaning is
+pinned, for every back end, by execution rather than by regex.
 
 ## Transpiler back ends
 

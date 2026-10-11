@@ -216,6 +216,30 @@ def test_an_output_directive_bounded_at_neither_end_is_still_a_directive(parser:
     assert parser.parse('ret "ok"').directives is None
 
 
+_IN_2 = Directives(input=FixedDirective(count=2))
+_IN_2_OUT_1 = Directives(input=FixedDirective(count=2), output=FixedDirective(count=1))
+
+
+@pytest.mark.parametrize(
+    ("blip_code", "expected"),
+    [
+        pytest.param('// header\n!in 2\nret "ok"', _IN_2, id="a comment line before the directive"),
+        pytest.param('\n!in 2\nret "ok"', _IN_2, id="a blank line before the directive"),
+        pytest.param('// one\n// two\n\n!in 2\nret "ok"', _IN_2, id="a licence header block before the directive"),
+        pytest.param('!in 2  // trailing\nret "ok"', _IN_2, id="a comment trailing the directive"),
+        pytest.param('!in 2\n// why\n!out 1\nret "ok"', _IN_2_OUT_1, id="a comment line between two directives"),
+        pytest.param('!in 2\n\n!out 1\nret "ok"', _IN_2_OUT_1, id="a blank line between two directives"),
+    ],
+)
+def test_blank_and_comment_lines_do_not_end_the_directive_section(parser: Parser, blip_code: str, expected: Directives):
+    assert parser.parse(blip_code).directives == expected
+
+
+def test_directives_only_valid_at_beginning_of_program(parser: Parser):
+    with pytest.raises(ParserError):
+        parser.parse('ret "ok"\n!in 1')
+
+
 def test_a_repeated_directive_replaces_the_earlier_one(parser: Parser):
     assert parser.parse('!in 1\n!in 3\nret "ok"').directives == Directives(input=FixedDirective(count=3))
 

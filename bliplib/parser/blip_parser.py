@@ -105,8 +105,13 @@ class Parser:
         declared_input: Directive | None = None
         declared_output: Directive | None = None
 
-        # Parse optional top-level directives (e.g. !in / !out). A repeated directive replaces the earlier one.
-        while self.__token.type in {"DIRECTIVE_IN", "DIRECTIVE_OUT"}:
+        # Parse optional top-level directives (e.g. !in / !out).
+        # TODO: Current a repeated directive replaces the earlier one. In future, repeated directives should be an error.
+        while self.__token.type in {"EOL", "DIRECTIVE_IN", "DIRECTIVE_OUT"}:
+            if self.__token.type == "EOL":
+                self.__consume_token("EOL")
+                continue
+
             if self.__token.type == "DIRECTIVE_IN":
                 self.__consume_token("DIRECTIVE_IN")
                 declared_input = self.__parse_directive_body()
