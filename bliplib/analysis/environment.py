@@ -43,7 +43,6 @@ class Environment:
         """Return the type bound to a name, or raise if the name is not bound. `location` is where the name was used."""
 
         if name not in self.__variables:
-            # TODO: Remove `location` from here and instead put it in the call site
             raise SemanticError(f"'{name}' is used but never bound", location)
 
         return self.__variables[name].inferred
