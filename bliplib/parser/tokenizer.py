@@ -3,15 +3,59 @@ Implements the Tokenizer class.
 """
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from bliplib.errors import TokenizerError
+from bliplib.source import Span
+
+# Patterns are tried in order and the first match wins, so a keyword has to come before the identifier pattern that would
+# match it too, and `\n` has to come before the whitespace pattern that would swallow it.
+#
+# None of them is `^`-anchored, which is load-bearing rather than tidiness. They are matched with `pattern.match(source,
+# offset)` against the whole source instead of against a slice of what is left, and `^` only matches at a real line start -
+# so an anchored pattern fails at every non-zero offset, with or without `re.MULTILINE`. `match()` anchors at the offset by
+# definition, and leaves the rest of the string visible, which is what lets a trailing `\b` still see what follows it.
+#
+# A token type of `None` marks trivia: the match advances the offset and yields no token.
+_TOKEN_PATTERNS: tuple[tuple[re.Pattern[str], str | None], ...] = tuple(
+    (re.compile(pattern), token_type)
+    for pattern, token_type in (
+        (r"#.*", None),  # Single-line comments (ignore)
+        (r"//.*", None),  # Single-line comments (ignore)
+        (r"\n", "EOL"),
+        (r";", "EOL"),
+        (r"\s", None),  # Non-EOL Whitespace (ignore)
+        (r"->", "->"),
+        (r"<-", "<-"),
+        (r"=", "="),
+        (r"\*", "*"),
+        (r"\|", "|"),
+        (r"\[", "["),
+        (r"\]", "]"),
+        (r",", ","),
+        (r"!in\b", "DIRECTIVE_IN"),
+        (r"!out\b", "DIRECTIVE_OUT"),
+        (r"\.\.", ".."),
+        (r"ret\b", "RETURN"),
+        (r"true\b", "BOOLEAN_LITERAL"),
+        (r"false\b", "BOOLEAN_LITERAL"),
+        (r'"[^"]*"', "STRING_LITERAL"),
+        (r"'[^']*'", "STRING_LITERAL"),
+        (r"[0-9]+", "INTEGER_LITERAL"),
+        (r"[a-zA-Z][a-zA-Z0-9_]*\b", "IDENTIFIER"),
+    )
+)
+
+# How much of the remaining source to quote when nothing matches. Enough to recognise, short enough to read.
+_UNKNOWN_SYNTAX_CONTEXT = 10
 
 
 @dataclass
 class Token:
     type: str
     value: str
+
+    location: Span = field(kw_only=True, compare=False, repr=False)
 
     def __str__(self) -> str:
         return f"TOKEN['{self.type}' | '{self.value}']"
@@ -26,9 +70,10 @@ class Tokenizer:
     """
 
     def __init__(self, source: str):
-        self.source = source
+        self.__source = source
+        self.__offset = 0
 
-        self.current_token = self.__get_next_token_from_stream()
+        self.__current_token = self.__get_next_token_from_stream()
 
     def next_token(self) -> Token:
         """
@@ -39,55 +84,32 @@ class Tokenizer:
         If no valid token can be found, a TokenizerError is raised.
         """
 
-        token_to_return = self.current_token
+        token_to_return = self.__current_token
 
-        self.current_token = self.__get_next_token_from_stream()
+        self.__current_token = self.__get_next_token_from_stream()
 
         return token_to_return
 
     def __get_next_token_from_stream(self) -> Token:
-        token_regexes = {
-            r"^#.*": None,  # Single-line comments (ignore)
-            r"^//.*": None,  # Single-line comments (ignore)
-            r"^\n": "EOL",
-            r"^;": "EOL",
-            r"^\s": None,  # Non-EOL Whitespace (ignore)
-            r"^->": "->",
-            r"^<-": "<-",
-            r"^=": "=",
-            r"^\*": "*",
-            r"^\|": "|",
-            r"^\[": "[",
-            r"^\]": "]",
-            r"^,": ",",
-            r"^!in\b": "DIRECTIVE_IN",
-            r"^!out\b": "DIRECTIVE_OUT",
-            r"^\.\.": "..",
-            r"^ret\b": "RETURN",
-            r"^true\b": "BOOLEAN_LITERAL",
-            r"^false\b": "BOOLEAN_LITERAL",
-            r'^"[^"]*"': "STRING_LITERAL",
-            r"^'[^']*'": "STRING_LITERAL",
-            r"^[0-9]+": "INTEGER_LITERAL",
-            r"^[a-zA-Z][a-zA-Z0-9_]*\b": "IDENTIFIER",
-        }
+        if self.__source_is_exhausted():
+            return Token(type="EOF", value="", location=Span(offset=self.__offset, length=0))
 
-        if self.__source_is_empty():
-            return Token(type="EOF", value="")
-
-        for regexp, token_type in token_regexes.items():
-            match = re.search(regexp, self.source)
+        for pattern, token_type in _TOKEN_PATTERNS:
+            match = pattern.match(self.__source, self.__offset)
 
             if match:
                 token_value = match.group()
-                self.source = self.source[len(token_value) :]
+                start = self.__offset
+                self.__offset += len(token_value)
 
                 if token_type:
-                    return Token(type=token_type, value=token_value)
+                    return Token(type=token_type, value=token_value, location=Span(offset=start, length=len(token_value)))
 
                 return self.__get_next_token_from_stream()
 
-        raise TokenizerError(f"Unknown syntax near characters '{self.source[:10]}'")
+        # TODO: Consider converting this to column and line numbers to make this error cleaner
+        unknown = self.__source[self.__offset : self.__offset + _UNKNOWN_SYNTAX_CONTEXT].partition("\n")[0]
+        raise TokenizerError(f"Unknown syntax near characters '{unknown}'")
 
-    def __source_is_empty(self) -> bool:
-        return not bool(self.source)
+    def __source_is_exhausted(self) -> bool:
+        return self.__offset >= len(self.__source)
