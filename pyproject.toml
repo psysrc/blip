@@ -18,12 +18,12 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^9.1.1"
-ruff = "^0.16.10"
+ruff = "^0.17.1"
 pytest-cov = "^7.1.0"
-pre-commit = "^4.6.2"
+pre-commit = "^4.7.0"
 pyinstaller = "^6.22.3"
 markdown-it-py = "^4.2.0"
-ty = "^0.0.85"
+ty = "^0.0.88"
 
 [tool.pytest.ini_options]
 # Put the repository root on sys.path, so that `test.common` always resolves to this project's
