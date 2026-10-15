@@ -1,5 +1,7 @@
 """Unit tests for the parser."""
 
+from collections.abc import Generator
+
 import pytest
 
 from bliplib.ir import (
@@ -19,6 +21,7 @@ from bliplib.ir import (
     StringLiteral,
     Wildcard,
 )
+from bliplib.ir.nodes import Located
 from bliplib.parser import Parser
 from bliplib.parser.blip_parser import ParserError
 
@@ -28,32 +31,49 @@ def parser():
     return Parser()
 
 
-def test_invalid_syntax_raises_tokenizer_error(parser):
+def __get_located_nodes(node: object, depth: int = 0) -> Generator[tuple[int, Located], None, None]:
+    """Every `Located` node in a tree, paired with its depth, parents before children."""
+
+    if isinstance(node, Located):
+        yield depth, node
+        depth += 1
+
+    for plural in ("statements", "operands", "elements", "pattern"):
+        for child in getattr(node, plural, None) or []:
+            yield from __get_located_nodes(child, depth)
+
+    for singular in ("target", "expression", "index", "input", "output", "directives"):
+        child = getattr(node, singular, None)
+        if child is not None:
+            yield from __get_located_nodes(child, depth)
+
+
+def test_invalid_syntax_raises_tokenizer_error(parser: Parser):
     with pytest.raises(ParserError):
         parser.parse("%67£$QGR _++ )(GFds")
 
 
-def test_bad_expression_raises_parser_error(parser):
+def test_bad_expression_raises_parser_error(parser: Parser):
     with pytest.raises(ParserError):
         parser.parse("ret")
 
 
-def test_bad_identifier_statement_raises_parser_error(parser):
+def test_bad_identifier_statement_raises_parser_error(parser: Parser):
     with pytest.raises(ParserError):
         parser.parse("hello hello")
 
 
-def test_bad_statement_raises_parser_error(parser):
+def test_bad_statement_raises_parser_error(parser: Parser):
     with pytest.raises(ParserError):
         parser.parse(",")
 
 
-def test_bad_decomposition_raises_parser_error(parser):
+def test_bad_decomposition_raises_parser_error(parser: Parser):
     with pytest.raises(ParserError):
         parser.parse("foo -> []")
 
 
-def test_indexing_in_decomposition_pattern_raises_parser_error(parser):
+def test_indexing_in_decomposition_pattern_raises_parser_error(parser: Parser):
     """A decomposition pattern element is a string literal, a capturing variable or a wildcard - never a value expression."""
 
     with pytest.raises(ParserError):
@@ -63,7 +83,7 @@ def test_indexing_in_decomposition_pattern_raises_parser_error(parser):
         parser.parse('foo -> name "@" rest[1]')
 
 
-def test_bad_index_raises_parser_error(parser):
+def test_bad_index_raises_parser_error(parser: Parser):
     with pytest.raises(ParserError):
         parser.parse("foo = bar['z']")
 
@@ -242,6 +262,104 @@ def test_directives_only_valid_at_beginning_of_program(parser: Parser):
 
 def test_a_repeated_directive_replaces_the_earlier_one(parser: Parser):
     assert parser.parse('!in 1\n!in 3\nret "ok"').directives == Directives(input=FixedDirective(count=3))
+
+
+@pytest.mark.parametrize(
+    "blip_code",
+    [
+        pytest.param('ret "Hello World!"', id="a one-line program"),
+        pytest.param('name = "bob"\nret name\n', id="an assignment and a return"),
+        pytest.param('email -> username "@" *\nret username\n', id="a decomposition with a wildcard"),
+        pytest.param("empty = []\nret empty\n", id="an empty list"),
+        pytest.param("!in raw\n!out 1\n\nret raw\n", id="directives, blank lines and a comment-free header"),
+        pytest.param('// header\n\nret input[0] " and " input[1]\n', id="indexing and concatenation after a comment"),
+        pytest.param("a = 1; b = true; ret 'x'", id="semicolon-separated statements"),
+    ],
+)
+def test_every_node_span_slices_back_to_the_source_it_came_from(parser: Parser, blip_code: str):
+    for _, node in __get_located_nodes(parser.parse(blip_code)):
+        assert node.location is not None, f"{type(node).__name__} was parsed without a span"
+
+        sliced = blip_code[node.location.offset : node.location.end]
+        assert sliced.strip() == sliced, f"{type(node).__name__} span includes surrounding whitespace: {sliced!r}"
+
+
+@pytest.mark.parametrize(
+    "blip_code",
+    [
+        pytest.param('name = "bob"\nret name\n', id="an assignment and a return"),
+        pytest.param('email -> username "@" *\nret username\n', id="a decomposition with a wildcard"),
+        pytest.param('ret input[0] " and " input[1]\n', id="indexing and concatenation"),
+    ],
+)
+def test_a_node_span_contains_the_spans_of_its_children(parser: Parser, blip_code: str):
+    """A composite node is built from its children's tokens, so its span has to reach across all of them."""
+
+    stack: list[tuple[int, Located]] = []
+
+    for depth, node in __get_located_nodes(parser.parse(blip_code)):
+        del stack[depth:]
+
+        for _, ancestor in stack:
+            assert ancestor.location is not None and node.location is not None
+            assert ancestor.location.offset <= node.location.offset, f"{type(node).__name__} starts before its ancestor"
+            assert node.location.end <= ancestor.location.end, f"{type(node).__name__} ends after its ancestor"
+
+        stack.append((depth, node))
+
+
+def test_a_statement_span_covers_the_whole_statement():
+    """A statement-level error points at the statement, so its span has to reach past the expression inside it."""
+
+    blip_code = 'name = "bob" "by"\nret name\n'
+    program = Parser().parse(blip_code)
+
+    assert [blip_code[s.location.offset : s.location.end] for s in program.statements if s.location] == [
+        'name = "bob" "by"',
+        "ret name",
+    ]
+
+
+def test_a_directive_span_covers_its_keyword():
+    """`!in username email` is wrong as a whole when it binds a reserved name, so the caret belongs under all of it."""
+
+    blip_code = "!in raw\nret raw\n"
+    directives = Parser().parse(blip_code).directives
+
+    assert directives is not None and directives.input is not None and directives.input.location is not None
+    span = directives.input.location
+
+    assert blip_code[span.offset : span.end] == "!in raw"
+
+
+def test_a_string_literal_span_covers_its_quotes():
+    """The value excludes the delimiters; the span includes them, because that is what a reader sees."""
+
+    blip_code = 'ret "bob"'
+    returned = Parser().parse(blip_code).statements[0]
+
+    assert isinstance(returned, Return)
+    span = returned.expression.location
+
+    assert span is not None
+    assert blip_code[span.offset : span.end] == '"bob"'
+    assert returned.expression == StringLiteral(value="bob")
+
+
+def test_an_empty_list_still_has_a_span():
+    blip_code = "empty = []\nret empty\n"
+    assignment = Parser().parse(blip_code).statements[0]
+
+    assert isinstance(assignment, Assignment)
+    span = assignment.expression.location
+
+    assert span is not None
+    assert blip_code[span.offset : span.end] == "[]"
+
+
+def test_a_span_is_not_part_of_a_nodes_identity(parser: Parser):
+    assert parser.parse('ret "x"') == parser.parse('\n\n\nret "x"')
+    assert parser.parse('ret "x"').statements[0].location != parser.parse('\n\n\nret "x"').statements[0].location
 
 
 def test_the_parser_leaves_every_type_unset(parser: Parser):

@@ -19,6 +19,7 @@ from typing import Any
 
 from bliplib.errors import IRError
 from bliplib.ir.types import BlipType, List, Scalar, format_type, parse_type
+from bliplib.source import Span
 
 # The key a value node carries its type under. `type` is taken by the node kind.
 ANNOTATION = "blip_type"
@@ -124,7 +125,14 @@ def _get_sequence(node: dict[str, Any], key: str, kind: str) -> list[Any]:
 
 
 @dataclass
-class ValueNode:
+class Located:
+    """Base class for a node that tracks where in the source it came from."""
+
+    location: Span | None = field(default=None, kw_only=True, compare=False, repr=False)
+
+
+@dataclass
+class ValueNode(Located):
     """
     Base class for every BlipIR value node.
 
@@ -246,7 +254,7 @@ class ListLiteral(ValueNode):
 
 
 @dataclass
-class Wildcard:
+class Wildcard(Located):
     """The `*` of a decomposition pattern. It matches anything and binds nothing, so it carries no type."""
 
     @classmethod
@@ -259,7 +267,7 @@ class Wildcard:
 
 
 @dataclass
-class Assignment:
+class Assignment(Located):
     target: Identifier
     expression: Value
 
@@ -273,7 +281,7 @@ class Assignment:
 
 
 @dataclass
-class Return:
+class Return(Located):
     expression: Value
 
     @classmethod
@@ -286,7 +294,7 @@ class Return:
 
 
 @dataclass
-class Decomposition:
+class Decomposition(Located):
     target: Identifier
     pattern: DecompPattern
 
@@ -308,7 +316,7 @@ class Decomposition:
 
 
 @dataclass
-class FixedDirective:
+class FixedDirective(Located):
     """A directive demanding an exact count of strings, optionally naming each one (`!in username email`)."""
 
     count: int
@@ -338,7 +346,7 @@ class FixedDirective:
 
 
 @dataclass
-class RangeDirective:
+class RangeDirective(Located):
     """A directive permitting a range of counts (`!in 1..3`). An open end is `None`."""
 
     min: int | None
