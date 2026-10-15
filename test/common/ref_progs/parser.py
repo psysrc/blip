@@ -90,7 +90,7 @@ class ReferenceParser:
     @staticmethod
     def __parse_compilation(fence: str) -> tuple[str, str | None]:
         """
-        Split a `#### Compilation` fence into the error class and, if recorded, the diagnostic it renders into.
+        Split a `#### Error` fence into the error class and, if recorded, the diagnostic it renders into.
 
         The first line is the class, which is all a program used to record, so a fence written before diagnostics existed
         still reads correctly. Everything after it is the expected rendering, blank lines and carets included - so it is
@@ -110,7 +110,7 @@ class ReferenceParser:
 
         blip_code = self.__fence_after(tokens, code_index, "blip")
 
-        compilation_index = self.__section_index(tokens, "Compilation")
+        compilation_index = self.__section_index(tokens, "Error")
         if compilation_index is not None:
             # The program is expected to fail to compile, so it has no BlipIR and nothing to execute
             error, diagnostic = self.__parse_compilation(self.__fence_after(tokens, compilation_index, "text"))
@@ -119,7 +119,7 @@ class ReferenceParser:
 
         ir_index = self.__section_index(tokens, "Blip IR")
         if ir_index is None:
-            raise RuntimeError(f"Reference program '{name}' has neither a '#### Blip IR' nor a '#### Compilation' section")
+            raise RuntimeError(f"Reference program '{name}' has neither a '#### Blip IR' nor a '#### Error' section")
 
         blip_ir = json.loads(self.__fence_after(tokens, ir_index, "json"))
 

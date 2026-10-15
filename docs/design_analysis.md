@@ -225,7 +225,7 @@ The `--no-analysis` flag can be used to suppress the analysis stage when used wi
 ## Reference programs that fail to compile
 
 A program that raises `ParserError` or `SemanticError` produces no BlipIR and cannot be executed. Such a program is written with a
-`#### Compilation` section in place of the `#### Blip IR` and `#### Execution` sections:
+`#### Error` section in place of the `#### Blip IR` and `#### Execution` sections:
 
 ````markdown
 ## Reassignment Type Change
@@ -239,7 +239,7 @@ x = "a"
 x = 1
 ```
 
-#### Compilation
+#### Error
 
 ```text
 SemanticError
@@ -261,4 +261,4 @@ Recording it is optional: a program may name the error class alone.
 The path reads `<stdin>` because that is what `blip` reports for a program given on standard input, which is how the reference
 programs are run.
 
-The absence of a `#### Compilation` section means the program is expected to compile.
+The absence of a `#### Error` section means the program is expected to compile.

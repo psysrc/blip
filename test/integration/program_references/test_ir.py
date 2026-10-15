@@ -25,7 +25,7 @@ def test_reference_program_ir(ref: ReferenceProgram):
 
 @pytest.mark.parametrize("ref", get_failing_reference_programs())
 def test_reference_program_fails_to_compile(ref: ReferenceProgram):
-    """A program with a `#### Compilation` section produces no BlipIR, so `--ir` must refuse it."""
+    """A program with a `#### Error` section produces no BlipIR, so `--ir` must refuse it."""
 
     result = run_blip(["--ir"], ref.blip_code)
 

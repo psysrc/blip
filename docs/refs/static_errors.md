@@ -4,7 +4,7 @@ These programs are all rejected before they run. Blip is fully type-inferred, so
 source mentions one, and a program whose types cannot be worked out is an error in the program rather than a surprise at
 execution time. Each one below is wrong whatever input it is given, which is what makes it a *static* error.
 
-A program that cannot compile has a `#### Compilation` section recording the error it raises, in place of the `#### Blip IR` and
+A program that cannot compile has a `#### Error` section recording the error it raises, in place of the `#### Blip IR` and
 `#### Execution` sections that a working program has. Beneath the error class is the diagnostic `blip` prints for it, caret and
 all, which the test suite checks exactly - so what is shown below is what you will actually see.
 
@@ -27,7 +27,7 @@ x = 1
 ret x
 ```
 
-#### Compilation
+#### Error
 
 ```text
 SemanticError
@@ -54,7 +54,7 @@ message = "you have " count
 ret message
 ```
 
-#### Compilation
+#### Error
 
 ```text
 SemanticError
@@ -78,7 +78,7 @@ A name has to be bound before it is used. Nothing in this program ever gives `gr
 ret greeting
 ```
 
-#### Compilation
+#### Error
 
 ```text
 SemanticError
@@ -101,7 +101,7 @@ count -> first "," second
 ret first
 ```
 
-#### Compilation
+#### Error
 
 ```text
 SemanticError
@@ -125,7 +125,7 @@ A list is homogeneous: every element has the same type. A list mixing strings an
 ret ["a", 1]
 ```
 
-#### Compilation
+#### Error
 
 ```text
 SemanticError
@@ -151,7 +151,7 @@ things = []
 ret "done"
 ```
 
-#### Compilation
+#### Error
 
 ```text
 SemanticError
@@ -175,7 +175,7 @@ x -> first second
 ret first
 ```
 
-#### Compilation
+#### Error
 
 ```text
 SemanticError
@@ -207,7 +207,7 @@ x -> dup "," dup
 ret dup
 ```
 
-#### Compilation
+#### Error
 
 ```text
 SemanticError
@@ -238,7 +238,7 @@ x -> "" rest
 ret rest
 ```
 
-#### Compilation
+#### Error
 
 ```text
 SemanticError
