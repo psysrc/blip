@@ -111,10 +111,10 @@ def test_render_without_a_span_still_names_the_file():
     assert source_map.render("malformed BlipIR", None) == "prog.blip: error: malformed BlipIR"
 
 
-def test_render_accepts_a_severity():
+def test_render_accepts_custom_error_types():
     source_map = SourceMap("abc\n", path="prog.blip")
 
-    rendered = source_map.render("careful", Span(offset=0, length=1), severity="warning")
+    rendered = source_map.render("careful", Span(offset=0, length=1), error_type="warning")
 
     expected = textwrap.dedent("""
         prog.blip:1:1: warning: careful

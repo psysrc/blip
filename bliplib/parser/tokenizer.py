@@ -107,9 +107,8 @@ class Tokenizer:
 
                 return self.__get_next_token_from_stream()
 
-        # TODO: Consider converting this to column and line numbers to make this error cleaner
         unknown = self.__source[self.__offset : self.__offset + _UNKNOWN_SYNTAX_CONTEXT].partition("\n")[0]
-        raise TokenizerError(f"Unknown syntax near characters '{unknown}'")
+        raise TokenizerError(f"Unknown syntax near characters '{unknown}'", Span(offset=self.__offset, length=len(unknown)))
 
     def __source_is_exhausted(self) -> bool:
         return self.__offset >= len(self.__source)

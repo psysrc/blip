@@ -8,8 +8,10 @@ import pytest
 
 from test.integration.conftest import run_blip
 
+LEXICAL_ERROR = "first = 1\nsecond = \u00a35\nret first\n"
+SYNTAX_ERROR = 'a = "x"\nb = = "y"\n'
+SEMANTIC_ERROR = 'x = "a"\nx = 1\nret x\n'
 GOOD = 'ret "ok"\n'
-STATIC_ERROR = 'x = "a"\nx = 1\nret x\n'
 
 
 def test_check_emits_nothing_and_succeeds_for_a_good_program():
@@ -20,10 +22,10 @@ def test_check_emits_nothing_and_succeeds_for_a_good_program():
 
 
 def test_check_fails_for_a_program_with_a_static_error():
-    result = run_blip(["--check"], STATIC_ERROR)
+    result = run_blip(["--check"], SEMANTIC_ERROR)
 
     assert result.returncode != 0
-    assert "Semantic error" in result.stderr
+    assert "semantic error" in result.stderr
 
 
 @pytest.mark.parametrize(
@@ -38,10 +40,10 @@ def test_check_fails_for_a_program_with_a_static_error():
 def test_a_static_error_is_refused_in_every_mode(mode: list[str]):
     """The whole point of running analysis everywhere: one wrong program, one error, whatever you asked for."""
 
-    result = run_blip(mode, STATIC_ERROR)
+    result = run_blip(mode, SEMANTIC_ERROR)
 
     assert result.returncode != 0
-    assert "Semantic error" in result.stderr
+    assert "semantic error" in result.stderr
 
 
 def test_ir_output_is_annotated():
@@ -65,3 +67,26 @@ def test_no_analysis_is_rejected_outside_ir_mode():
         result = run_blip([*mode, "--no-analysis"], GOOD)
 
         assert result.returncode != 0, f"--no-analysis flag was accepted with {mode}"
+
+
+def test_a_diagnostic_names_the_file_line_and_column():
+    result = run_blip(["--check"], SYNTAX_ERROR)
+
+    assert result.returncode != 0
+    assert result.stderr.startswith("<stdin>:2:5: parser error: ")
+
+
+def test_a_diagnostic_draws_a_caret_under_the_source():
+    result = run_blip(["--check"], SYNTAX_ERROR)
+
+    assert result.returncode != 0
+    assert '\n2 | b = = "y"\n' in result.stderr
+    assert "\n  |     ^\n" in result.stderr
+
+
+def test_a_lexical_error_reports_what_failed_and_where():
+    result = run_blip(["--check"], LEXICAL_ERROR)
+
+    assert result.returncode != 0
+    assert result.stderr.startswith("<stdin>:2:10: parser error: ")
+    assert "Unknown syntax near characters" in result.stderr

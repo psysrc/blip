@@ -57,7 +57,7 @@ class Parser:
             return program
 
         except TokenizerError as err:
-            raise ParserError("Tokenization failure") from err
+            raise ParserError(str(err), err.location) from err
 
         finally:
             self.__tokenizer = None
@@ -125,7 +125,7 @@ class Parser:
 
         if self.__token.type not in token_types:
             actual_token_type = self.__token.type
-            raise ParserError(f"Failed to consume token (expected one of '{token_types}', got '{actual_token_type}')")
+            raise ParserError(f"Failed to consume token (expected one of '{token_types}', got '{actual_token_type}')", self.__span)
 
         token_value = self.__token.value
         self.__consumed_span = self.__token.location
@@ -179,7 +179,7 @@ class Parser:
 
                 case _:
                     err = f"Unexpected token {self.__token} while parsing program statements"
-                    raise ParserError(err)
+                    raise ParserError(err, self.__span)
 
         return statements
 
@@ -194,7 +194,7 @@ class Parser:
                 return self.__parse_decomposition_statement(identifier, start)
             case _:
                 err = f"Unexpected token {self.__token} while parsing ambiguous identifier statement"
-                raise ParserError(err)
+                raise ParserError(err, self.__span)
 
     def __parse_decomposition_statement(self, identifier: Identifier, start: Span) -> Decomposition:
         self.__consume_token("->")
@@ -211,7 +211,7 @@ class Parser:
                     pattern.append(self.__parse_decomposition_wildcard())
 
                 case _:
-                    raise ParserError(f"Unexpected token {self.__token.type} while parsing decomposition statement")
+                    raise ParserError(f"Unexpected token {self.__token.type} while parsing decomposition statement", self.__span)
 
         terminator = self.__span_from(start)
         self.__consume_token("EOL", "EOF")
@@ -243,7 +243,7 @@ class Parser:
                 return self.__parse_list()
             case _:
                 err = f"Unexpected token {self.__token} while parsing primary expression"
-                raise ParserError(err)
+                raise ParserError(err, self.__span)
 
     def __parse_list(self) -> ListLiteral:
         start = self.__span
@@ -272,7 +272,7 @@ class Parser:
                     primary_expressions.append(self.__parse_string_literal())
                 case _:
                     err = f"Unexpected token {self.__token} while parsing possible concatenation"
-                    raise ParserError(err)
+                    raise ParserError(err, self.__span)
 
         if len(primary_expressions) == 1:
             return primary_expressions[0]
@@ -299,7 +299,7 @@ class Parser:
             case "IDENTIFIER":
                 index = self.__parse_identifier()
             case _:
-                raise ParserError(f"Unexpected token {self.__token} while parsing index")
+                raise ParserError(f"Unexpected token {self.__token} while parsing index", self.__span)
 
         self.__consume_token("]")
 
@@ -375,7 +375,7 @@ class Parser:
 
             return FixedDirective(count=len(names), names=names, location=self.__span_from(start))
 
-        raise ParserError(f"Unexpected token {self.__token} in directive body")
+        raise ParserError(f"Unexpected token {self.__token} in directive body", self.__span)
 
     def __parse_string_literal(self) -> StringLiteral:
         span = self.__span

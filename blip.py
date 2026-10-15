@@ -2,13 +2,31 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import NoReturn
 
 from bliplib.analysis import analyse
-from bliplib.errors import InterpreterError, ParserError, SemanticError, TranspilerError
+from bliplib.errors import BlipError, InterpreterError, ParserError, SemanticError, TranspilerError
 from bliplib.interpreter import Interpreter
 from bliplib.parser import Parser
+from bliplib.source import SourceMap
 from bliplib.transpiler import factory as transpiler_factory
 from bliplib.transpiler.interface import Transpiler
+
+# What stdin is called in diagnostic messages
+STDIN_PATH = "<stdin>"
+
+
+def fail(source_map: SourceMap, error_type: str, err: BlipError) -> NoReturn:
+    """
+    Report a Blip error and exit.
+
+    Rendering lives here because this is where the source text is: an error carries a span, and turning a span into a line,
+    a column and a caret needs the text it points into. Every stage reports through this one function so that a parser error
+    and a semantic error look alike, and so that `error_type` is the only thing that differs between them.
+    """
+
+    print(source_map.render(str(err), err.location, error_type=error_type), file=sys.stderr)
+    sys.exit(1)
 
 
 def main():
@@ -38,9 +56,13 @@ def main():
     args = argument_parser.parse_args()
 
     if args.file == "-":
+        path = STDIN_PATH
         blip_code = sys.stdin.read()
     else:
+        path = args.file
         blip_code = Path(args.file).read_text()
+
+    source_map = SourceMap(blip_code, path=path)
 
     if not any([args.ir, args.transpile, args.interpret, args.check]):
         args.interpret = True
@@ -51,19 +73,26 @@ def main():
         sys.exit(1)
 
     try:
+        run(args, blip_code, source_map)
+
+    except BlipError as err:
+        # Theoretically unreachable because run() is `NoReturn`
+        fail(source_map, "unexpected error", err)
+
+
+def run(args: argparse.Namespace, blip_code: str, source_map: SourceMap) -> NoReturn:
+    try:
         program = Parser().parse(blip_code)
 
     except ParserError as err:
-        print(f"Parser error: {err}", file=sys.stderr)
-        sys.exit(1)
+        fail(source_map, "parser error", err)
 
     try:
         if not args.no_analysis:
             analyse(program)
 
     except SemanticError as err:
-        print(f"Semantic error: {err}", file=sys.stderr)
-        sys.exit(1)
+        fail(source_map, "semantic error", err)
 
     if args.ir:
         print(json.dumps(program.to_dict(), indent=4))
@@ -81,8 +110,7 @@ def main():
             sys.exit(0)
 
         except InterpreterError as err:
-            print(f"Interpreter error: {err}", file=sys.stderr)
-            sys.exit(1)
+            fail(source_map, "interpreter error", err)
 
     if args.transpile:
         try:
@@ -97,8 +125,7 @@ def main():
             sys.exit(0)
 
         except TranspilerError as err:
-            print(f"Transpiler error: {err}", file=sys.stderr)
-            sys.exit(1)
+            fail(source_map, "transpiler error", err)
 
     print("Error: Program called with unexpected arguments.", file=sys.stderr)
     print(f"{args}", file=sys.stderr)

@@ -1,5 +1,17 @@
+from bliplib.source import Span
+
+
 class BlipError(RuntimeError):
-    """Generic error class for all Blip-related errors."""
+    """
+    Generic error class for all Blip-related errors.
+
+    `location` marks where in the source code the error is, where applicable.
+    """
+
+    def __init__(self, message: str, location: Span | None = None) -> None:
+        super().__init__(message)
+
+        self.location = location
 
 
 class TokenizerError(BlipError):

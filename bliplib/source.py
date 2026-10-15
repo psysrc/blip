@@ -90,7 +90,7 @@ class SourceMap:
 
         return f"{line}:{column}"
 
-    def render(self, message: str, span: Span | None, severity: str = "error") -> str:
+    def render(self, message: str, span: Span | None, error_type: str = "error") -> str:
         """
         Render a full diagnostic: a located headline, then the offending line with a caret under the span.
 
@@ -99,7 +99,7 @@ class SourceMap:
         """
 
         if span is None:
-            return f"{self.__path}: {severity}: {message}"
+            return f"{self.__path}: {error_type}: {message}"
 
         line, column = self.get_line_column(span.offset)
         text = self.get_line_text(line)
@@ -112,7 +112,7 @@ class SourceMap:
 
         return "\n".join(
             [
-                f"{self.__path}:{line}:{column}: {severity}: {message}",
+                f"{self.__path}:{line}:{column}: {error_type}: {message}",
                 f"{gutter} |",
                 f"{line} | {text}",
                 f"{gutter} | {' ' * (column - 1)}{'^' * caret_width}",
