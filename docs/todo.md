@@ -10,7 +10,6 @@ In no particular order, here are the ideas that still need to be fleshed out.
 - Functions
 - Definite-return analysis, static directive arity checks
 - Optimisations
-- Improved error messages
 - Arithmetic
 - Indexing into strings
 
@@ -46,7 +45,7 @@ Icon|Meaning
 ## Outstanding work to consider
 
 - **`Program.variables` and a value walker.** The computed property that replaces the derived variable map is not implemented. It needs a walk
-  over every value node, which `blip --check` also wants; one exists as `values_of()` in `test/unit/analysis/test_analyser.py` and belongs in
+  over every value node, which `blip --check` also wants; one exists as `values_of()` in `test/unit/test_analyser.py` and belongs in
   `bliplib/ir/` rather than being written a second time. A C backend is the real customer.
 - **Error recovery.** The analyser raises on the first `SemanticError`, like the parser and the loader. Reporting several at once needs a fourth
   type-model case — an `Unknown` meaning "this expression is already wrong, do not complain about it again" — plus a diagnostic list in place of
@@ -70,8 +69,10 @@ binding rules are settled here so that the analyser does not have to be redesign
   if Blip gets functions and they are meant to be generic, this is where unification's missing half — generalisation at the definition and
   instantiation at each use, the other half of Hindley–Milner — becomes necessary. That decision belongs with the functions design; the
   unification described above is the part that would not change.
-- **Source locations.** BlipIR carries none, so a semantic error can describe a conflict structurally but cannot point at a line. This bites
-  hardest when two distant constraint sites disagree. Tracked under the "Improved error messages" item.
+- **Error recovery for the tokenizer's recursion.** `Tokenizer` skips trivia by recursing once per character, so roughly a thousand
+  consecutive spaces exhausts the stack. `RecursionError` is not a `BlipError`, so it escapes the CLI's handlers as a traceback.
+  Converting the skip to a loop fixes it, but the whitespace pattern must stay single-character or match `[^\S\n]+` - `\s+` would
+  swallow the newline that `EOL` depends on. Deliberately deferred when source locations landed.
 - **Comparison operators and arithmetic.** `if` and `while` conditions must be `BOOLEAN`, but no operator produces one yet, and arithmetic is
   still to be designed. Rules will be added when the operators are.
 

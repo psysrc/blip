@@ -17,6 +17,7 @@ absent location is honest; a stale one is confidently wrong.
 from __future__ import annotations
 
 from bisect import bisect_right
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 
@@ -103,6 +104,12 @@ class SourceMap:
         line, column = self.get_line_column(span.offset)
 
         return f"{line}:{column}"
+
+    def render_diagnostic(self, message: str, span: Span | None, notes: Sequence[Note] = (), error_type: str = "error") -> str:
+        blocks = [self.render(message, span, error_type=error_type)]
+        blocks += [self.render(note.message, note.location, error_type="note") for note in notes]
+
+        return "\n".join(blocks)
 
     def render(self, message: str, span: Span | None, error_type: str = "error") -> str:
         """

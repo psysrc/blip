@@ -30,3 +30,16 @@ def test_reference_program_fails_to_compile(ref: ReferenceProgram):
     result = run_blip(["--ir"], ref.blip_code)
 
     assert result.returncode != 0, f"Program reference '{ref.name}': expected {ref.compile_error} but --ir succeeded"
+
+
+@pytest.mark.parametrize("ref", get_failing_reference_programs())
+def test_the_cli_prints_the_diagnostic_the_reference_program_records(ref: ReferenceProgram):
+    """The recorded diagnostic has to be what `blip` actually prints, byte for byte."""
+
+    if ref.compile_diagnostic is None:
+        return  # Gracefully pass the test
+
+    result = run_blip(["--check"], ref.blip_code)
+
+    assert result.returncode != 0, f"Program reference '{ref.name}': expected {ref.compile_error} but --check succeeded"
+    assert result.stderr.strip() == ref.compile_diagnostic, f"Program reference '{ref.name}': diagnostic differs from the record"

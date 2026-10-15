@@ -243,7 +243,22 @@ x = 1
 
 ```text
 SemanticError
+<stdin>:2:5: semantic error: cannot assign to 'x': expected 'string', found 'integer'
+  |
+2 | x = 1
+  |     ^
+<stdin>:1:1: note: 'x' was bound as 'string' here
+  |
+1 | x = "a"
+  | ^
 ```
 ````
+
+The first line is the error class. Everything after it is the diagnostic the error renders into, which the test suite compares
+against exactly - so an error message cannot be reworded, or lose its caret, without the documentation being updated to match.
+Recording it is optional: a program may name the error class alone.
+
+The path reads `<stdin>` because that is what `blip` reports for a program given on standard input, which is how the reference
+programs are run.
 
 The absence of a `#### Compilation` section means the program is expected to compile.

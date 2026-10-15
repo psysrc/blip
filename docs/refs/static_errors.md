@@ -5,7 +5,8 @@ source mentions one, and a program whose types cannot be worked out is an error 
 execution time. Each one below is wrong whatever input it is given, which is what makes it a *static* error.
 
 A program that cannot compile has a `#### Compilation` section recording the error it raises, in place of the `#### Blip IR` and
-`#### Execution` sections that a working program has.
+`#### Execution` sections that a working program has. Beneath the error class is the diagnostic `blip` prints for it, caret and
+all, which the test suite checks exactly - so what is shown below is what you will actually see.
 
 For the errors that are *not* static - a decomposition that does not match, an index out of bounds, a directive given the wrong
 number of strings - see [Basic Programs](basic_programs.md) and [Input/Output Directives](input_output_directives.md).
@@ -30,6 +31,14 @@ ret x
 
 ```text
 SemanticError
+<stdin>:2:5: semantic error: cannot assign to 'x': expected 'string', found 'integer'
+  |
+2 | x = 1
+  |     ^
+<stdin>:1:1: note: 'x' was bound as 'string' here
+  |
+1 | x = "a"
+  | ^
 ```
 
 ## Type Mismatch
@@ -49,6 +58,14 @@ ret message
 
 ```text
 SemanticError
+<stdin>:2:23: semantic error: only strings can be concatenated: expected 'string', found 'integer'
+  |
+2 | message = "you have " count
+  |                       ^^^^^
+<stdin>:1:1: note: 'count' was bound as 'integer' here
+  |
+1 | count = 5
+  | ^^^^^
 ```
 
 ## Unbound Identifier
@@ -65,6 +82,10 @@ ret greeting
 
 ```text
 SemanticError
+<stdin>:1:5: semantic error: 'greeting' is used but never bound
+  |
+1 | ret greeting
+  |     ^^^^^^^^
 ```
 
 ## Non-String Decomposition Target
@@ -84,6 +105,14 @@ ret first
 
 ```text
 SemanticError
+<stdin>:2:1: semantic error: only a string can be decomposed: expected 'string', found 'integer'
+  |
+2 | count -> first "," second
+  | ^^^^^
+<stdin>:1:1: note: 'count' was bound as 'integer' here
+  |
+1 | count = 5
+  | ^^^^^
 ```
 
 ## Heterogeneous List
@@ -100,6 +129,10 @@ ret ["a", 1]
 
 ```text
 SemanticError
+<stdin>:1:11: semantic error: every element of a list must have the same type: expected 'string', found 'integer'
+  |
+1 | ret ["a", 1]
+  |           ^
 ```
 
 ## Undetermined Empty List
@@ -122,6 +155,10 @@ ret "done"
 
 ```text
 SemanticError
+<stdin>:1:10: semantic error: cannot infer the type of a list: no constraint determines it
+  |
+1 | things = []
+  |          ^^
 ```
 
 ## Ambiguous Decomposition Patterns
@@ -142,6 +179,14 @@ ret first
 
 ```text
 SemanticError
+<stdin>:2:6: semantic error: ambiguous decomposition pattern: the capture 'first' is followed by the capture 'second'
+  |
+2 | x -> first second
+  |      ^^^^^
+<stdin>:2:12: note: the capture 'second' follows it, with nothing in between
+  |
+2 | x -> first second
+  |            ^^^^^^
 ```
 
 ## Duplicate capture names in decomposition pattern
@@ -166,6 +211,14 @@ ret dup
 
 ```text
 SemanticError
+<stdin>:2:14: semantic error: a decomposition pattern cannot capture 'dup' more than once
+  |
+2 | x -> dup "," dup
+  |              ^^^
+<stdin>:2:6: note: 'dup' is already captured here
+  |
+2 | x -> dup "," dup
+  |      ^^^
 ```
 
 ## Empty Decomposition Literal
@@ -189,4 +242,8 @@ ret rest
 
 ```text
 SemanticError
+<stdin>:2:6: semantic error: a decomposition pattern cannot contain an empty string literal
+  |
+2 | x -> "" rest
+  |      ^^
 ```

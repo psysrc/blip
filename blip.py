@@ -25,13 +25,7 @@ def fail(source_map: SourceMap, error_type: str, err: BlipError) -> NoReturn:
     and a semantic error look alike, and so that `error_type` is the only thing that differs between them.
     """
 
-    report = [source_map.render(str(err), err.location, error_type=error_type)]
-
-    # A note is the other end of the problem - where a conflicting type was bound, say. Rendered the same way as the
-    # error itself, so that both ends of a disagreement are shown in the source rather than described in prose.
-    report += [source_map.render(note.message, note.location, error_type="note") for note in err.notes]
-
-    print("\n".join(report), file=sys.stderr)
+    print(source_map.render_diagnostic(str(err), err.location, err.notes, error_type), file=sys.stderr)
     sys.exit(1)
 
 

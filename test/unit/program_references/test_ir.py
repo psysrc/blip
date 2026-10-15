@@ -13,6 +13,7 @@ from bliplib.analysis import analyse
 from bliplib.errors import BlipError, ParserError, SemanticError
 from bliplib.ir import Program
 from bliplib.parser import Parser
+from bliplib.source import SourceMap
 from test.common.ref_progs.classes import ReferenceProgram
 from test.common.ref_progs.getter import get_compiling_reference_programs, get_failing_reference_programs
 
@@ -51,3 +52,27 @@ def test_reference_program_fails_to_compile(ref: ReferenceProgram):
 
     with pytest.raises(COMPILE_ERRORS[ref.compile_error]):
         compile_program(ref.blip_code)
+
+
+# How each compile error is labelled in a diagnostic, matching what the CLI prints for it.
+ERROR_TYPES: dict[str, str] = {
+    "ParserError": "parser error",
+    "SemanticError": "semantic error",
+}
+
+
+@pytest.mark.parametrize("ref", get_failing_reference_programs())
+def test_reference_program_renders_the_diagnostic_it_records(ref: ReferenceProgram):
+    """A program that records a diagnostic must render exactly that diagnostic, carets and notes included."""
+
+    if ref.compile_diagnostic is None:
+        return  # Gracefully pass the test
+
+    with pytest.raises(BlipError) as raised:
+        compile_program(ref.blip_code)
+
+    err = raised.value
+    error_type = ERROR_TYPES.get(ref.compile_error, "error")
+    rendered = SourceMap(ref.blip_code, path="<stdin>").render_diagnostic(str(err), err.location, err.notes, error_type)
+
+    assert rendered == ref.compile_diagnostic, f"Program reference '{ref.name}': diagnostic does not match the one recorded"

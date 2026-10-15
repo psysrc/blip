@@ -87,6 +87,20 @@ class ReferenceParser:
 
         raise RuntimeError(f"Failed to find a '{info}' fenced block in a reference program")
 
+    @staticmethod
+    def __parse_compilation(fence: str) -> tuple[str, str | None]:
+        """
+        Split a `#### Compilation` fence into the error class and, if recorded, the diagnostic it renders into.
+
+        The first line is the class, which is all a program used to record, so a fence written before diagnostics existed
+        still reads correctly. Everything after it is the expected rendering, blank lines and carets included - so it is
+        taken verbatim rather than stripped line by line.
+        """
+
+        error, _, diagnostic = fence.strip().partition("\n")
+
+        return error.strip(), diagnostic.strip("\n") or None
+
     def __parse_reference_program(self, tokens: list[Token]) -> ReferenceProgram:
         name = next(token.content for token in tokens if token.type == "inline")
 
@@ -99,11 +113,9 @@ class ReferenceParser:
         compilation_index = self.__section_index(tokens, "Compilation")
         if compilation_index is not None:
             # The program is expected to fail to compile, so it has no BlipIR and nothing to execute
-            return ReferenceProgram(
-                name=name,
-                blip_code=blip_code,
-                compile_error=self.__fence_after(tokens, compilation_index, "text").strip(),
-            )
+            error, diagnostic = self.__parse_compilation(self.__fence_after(tokens, compilation_index, "text"))
+
+            return ReferenceProgram(name=name, blip_code=blip_code, compile_error=error, compile_diagnostic=diagnostic)
 
         ir_index = self.__section_index(tokens, "Blip IR")
         if ir_index is None:
