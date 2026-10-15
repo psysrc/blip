@@ -1,4 +1,6 @@
-from bliplib.source import Span
+from collections.abc import Sequence
+
+from bliplib.source import Note, Span
 
 
 class BlipError(RuntimeError):
@@ -6,12 +8,17 @@ class BlipError(RuntimeError):
     Generic error class for all Blip-related errors.
 
     `location` marks where in the source code the error is, where applicable.
+
+    `notes` are further places worth pointing at - the other end of a type conflict, say. They are spans rather than
+    prose for the same reason `location` is: an error knows *where*, and only the CLI can turn that into a line and a
+    column.
     """
 
-    def __init__(self, message: str, location: Span | None = None) -> None:
+    def __init__(self, message: str, location: Span | None = None, notes: Sequence[Note] = ()) -> None:
         super().__init__(message)
 
         self.location = location
+        self.notes = tuple(notes)
 
 
 class TokenizerError(BlipError):

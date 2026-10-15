@@ -29,66 +29,83 @@ from test.common.ref_progs.classes import ReferenceProgram
 from test.common.ref_progs.getter import get_compiling_reference_programs
 
 
-def analyse_source(source: str) -> Program:
+def __analyse_source(source: str) -> Program:
     """Parse, load and analyse Blip source, the way every consumer will from Stage 3 onwards."""
 
     return analyse(Parser().parse(source))
 
 
-def values_of(program: Program) -> Iterator[Value]:
+def __values_of(program: Program) -> Iterator[Value]:
     """Every value node in the program, which is exactly the set of nodes that must end up with a type."""
 
     for statement in program.statements:
         match statement:
             case Assignment():
-                yield from _values_within(statement.target)
-                yield from _values_within(statement.expression)
+                yield from __values_within(statement.target)
+                yield from __values_within(statement.expression)
 
             case Return():
-                yield from _values_within(statement.expression)
+                yield from __values_within(statement.expression)
 
             case Decomposition():
-                yield from _values_within(statement.target)
+                yield from __values_within(statement.target)
 
                 for element in statement.pattern:
                     if not isinstance(element, Wildcard):
-                        yield from _values_within(element)
+                        yield from __values_within(element)
 
 
-def _values_within(value: Value) -> Iterator[Value]:
+def __values_within(value: Value) -> Iterator[Value]:
     yield value
 
     match value:
         case Concatenation():
             for operand in value.operands:
-                yield from _values_within(operand)
+                yield from __values_within(operand)
 
         case Index():
-            yield from _values_within(value.target)
-            yield from _values_within(value.index)
+            yield from __values_within(value.target)
+            yield from __values_within(value.index)
 
         case ListLiteral():
             for element in value.elements:
-                yield from _values_within(element)
+                yield from __values_within(element)
 
         case _:
             return
+
+
+def __semantic_error(source: str) -> SemanticError:
+    """Analyse source that is expected to be rejected, and hand back the error it raised."""
+
+    with pytest.raises(SemanticError) as raised:
+        __analyse_source(source)
+
+    return raised.value
+
+
+def __get_span_from_error(source: str, error: SemanticError) -> str:
+    """The source a span selects, so a test can say what the caret lands on without counting offsets."""
+
+    assert error.location is not None, f"error carries no span: {error}"
+
+    return source[error.location.offset : error.location.end]
 
 
 @pytest.mark.parametrize("ref", get_compiling_reference_programs())
 def test_reference_program_analyses_cleanly(ref: ReferenceProgram):
     """No reference program is rejected: none of the analyser's rules is a behaviour change for code that already exists."""
 
-    analyse_source(ref.blip_code)
+    __analyse_source(ref.blip_code)
 
 
 @pytest.mark.parametrize("ref", get_compiling_reference_programs())
 def test_every_value_of_a_reference_program_gets_a_type(ref: ReferenceProgram):
     """Invariant 1: analysis succeeding means every value node has a type."""
 
-    program = analyse_source(ref.blip_code)
+    program = __analyse_source(ref.blip_code)
 
-    values = list(values_of(program))
+    values = list(__values_of(program))
     assert all(value.blip_type is not None for value in values), f"untyped values in '{ref.name}'"
 
 
@@ -101,7 +118,7 @@ def test_inferred_return_type_matches_the_recorded_output(ref: ReferenceProgram)
     number. If inference and the interpreter disagreed about a program, this is where it would show.
     """
 
-    program = analyse_source(ref.blip_code)
+    program = __analyse_source(ref.blip_code)
     returns = [statement for statement in program.statements if isinstance(statement, Return)]
 
     if not returns:
@@ -144,7 +161,7 @@ def test_inferred_return_type_matches_the_recorded_output(ref: ReferenceProgram)
 )
 def test_bad_program_raises_semantic_error(source: str):
     with pytest.raises(SemanticError):
-        analyse_source(source)
+        __analyse_source(source)
 
 
 @pytest.mark.parametrize(
@@ -159,8 +176,8 @@ def test_bad_program_raises_semantic_error(source: str):
 def test_adjacent_capturing_pattern_elements_raise_semantic_error(source: str):
     """A capture ends where the literal after it begins, so nothing can satisfy a pattern that puts two captures together."""
 
-    with pytest.raises(SemanticError, match="Ambiguous decomposition pattern"):
-        analyse_source(source)
+    with pytest.raises(SemanticError, match="ambiguous decomposition pattern"):
+        __analyse_source(source)
 
 
 @pytest.mark.parametrize(
@@ -174,7 +191,7 @@ def test_adjacent_capturing_pattern_elements_raise_semantic_error(source: str):
     ],
 )
 def test_a_pattern_whose_captures_are_separated_is_accepted(source: str):
-    analyse_source(source)
+    __analyse_source(source)
 
 
 def test_a_rejected_program_is_not_left_half_annotated():
@@ -185,13 +202,13 @@ def test_a_rejected_program_is_not_left_half_annotated():
     with pytest.raises(SemanticError):
         analyse(program)
 
-    assert all(value.blip_type is None for value in values_of(program))
+    assert all(value.blip_type is None for value in __values_of(program))
 
 
 def test_an_empty_list_takes_its_type_from_how_it_is_used():
     """The showcase for unification: nothing about `[]` says what it holds, and the `ret` is what settles it."""
 
-    program = analyse_source("things = []\nret things")
+    program = __analyse_source("things = []\nret things")
 
     assignment = program.statements[0]
     assert isinstance(assignment, Assignment)
@@ -202,7 +219,7 @@ def test_an_empty_list_takes_its_type_from_how_it_is_used():
 def test_reassignment_refines_a_hole_rather_than_rejecting_it():
     """`x = []` leaves a hole, so a later `x = ["a"]` fills it in. That is the same type becoming known, not a type changing."""
 
-    program = analyse_source('x = []\nx = ["a"]\nret x')
+    program = __analyse_source('x = []\nx = ["a"]\nret x')
 
     returned = program.statements[-1]
     assert isinstance(returned, Return)
@@ -210,7 +227,7 @@ def test_reassignment_refines_a_hole_rather_than_rejecting_it():
 
 
 def test_indexing_a_list_of_strings_gives_a_string():
-    program = analyse_source("idx = 0\nret input[idx]")
+    program = __analyse_source("idx = 0\nret input[idx]")
 
     returned = program.statements[-1]
     assert isinstance(returned, Return)
@@ -223,7 +240,7 @@ def test_indexing_a_list_of_strings_gives_a_string():
 
 
 def test_decomposition_binds_every_captured_name_as_a_string():
-    program = analyse_source('email = "a@b"\nemail -> user "@" *\nret user')
+    program = __analyse_source('email = "a@b"\nemail -> user "@" *\nret user')
 
     decomposition = program.statements[1]
     assert isinstance(decomposition, Decomposition)
@@ -234,7 +251,7 @@ def test_decomposition_binds_every_captured_name_as_a_string():
 
 
 def test_a_named_input_directive_binds_each_name_as_a_string():
-    program = analyse_source("!in username email\nret username")
+    program = __analyse_source("!in username email\nret username")
 
     returned = program.statements[-1]
     assert isinstance(returned, Return)
@@ -242,7 +259,7 @@ def test_a_named_input_directive_binds_each_name_as_a_string():
 
 
 def test_input_is_always_a_list_of_strings():
-    program = analyse_source("ret input")
+    program = __analyse_source("ret input")
 
     returned = program.statements[-1]
     assert isinstance(returned, Return)
@@ -250,7 +267,7 @@ def test_input_is_always_a_list_of_strings():
 
 
 def test_a_nested_list_is_well_typed_even_though_it_cannot_be_returned():
-    program = analyse_source('x = [["a"]]\nret "ok"')
+    program = __analyse_source('x = [["a"]]\nret "ok"')
 
     assignment = program.statements[0]
     assert isinstance(assignment, Assignment)
@@ -259,11 +276,106 @@ def test_a_nested_list_is_well_typed_even_though_it_cannot_be_returned():
 
 def test_a_name_used_twice_in_one_decomposition_pattern_is_ill_formed():
     with pytest.raises(SemanticError):
-        analyse_source('x = "abc"\nx -> dup "b" dup\nret dup')
+        __analyse_source('x = "abc"\nx -> dup "b" dup\nret dup')
 
 
 def test_empty_literals_in_decomposition_are_ill_formed():
     """Empty literals don't affect the pattern, so don't allow them. Keep it simple."""
 
     with pytest.raises(SemanticError):
-        analyse_source('x = input[0]\nx -> "" rest\nret rest')
+        __analyse_source('x = input[0]\nx -> "" rest\nret rest')
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        pytest.param('greeting = "hi"\nret name\n', "name", id="an unbound identifier"),
+        pytest.param('x = "a"\nx = 1\nret x\n', "1", id="the value whose type conflicts"),
+        pytest.param('count = 5\nret "total: " count\n', "count", id="the operand that cannot concatenate"),
+        pytest.param('ret ["a", 1]\n', "1", id="the element that breaks a list's homogeneity"),
+        pytest.param('x = []\nret "ok"\n', "[]", id="the list whose element type is never determined"),
+        pytest.param("n = 5\nn -> a '.' b\nret a\n", "n", id="a decomposition target that is not a string"),
+        pytest.param("x = 'a.b'\nx -> p '.' p\nret p\n", "p", id="the second capture of a repeated name"),
+        pytest.param("x = 'ab'\nx -> p q\nret p\n", "p", id="the first of two adjacent captures"),
+        pytest.param("x = 'a'\nx -> '' p\nret p\n", "''", id="an empty pattern literal"),
+        pytest.param('input = "x"\nret input\n', "input", id="an attempt to rebind the reserved name"),
+        pytest.param("x = []\nret x[0]\n", "x[0]", id="a return whose type could be either"),
+    ],
+)
+def test_a_semantic_error_points_at_the_source_that_caused_it(source: str, expected: str):
+    error = __semantic_error(source)
+
+    assert __get_span_from_error(source, error) == expected
+
+
+@pytest.mark.parametrize(
+    ("source", "note_text"),
+    [
+        pytest.param('x = "a"\nx = 1\nret x\n', "x", id="where a reassigned name was first bound"),
+        pytest.param('count = 5\nret "total: " count\n', "count", id="where a non-string operand was bound"),
+        pytest.param("n = 5\nn -> a '.' b\nret a\n", "n", id="where a non-string decomposition target was bound"),
+        pytest.param("x = 'a.b'\nx -> p '.' p\nret p\n", "p", id="the first capture of a repeated name"),
+        pytest.param("x = 'ab'\nx -> p q\nret p\n", "q", id="the element that follows an ambiguous capture"),
+    ],
+)
+def test_a_two_site_error_points_at_the_other_site_too(source: str, note_text: str):
+    error = __semantic_error(source)
+
+    assert len(error.notes) == 1, f"expected one note, got {error.notes}"
+
+    note = error.notes[0]
+    assert source[note.location.offset : note.location.end] == note_text
+
+
+def test_a_conflict_note_names_the_type_the_earlier_site_bound():
+    """The point of the note is that the two sites disagree, so it has to say what the earlier one decided."""
+
+    error = __semantic_error('x = "a"\nx = 1\nret x\n')
+
+    assert error.notes[0].message == "'x' was bound as 'string' here"
+
+
+def test_a_conflict_with_the_built_in_input_has_no_note():
+    error = __semantic_error("ret input[0] input\n")
+
+    assert error.location is not None
+    assert error.notes == ()
+
+
+def test_an_undetermined_type_names_the_value():
+    error = __semantic_error('x = []\nret "ok"\n')
+
+    assert "cannot infer the type of a list" in str(error)
+
+
+def test_the_return_error_reads_as_a_sentence():
+    error = __semantic_error("x = []\nret x[0]\n")
+
+    assert str(error) == "return expression has unknown type"
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        pytest.param('ret "total: " missing\n', id="inside a concatenation"),
+        pytest.param('ret ["a", missing]\n', id="inside a list literal"),
+        pytest.param('x = ["a"]\nret x[missing]\n', id="inside an index"),
+        pytest.param("missing -> a '.' b\nret a\n", id="as a decomposition target"),
+    ],
+)
+def test_unbound_identifiers_have_simple_error_messages_inside_complex_statements(source: str):
+    error = __semantic_error(source)
+
+    assert str(error) == "'missing' is used but never bound"
+
+
+def test_a_constraint_failure_keeps_both_the_reason_and_the_detail():
+    error = __semantic_error('count = 5\nret "total: " count\n')
+
+    assert str(error) == "only strings can be concatenated: expected 'string', found 'integer'"
+
+
+def test_an_undetermined_type_has_a_friendly_error_message():
+    error = __semantic_error('x = []\nret "ok"\n')
+
+    assert str(error) == "cannot infer the type of a list: no constraint determines it"

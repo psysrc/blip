@@ -52,7 +52,7 @@ def test_adjacent_capturing_pattern_elements_never_reach_the_interpreter():
     This is input-independent, so the analyser should reject this before it reaches the interpreter.
     """
 
-    with pytest.raises(SemanticError, match="Ambiguous decomposition pattern"):
+    with pytest.raises(SemanticError, match="ambiguous decomposition pattern"):
         interpret('x = "ab"\nx -> a b\nret a', [])
 
 

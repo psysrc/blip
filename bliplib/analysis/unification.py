@@ -41,38 +41,36 @@ class Unifier:
 
         return inferred
 
-    def unify(self, left: InferredType, right: InferredType, context: str) -> None:
-        """
-        Constrain two types to be the same type, filling holes as needed.
+    def unify(self, first: InferredType, second: InferredType) -> None:
+        """Constrain two types to be the same type, filling holes as needed."""
 
-        `context` describes what demanded it, and becomes the error message if no solution exists.
-        """
+        first = self.resolve(first)
+        second = self.resolve(second)
 
-        left = self.resolve(left)
-        right = self.resolve(right)
-
-        match (left, right):
-            case (Var(), Var()) if left == right:
+        match (first, second):
+            case (Var(), Var()) if first == second:
                 # Identical holes`, e.g. ?1 and ?1
                 return
 
             case (Var(id=hole), _):
-                self.__fill(hole, right, context)
+                self.__fill_hole(hole, second)
 
             case (_, Var(id=hole)):
-                self.__fill(hole, left, context)
+                self.__fill_hole(hole, first)
 
             case (List(element=left_element), List(element=right_element)):
-                self.unify(left_element, right_element, context)
+                self.unify(left_element, right_element)
 
-            case (Scalar(), Scalar()) if left == right:
+            case (Scalar(), Scalar()) if first == second:
                 # Identical scalars, e.g. "string" and "string"
                 return
 
             case _:
-                raise SemanticError(f"{context}: Cannot unify types '{self.__describe(right)}' and '{self.__describe(left)}'")
+                # TODO: This is used verbatim by the caller but doesn't necessarily have to be
+                # Consider rewriting this and updating the caller
+                raise SemanticError(f"expected '{self.__describe(second)}', found '{self.__describe(first)}'")
 
-    def ground(self, inferred: InferredType, context: str) -> BlipType:
+    def ground(self, inferred: InferredType) -> BlipType:
         """
         Ground the inferred type to a concrete type with no holes. If the inferred type has any holes, raise a `SemanticError`.
         """
@@ -84,17 +82,18 @@ class Unifier:
                 return resolved
 
             case List(element=element):
-                return List(self.ground(element, context))
+                return List(self.ground(element))
 
             case Var():
-                raise SemanticError(f"{context}: Failed to ground the inferred type '{self.__describe(inferred)}'")
+                # The hole's number would mean nothing to anyone reading their own program
+                raise SemanticError("no constraint determines it")
 
-    def __fill(self, hole_id: int, inferred: InferredType, context: str) -> None:
+    def __fill_hole(self, hole_id: int, inferred: InferredType) -> None:
         """Record what a hole stands for, having first checked that it does not stand for something containing itself."""
 
         if self.__occurs(hole_id, inferred):
             # `?1 = list[?1]` is an infinite type. Without this check the substitution would become cyclic.
-            raise SemanticError(f"{context}: ?{hole_id} is cyclical in {self.__describe(inferred)}")
+            raise SemanticError("the type would have to contain itself")
 
         self.__substitution[hole_id] = inferred
 

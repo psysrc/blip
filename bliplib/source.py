@@ -41,6 +41,20 @@ class Span:
         return Span(offset=start, length=length)
 
 
+@dataclass(frozen=True)
+class Note:
+    """
+    A second place worth pointing at, with a line saying why it matters.
+
+    A type conflict is a disagreement between two places, and naming only one of them leaves the reader to find the other.
+    The note travels as a *span* rather than as text because the analyser, which raises these, has no source to turn an
+    offset into a line and column with - that is the CLI's job, and this is what gets it there.
+    """
+
+    location: Span
+    message: str
+
+
 class SourceMap:
     """
     A source text, together with the index needed to turn an offset into a line and column.

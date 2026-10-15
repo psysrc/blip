@@ -10,6 +10,7 @@ value, holes and all, and the second walk turns each of those into a ground type
 stored on a node - `blip_type` cannot hold one - so a node's type is either absent or serialisable, with nothing in between.
 """
 
+from collections.abc import Sequence
 from itertools import pairwise
 
 from bliplib.analysis.environment import INPUT, Environment
@@ -36,7 +37,8 @@ from bliplib.ir.nodes import (
     Value,
     Wildcard,
 )
-from bliplib.ir.types import List, Scalar
+from bliplib.ir.types import BlipType, List, Scalar
+from bliplib.source import Note, Span
 
 
 def analyse(program: Program) -> Program:
@@ -56,7 +58,7 @@ class Analyser:
         self.__environment = Environment()
 
         # A mapping for all values in the program to their inferred types as they are discovered
-        self.__inferred: list[tuple[Value, InferredType]] = []
+        self.__inferred_types: list[tuple[Value, InferredType]] = []
 
     def analyse(self, program: Program) -> Program:
         self.__discover_all_inferred_types(program)
@@ -75,8 +77,8 @@ class Analyser:
     def __resolve_inferred_types(self) -> None:
         """Resolve all inferred types into a grounded concrete type."""
 
-        for value, inferred in self.__inferred:
-            value.blip_type = self.__unifier.ground(inferred, "Static analysis final pass")
+        for value, inferred in self.__inferred_types:
+            value.blip_type = self.__ground(inferred, value)
 
     def __bind_input_directive(self, directives: Directives | None) -> None:
         """A named input directive binds each of its names as a string. A counted or ranged one binds nothing."""
@@ -85,12 +87,12 @@ class Analyser:
             return
 
         match directives.input:
-            case FixedDirective(names=[*names]):
+            case FixedDirective(names=[*names]) as directive:
                 for name in names:
                     if name == INPUT:
-                        raise SemanticError(f"Input directives cannot bind to '{INPUT}'; name is reserved")
+                        raise SemanticError(f"input directives cannot bind to '{INPUT}'; the name is reserved", directive.location)
 
-                    self.__environment.bind(name, Scalar.STRING)
+                    self.__environment.bind(name, Scalar.STRING, directive.location)
 
             case _:
                 return
@@ -98,7 +100,7 @@ class Analyser:
     def __analyse_statement(self, statement: Statement) -> None:
         match statement:
             case Assignment():
-                self.__bind_identifier(statement.target, self.__infer(statement.expression))
+                self.__bind_identifier_type(statement.target, self.__infer_type(statement.expression), statement.expression.location)
 
             case Return():
                 self.__analyse_return(statement)
@@ -114,25 +116,31 @@ class Analyser:
         constrained to a string, a scalar is constrained to be a string, and a bare hole never says which was meant.
         """
 
-        returned = self.__infer(statement.expression)
+        returned = self.__infer_type(statement.expression)
+        location = statement.expression.location
+        reason = "a program can only return a string or a list of strings"
 
         match self.__unifier.resolve(returned):
             case List(element=element):
-                self.__unifier.unify(element, Scalar.STRING, "A program can only return a string or a list of strings")
+                self.__constrain_type(element, Scalar.STRING, reason, location)
 
             case Scalar() as scalar:
-                self.__unifier.unify(scalar, Scalar.STRING, "A program can only return a string or a list of strings")
+                self.__constrain_type(scalar, Scalar.STRING, reason, location)
 
             case Var():
-                raise SemanticError(
-                    "Cannot infer type of return A program must return a string or a list of strings, but this could be either"
-                )
+                raise SemanticError("return expression has unknown type", location)
 
     def __analyse_decomposition(self, statement: Decomposition) -> None:
         """Decomposition takes a string apart, so its target is a string and every name it captures is a string."""
 
-        target = self.__infer(statement.target)
-        self.__unifier.unify(target, Scalar.STRING, f"Only a string can be decomposed, and '{statement.target.name}' is not")
+        target = self.__infer_type(statement.target)
+        self.__constrain_type(
+            target,
+            Scalar.STRING,
+            "only a string can be decomposed",
+            statement.target.location,
+            self.__binding_note(statement.target.name),
+        )
 
         self.__check_pattern_literals_are_not_empty(statement.pattern)
         self.__check_pattern_adjacency(statement.pattern)
@@ -151,7 +159,7 @@ class Analyser:
 
         for element in pattern:
             if isinstance(element, StringLiteral) and element.value == "":
-                raise SemanticError("A decomposition pattern cannot contain an empty string literal")
+                raise SemanticError("a decomposition pattern cannot contain an empty string literal", element.location)
 
     def __check_pattern_adjacency(self, pattern: DecompPattern) -> None:
         """
@@ -166,37 +174,47 @@ class Analyser:
             if isinstance(element, StringLiteral) or isinstance(following, StringLiteral):
                 continue
 
+            notes = []
+            if following.location is not None:
+                notes.append(Note(following.location, f"{describe_pattern_element(following)} follows it, with nothing in between"))
+
             raise SemanticError(
-                f"Ambiguous decomposition pattern: {describe_pattern_element(element)} is followed by {describe_pattern_element(following)}"
+                f"ambiguous decomposition pattern: {describe_pattern_element(element)} is followed by "
+                f"{describe_pattern_element(following)}",
+                element.location,
+                notes,
             )
 
     def __check_pattern_captures_are_distinct(self, pattern: DecompPattern) -> None:
         """A pattern can only capture each name at most once."""
 
-        captured: set[str] = set()
+        captured: dict[str, Span | None] = {}
 
         for element in pattern:
             if not isinstance(element, Identifier):
                 continue
 
             if element.name in captured:
-                raise SemanticError(f"A decomposition pattern cannot capture '{element.name}' more than once")
+                first = captured[element.name]
+                notes = [Note(first, f"'{element.name}' is already captured here")] if first is not None else []
 
-            captured.add(element.name)
+                raise SemanticError(f"a decomposition pattern cannot capture '{element.name}' more than once", element.location, notes)
+
+            captured[element.name] = element.location
 
     def __analyse_pattern_element(self, element: PatternElement) -> None:
         match element:
             case Identifier():
-                self.__bind_identifier(element, Scalar.STRING)
+                self.__bind_identifier_type(element, Scalar.STRING)
 
             case StringLiteral():
-                self.__infer(element)
+                self.__infer_type(element)
 
             case Wildcard():
                 # A wildcard matches anything and captures nothing, so it has no type and binds no name
                 return
 
-    def __bind_identifier(self, identifier: Identifier, inferred: InferredType) -> None:
+    def __bind_identifier_type(self, identifier: Identifier, inferred: InferredType, location: Span | None = None) -> None:
         """
         Bind an identifier to a type, and record the type of the identifier that names it.
 
@@ -205,23 +223,31 @@ class Analyser:
         are already grounded, unification is exactly a comparison, so `x = "a"` followed by `x = 1` is still an error.
         """
 
+        # Where the offending type came from. For a decomposition capture that is the identifier itself; for an assignment
+        # it is the expression on the right, which is the part a reader needs to look at.
+        location = location if location is not None else identifier.location
+
         existing = self.__environment.get_bound_type(identifier.name)
 
         if existing is None:
-            self.__environment.bind(identifier.name, inferred)
+            self.__environment.bind(identifier.name, inferred, identifier.location)
             bound = inferred
         else:
             if identifier.name == INPUT:
-                raise SemanticError(f"'{INPUT}' is reserved and cannot be re-assigned")
+                raise SemanticError(f"'{INPUT}' is reserved and cannot be re-assigned", identifier.location)
 
-            self.__unifier.unify(
-                inferred, existing, f"Binding identifier '{identifier.name}' to inferred type '{describe_inferred_type(inferred)}'"
+            self.__constrain_type(
+                inferred,
+                existing,
+                f"cannot assign to '{identifier.name}'",
+                location,
+                self.__binding_note(identifier.name),
             )
             bound = existing
 
         self.__record(identifier, bound)
 
-    def __infer(self, value: Value) -> InferredType:
+    def __infer_type(self, value: Value) -> InferredType:
         """Infer a value's type, recording it so that the resolution pass can ground it later."""
 
         inferred = self.__infer_uncollected(value)
@@ -241,20 +267,38 @@ class Analyser:
                 return Scalar.BOOLEAN
 
             case Identifier():
-                return self.__environment.lookup(value.name)
+                return self.__environment.lookup(value.name, value.location)
 
             case Concatenation():
                 for operand in value.operands:
-                    self.__unifier.unify(self.__infer(operand), Scalar.STRING, "Only strings can be concatenated")
+                    self.__constrain_type(
+                        self.__infer_type(operand),
+                        Scalar.STRING,
+                        "only strings can be concatenated",
+                        operand.location,
+                        self.__binding_note_for(operand),
+                    )
 
                 return Scalar.STRING
 
             case Index():
                 element = self.__unifier.fresh()
-                target = self.__infer(value.target)
+                target = self.__infer_type(value.target)
 
-                self.__unifier.unify(target, List(element), f"Only a list can be indexed, and '{value.target.name}' is not")
-                self.__unifier.unify(self.__infer(value.index), Scalar.INTEGER, "A list index must be an integer")
+                self.__constrain_type(
+                    target,
+                    List(element),
+                    "only a list can be indexed",
+                    value.target.location,
+                    self.__binding_note(value.target.name),
+                )
+                self.__constrain_type(
+                    self.__infer_type(value.index),
+                    Scalar.INTEGER,
+                    "a list index must be an integer",
+                    value.index.location,
+                    self.__binding_note_for(value.index),
+                )
 
                 return element
 
@@ -264,12 +308,63 @@ class Analyser:
                 element = self.__unifier.fresh()
 
                 for item in value.elements:
-                    self.__unifier.unify(self.__infer(item), element, "Every element of a list must have the same type")
+                    self.__constrain_type(
+                        self.__infer_type(item), element, "every element of a list must have the same type", item.location
+                    )
 
                 return List(element)
 
+    def __constrain_type(
+        self,
+        found: InferredType,
+        expected: InferredType,
+        reason: str,
+        location: Span | None = None,
+        notes: Sequence[Note] = (),
+    ) -> None:
+        """Require two types to be the same, and explain it if they cannot be."""
+
+        try:
+            self.__unifier.unify(found, expected)
+
+        except SemanticError as err:
+            raise SemanticError(f"{reason}: {err}", location, notes) from err
+
+    def __ground(self, inferred: InferredType, value: Value) -> BlipType:
+        """Resolve an inferred type to a concrete one, naming the value if nothing ever pinned it down."""
+
+        try:
+            return self.__unifier.ground(inferred)
+
+        except SemanticError as err:
+            raise SemanticError(f"cannot infer the type of {describe_value(value)}: {err}", value.location) from err
+
     def __record(self, value: Value, inferred: InferredType) -> None:
-        self.__inferred.append((value, inferred))
+        self.__inferred_types.append((value, inferred))
+
+    def __binding_note(self, name: str) -> list[Note]:
+        """
+        A note pointing at where a name was bound, for an error about its type.
+
+        Empty when there is nothing useful to point at: `input` is bound before any source is read, and a program loaded
+        from a `.blipir` carries no spans at all. A conflict then reports one site instead of two, which is the honest
+        outcome rather than a guess.
+        """
+
+        location = self.__environment.get_bound_location(name)
+
+        if location is None:
+            return []
+
+        inferred = self.__environment.get_bound_type(name)
+        described = describe_inferred_type(self.__unifier.resolve(inferred)) if inferred is not None else "something"
+
+        return [Note(location, f"'{name}' was bound as '{described}' here")]
+
+    def __binding_note_for(self, value: Value) -> list[Note]:
+        """The same note, when the offending expression may or may not turn out to be a plain variable."""
+
+        return self.__binding_note(value.name) if isinstance(value, Identifier) else []
 
 
 def describe_pattern_element(element: PatternElement) -> str:

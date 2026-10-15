@@ -11,8 +11,6 @@ from bliplib.analysis import InferredType, Unifier, Var, describe_inferred_type
 from bliplib.errors import SemanticError
 from bliplib.ir.types import List, Scalar
 
-CONTEXT = "while testing"
-
 
 @pytest.fixture
 def unifier():
@@ -31,14 +29,14 @@ def test_an_unbound_hole_resolves_to_itself(unifier: Unifier):
 
 def test_unifying_a_hole_with_a_type_fills_the_hole(unifier: Unifier):
     hole = unifier.fresh()
-    unifier.unify(hole, Scalar.STRING, CONTEXT)
+    unifier.unify(hole, Scalar.STRING)
 
     assert unifier.resolve(hole) == Scalar.STRING
 
 
 def test_a_hole_is_filled_from_either_side(unifier: Unifier):
     hole = unifier.fresh()
-    unifier.unify(Scalar.INTEGER, hole, CONTEXT)
+    unifier.unify(Scalar.INTEGER, hole)
 
     assert unifier.resolve(hole) == Scalar.INTEGER
 
@@ -48,36 +46,36 @@ def test_holes_chain(unifier: Unifier):
 
     first, second, third = unifier.fresh(), unifier.fresh(), unifier.fresh()
 
-    unifier.unify(first, second, CONTEXT)
-    unifier.unify(second, third, CONTEXT)
-    unifier.unify(third, Scalar.BOOLEAN, CONTEXT)
+    unifier.unify(first, second)
+    unifier.unify(second, third)
+    unifier.unify(third, Scalar.BOOLEAN)
 
     assert unifier.resolve(first) == Scalar.BOOLEAN
 
 
 def test_unifying_a_hole_with_itself_learns_nothing(unifier: Unifier):
     hole = unifier.fresh()
-    unifier.unify(hole, hole, CONTEXT)
+    unifier.unify(hole, hole)
 
     assert unifier.resolve(hole) == hole
 
 
 def test_unifying_two_lists_recurses_into_their_elements(unifier: Unifier):
     hole = unifier.fresh()
-    unifier.unify(List(hole), List(Scalar.STRING), CONTEXT)
+    unifier.unify(List(hole), List(Scalar.STRING))
 
     assert unifier.resolve(hole) == Scalar.STRING
 
 
 def test_unifying_nested_lists_recurses_all_the_way_down(unifier: Unifier):
     hole = unifier.fresh()
-    unifier.unify(List(List(hole)), List(List(Scalar.INTEGER)), CONTEXT)
+    unifier.unify(List(List(hole)), List(List(Scalar.INTEGER)))
 
     assert unifier.resolve(hole) == Scalar.INTEGER
 
 
 def test_unifying_two_identical_scalars_is_allowed(unifier: Unifier):
-    unifier.unify(Scalar.STRING, Scalar.STRING, CONTEXT)
+    unifier.unify(Scalar.STRING, Scalar.STRING)
 
 
 @pytest.mark.parametrize(
@@ -91,7 +89,7 @@ def test_unifying_two_identical_scalars_is_allowed(unifier: Unifier):
 )
 def test_types_that_cannot_be_made_equal_raise(unifier: Unifier, left: InferredType, right: InferredType):
     with pytest.raises(SemanticError):
-        unifier.unify(left, right, CONTEXT)
+        unifier.unify(left, right)
 
 
 def test_the_occurs_check_rejects_an_infinite_type(unifier: Unifier):
@@ -100,53 +98,53 @@ def test_the_occurs_check_rejects_an_infinite_type(unifier: Unifier):
     hole = unifier.fresh()
 
     with pytest.raises(SemanticError):
-        unifier.unify(hole, List(hole), CONTEXT)
+        unifier.unify(hole, List(hole))
 
 
 def test_the_occurs_check_looks_at_every_depth(unifier: Unifier):
     hole = unifier.fresh()
 
     with pytest.raises(SemanticError):
-        unifier.unify(hole, List(List(hole)), CONTEXT)
+        unifier.unify(hole, List(List(hole)))
 
 
 def test_the_occurs_check_sees_through_a_chain(unifier: Unifier):
     first, second = unifier.fresh(), unifier.fresh()
-    unifier.unify(first, second, CONTEXT)
+    unifier.unify(first, second)
 
     with pytest.raises(SemanticError):
-        unifier.unify(second, List(first), CONTEXT)
+        unifier.unify(second, List(first))
 
 
 def test_grounding_digs_all_the_way_down(unifier: Unifier):
     inner, outer = unifier.fresh(), unifier.fresh()
 
-    unifier.unify(inner, Scalar.STRING, CONTEXT)
-    unifier.unify(outer, List(inner), CONTEXT)
+    unifier.unify(inner, Scalar.STRING)
+    unifier.unify(outer, List(inner))
 
-    assert unifier.ground(List(outer), CONTEXT) == List(List(Scalar.STRING))
+    assert unifier.ground(List(outer)) == List(List(Scalar.STRING))
 
 
 def test_grounding_an_unbound_hole_raises(unifier: Unifier):
     """This is what makes a resolved tree serialisable: a hole can never reach a value node's type."""
 
     with pytest.raises(SemanticError):
-        unifier.ground(unifier.fresh(), CONTEXT)
+        unifier.ground(unifier.fresh())
 
 
 def test_grounding_a_hole_nested_in_a_list_raises(unifier: Unifier):
     with pytest.raises(SemanticError):
-        unifier.ground(List(unifier.fresh()), CONTEXT)
+        unifier.ground(List(unifier.fresh()))
 
 
 def test_an_error_message_resolves_what_it_already_knows(unifier: Unifier):
     """A hole that has been filled should appear in a message as what it stands for, not as `?1`."""
 
     hole = unifier.fresh()
-    unifier.unify(hole, Scalar.STRING, CONTEXT)
+    unifier.unify(hole, Scalar.STRING)
 
     with pytest.raises(SemanticError, match=r"list\[string\]"):
-        unifier.unify(List(hole), Scalar.INTEGER, CONTEXT)
+        unifier.unify(List(hole), Scalar.INTEGER)
 
 
 @pytest.mark.parametrize(

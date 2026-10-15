@@ -90,3 +90,14 @@ def test_a_lexical_error_reports_what_failed_and_where():
     assert result.returncode != 0
     assert result.stderr.startswith("<stdin>:2:10: parser error: ")
     assert "Unknown syntax near characters" in result.stderr
+
+
+def test_a_type_conflict_is_reported_at_both_sites():
+    result = run_blip(["--check"], SEMANTIC_ERROR)
+
+    assert result.returncode != 0
+    assert result.stderr.startswith("<stdin>:2:5: semantic error: ")
+    assert "<stdin>:1:1: note: 'x' was bound as 'string' here" in result.stderr
+
+    assert '\n1 | x = "a"\n' in result.stderr
+    assert "\n2 | x = 1\n" in result.stderr
