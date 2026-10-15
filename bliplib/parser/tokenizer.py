@@ -58,7 +58,8 @@ class Token:
     location: Span = field(kw_only=True, compare=False, repr=False)
 
     def __str__(self) -> str:
-        return f"TOKEN['{self.type}' | '{self.value}']"
+        escaped_value = self.value.replace("\n", "\\n").replace("\r", "\\r")
+        return f"{self.type}['{escaped_value}']"
 
 
 class Tokenizer:
