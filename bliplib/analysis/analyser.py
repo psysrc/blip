@@ -155,7 +155,7 @@ class Analyser:
         self.__constrain_type(
             self.__infer_type(target),
             Scalar.STRING,
-            "only a string can be decomposed",
+            "only strings can be decomposed",
             target.location,
             self.__binding_note(target.name),
         )

@@ -536,7 +536,7 @@ def test_input_stays_reserved_inside_a_branch():
 def test_a_decomposition_condition_must_target_a_string():
     error = __semantic_error("n = 3\nif n -> head '.' tail { ret 'yes' }\n")
 
-    assert "only a string can be decomposed" in str(error)
+    assert "only strings can be decomposed" in str(error)
 
 
 @pytest.mark.parametrize(

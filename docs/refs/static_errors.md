@@ -88,33 +88,6 @@ SemanticError
   |     ^^^^^^^^
 ```
 
-## Non-String Decomposition Target
-
-Decomposition takes a string apart, so only a string can be decomposed.
-
-#### Blip code
-
-```blip
-count = 5
-count -> first "," second
-
-ret first
-```
-
-#### Error
-
-```text
-SemanticError
-<stdin>:2:1: semantic error: only a string can be decomposed: expected 'string', found 'integer'
-  |
-2 | count -> first "," second
-  | ^^^^^
-<stdin>:1:1: note: 'count' was bound as 'integer' here
-  |
-1 | count = 5
-  | ^^^^^
-```
-
 ## Heterogeneous List
 
 A list is homogeneous: every element has the same type. A list mixing strings and integers has no element type.

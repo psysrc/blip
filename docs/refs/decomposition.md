@@ -478,3 +478,30 @@ ret "found"
 |`["."]`|`["found"]`|
 |`["abc"]`|`Error`|
 |`[""]`|`Error`|
+
+## Non-String Decomposition Target
+
+Only strings can be decomposed.
+
+#### Blip code
+
+```blip
+count = 5
+count -> first "," second
+
+ret first
+```
+
+#### Error
+
+```text
+SemanticError
+<stdin>:2:1: semantic error: only strings can be decomposed: expected 'string', found 'integer'
+  |
+2 | count -> first "," second
+  | ^^^^^
+<stdin>:1:1: note: 'count' was bound as 'integer' here
+  |
+1 | count = 5
+  | ^^^^^
+```
