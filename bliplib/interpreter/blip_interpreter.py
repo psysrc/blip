@@ -3,6 +3,7 @@ Implements the Interpreter class.
 """
 
 import re
+from collections.abc import Sequence
 
 from bliplib.decomposition import FLAGS, describe_pattern, pattern_regex
 from bliplib.errors import InterpreterError
@@ -10,7 +11,10 @@ from bliplib.ir import (
     Assignment,
     BooleanLiteral,
     Concatenation,
+    Condition,
     Decomposition,
+    DecompPattern,
+    DecompTest,
     Directive,
     FixedDirective,
     Identifier,
@@ -71,16 +75,31 @@ class Interpreter:
         inputs: list[BlipValue] = [*input_strings]
         self.__variables[INPUT] = inputs
 
-        for statement in self.__program.statements:
+        result = self.__interpret_block(self.__program.statements)
+
+        if result is None:
+            raise InterpreterError("Program halted without returning a value")
+
+        if directives is not None and directives.output is not None:
+            self.__validate_program_output(result, directives.output)
+
+        return result
+
+    def __interpret_block(self, statements: Sequence[Statement]) -> list[str] | None:
+        """
+        Run statements until one of them returns, and hand that result straight back.
+
+        `None` means the block ran to its end without returning. A `ret` inside a block ends the whole program rather than
+        just the block, so the result has to travel all the way out - which is what every caller passing it upwards does.
+        """
+
+        for statement in statements:
             result = self.__interpret_statement(statement)
 
             if result is not None:
-                if directives is not None and directives.output is not None:
-                    self.__validate_program_output(result, directives.output)
-
                 return result
 
-        raise InterpreterError("Program halted without returning a value")
+        return None
 
     def __validate_program_input(self, inputs: list[str], directive: Directive) -> None:
         try:
@@ -126,7 +145,7 @@ class Interpreter:
                 return None
 
             case If():
-                raise InterpreterError("'if' statements are not interpreted yet")
+                return self.__interpret_if(statement)
 
     def __interpret_assignment(self, statement: Assignment) -> None:
         self.__variables[statement.target.name] = self.__interpret_expression(statement.expression)
@@ -146,18 +165,54 @@ class Interpreter:
             case unreturnable:
                 raise InterpreterError(f"Blip programs cannot return '{type(unreturnable).__name__}'")
 
+    def __interpret_if(self, statement: If) -> list[str] | None:
+        """Run whichever branch the condition selects, and pass on whatever that branch returns."""
+
+        if self.__condition_holds(statement.condition):
+            return self.__interpret_block(statement.body)
+
+        return self.__interpret_block(statement.otherwise or [])
+
+    def __condition_holds(self, condition: Condition) -> bool:
+        """Whether an `if` takes its first branch."""
+
+        match condition:
+            case DecompTest():
+                return self.__decomposition_matches(_as_string(self.__interpret_identifier(condition.target)), condition.pattern)
+
+            case _:
+                evaluated = self.__interpret_expression(condition)
+
+                if not isinstance(evaluated, bool):
+                    raise InterpreterError(f"Expected a boolean condition, but got {type(evaluated).__name__}")
+
+                return evaluated
+
     def __interpret_decomposition(self, statement: Decomposition) -> None:
         """Decompose a string according to a pattern, binding any variables that the pattern captures."""
 
         original = _as_string(self.__interpret_identifier(statement.target))
         pattern = statement.pattern
 
+        if not self.__decomposition_matches(original, pattern):
+            raise InterpreterError(f"Decomposition failed: '{original}' does not match the pattern '{describe_pattern(pattern)}'")
+
+    def __decomposition_matches(self, original: str, pattern: DecompPattern) -> bool:
+        """
+        Try a pattern against a string, binding every capture if it fits, and report whether it did.
+
+        This is the whole of what a decomposition statement and an `if` condition share. The difference between them is only
+        what they do with a `False`: the statement halts the program, the condition takes its other branch.
+        """
+
         matched = re.fullmatch(pattern_regex(pattern), original, flags=FLAGS)
 
         if matched is None:
-            raise InterpreterError(f"Decomposition failed: '{original}' does not match the pattern '{describe_pattern(pattern)}'")
+            return False
 
         self.__variables.update(matched.groupdict())
+
+        return True
 
     def __interpret_expression(self, value: Value) -> BlipValue:
         """Evaluate a Blip value."""

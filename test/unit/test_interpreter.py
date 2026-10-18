@@ -12,6 +12,8 @@ import pytest
 from bliplib.analysis import analyse
 from bliplib.errors import InterpreterError, SemanticError
 from bliplib.interpreter import Interpreter
+from bliplib.ir import If, IntegerLiteral, Program, Return, StringLiteral
+from bliplib.ir.types import Scalar
 from bliplib.parser import Parser
 
 
@@ -77,3 +79,25 @@ def test_indexing_with_a_variable_works():
 
 def test_values_of_every_type_round_trip_through_a_variable():
     assert interpret('n = 987\nb = true\ns = "blue"\nret [s, "black"]', []) == ["blue", "black"]
+
+
+def test_a_return_inside_a_branch_is_still_checked_against_the_output_directive():
+    """A `ret` in a block ends the whole program, so the result has to reach the directive check on its way out."""
+
+    with pytest.raises(InterpreterError, match="validation failed"):
+        interpret('!out 2\nflag = true\nif flag {\n  ret "only one"\n}\n', [])
+
+
+def test_a_condition_that_is_not_a_boolean_never_reaches_the_interpreter():
+    program = Program(
+        statements=[
+            If(
+                # TODO: This should really be caught by the type checker
+                condition=IntegerLiteral(value=3, blip_type=Scalar.INTEGER),
+                body=[Return(expression=StringLiteral(value="taken", blip_type=Scalar.STRING))],
+            )
+        ]
+    )
+
+    with pytest.raises(InterpreterError, match="Expected a boolean condition"):
+        Interpreter(program).run([])
