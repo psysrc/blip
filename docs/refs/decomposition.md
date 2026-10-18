@@ -592,3 +592,136 @@ SemanticError
 2 | x -> "" rest
   |      ^^
 ```
+
+## Conditional Decomposition With An Else
+
+An `else` block runs when the decomposition fails.
+
+#### Blip code
+
+```blip
+!in 1
+!out 1
+
+data = input[0]
+
+if data -> "[" num "]" {
+    ret "found number: " num
+} else {
+    ret "not a bracketed number"
+}
+```
+
+#### Blip IR
+
+<details>
+<summary><i>Expand...</i></summary>
+
+```json
+{
+    "type": "program",
+    "statements": [
+        {
+            "type": "assignment",
+            "identifier": {
+                "type": "identifier",
+                "blip_type": "string",
+                "name": "data"
+            },
+            "expression": {
+                "type": "index",
+                "blip_type": "string",
+                "identifier": {
+                    "type": "identifier",
+                    "blip_type": "list[string]",
+                    "name": "input"
+                },
+                "index": {
+                    "type": "integer_literal",
+                    "blip_type": "integer",
+                    "value": 0
+                }
+            }
+        },
+        {
+            "type": "if",
+            "condition": {
+                "type": "decomposition_test",
+                "identifier": {
+                    "type": "identifier",
+                    "blip_type": "string",
+                    "name": "data"
+                },
+                "pattern": [
+                    {
+                        "type": "string_literal",
+                        "blip_type": "string",
+                        "value": "["
+                    },
+                    {
+                        "type": "identifier",
+                        "blip_type": "string",
+                        "name": "num"
+                    },
+                    {
+                        "type": "string_literal",
+                        "blip_type": "string",
+                        "value": "]"
+                    }
+                ]
+            },
+            "body": [
+                {
+                    "type": "return",
+                    "expression": {
+                        "type": "concatenation",
+                        "blip_type": "string",
+                        "operands": [
+                            {
+                                "type": "string_literal",
+                                "blip_type": "string",
+                                "value": "found number: "
+                            },
+                            {
+                                "type": "identifier",
+                                "blip_type": "string",
+                                "name": "num"
+                            }
+                        ]
+                    }
+                }
+            ],
+            "else": [
+                {
+                    "type": "return",
+                    "expression": {
+                        "type": "string_literal",
+                        "blip_type": "string",
+                        "value": "not a bracketed number"
+                    }
+                }
+            ]
+        }
+    ],
+    "directives": {
+        "input": {
+            "type": "fixed",
+            "value": 1
+        },
+        "output": {
+            "type": "fixed",
+            "value": 1
+        }
+    }
+}
+```
+
+</details>
+
+#### Execution
+
+|Input|Output|
+|-----|------|
+|`["[123]"]`|`["found number: 123"]`|
+|`["abc"]`|`["not a bracketed number"]`|
+|`["[]"]`|`["found number: "]`|
