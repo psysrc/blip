@@ -5,12 +5,15 @@ from bliplib.ir import (
     Assignment,
     BooleanLiteral,
     Concatenation,
+    Condition,
     Decomposition,
     DecompPattern,
+    DecompTest,
     Directive,
     Directives,
     FixedDirective,
     Identifier,
+    If,
     Index,
     IntegerLiteral,
     ListLiteral,
@@ -163,10 +166,17 @@ class Parser:
 
         return Program(statements=statements, directives=directives)
 
-    def __parse_statements(self) -> list[Statement]:
+    def __parse_statements(self, *terminators: str) -> list[Statement]:
+        """
+        Parse statements until a terminator is at the head of the stream, leaving the terminator unconsumed.
+
+        `EOF` always stops it, on top of whatever is passed. A block that never closes therefore stops at the end of the
+        source instead of running off it, and leaves `__parse_block` to report the brace it was waiting for.
+        """
+
         statements: list[Statement] = []
 
-        while self.__token.type != "EOF":
+        while self.__token.type != "EOF" and self.__token.type not in terminators:
             match self.__token.type:
                 case "EOL":
                     self.__consume_token("EOL")
@@ -177,11 +187,77 @@ class Parser:
                 case "RETURN":
                     statements.append(self.__parse_return_statement())
 
+                case "IF":
+                    statements.append(self.__parse_if_statement())
+
                 case _:
                     err = f"Unexpected token {self.__token} while parsing program statements"
                     raise ParserError(err, self.__span)
 
         return statements
+
+    def __consume_statement_terminator(self) -> None:
+        """
+        Consume whatever ends a statement.
+
+        A newline or the end of the source ends one, and is consumed. A closing brace ends one too - the last statement in a
+        block needs no newline after it - but that brace belongs to the block, so it is left for `__parse_block` to take.
+        """
+
+        if self.__token.type == "}":
+            return
+
+        self.__consume_token("EOL", "EOF")
+
+    def __parse_block(self) -> list[Statement]:
+        """Parse a braced block, consuming both braces."""
+
+        self.__consume_token("{")
+        statements = self.__parse_statements("}")
+        self.__consume_token("}")
+
+        return statements
+
+    def __parse_if_statement(self) -> If:
+        """
+        Parse an `if` and its optional `else`.
+
+        Unlike every other statement, this consumes no terminator after the closing brace. A block already ends
+        unambiguously, and demanding a newline after it would reject `} else {`; the statement loop absorbs the `EOL` that
+        usually follows.
+        """
+
+        start = self.__span
+        self.__consume_token("IF")
+
+        condition = self.__parse_condition()
+        body = self.__parse_block()
+
+        otherwise: list[Statement] | None = None
+
+        if self.__token.type == "ELSE":
+            self.__consume_token("ELSE")
+            otherwise = self.__parse_block()
+
+        return If(condition=condition, body=body, otherwise=otherwise, location=self.__span_from(start))
+
+    def __parse_condition(self) -> Condition:
+        """Parse an `if` condition."""
+
+        start = self.__span
+        expression = self.__parse_expression()
+
+        if self.__token.type != "->":
+            return expression
+
+        if not isinstance(expression, Identifier):
+            raise ParserError("Only a variable can be decomposed", expression.location)
+
+        self.__consume_token("->")
+        pattern = self.__parse_decomposition_pattern("{")
+
+        # The condition ends at its last pattern element, not at the brace that opens the block
+        return DecompTest(target=expression, pattern=pattern, location=self.__span_from(start))
 
     def __parse_ambiguous_identifier_statement(self) -> Statement:
         start = self.__span
@@ -199,9 +275,25 @@ class Parser:
     def __parse_decomposition_statement(self, identifier: Identifier, start: Span) -> Decomposition:
         self.__consume_token("->")
 
+        pattern = self.__parse_decomposition_pattern()
+
+        terminator = self.__span_from(start)
+        self.__consume_statement_terminator()
+
+        # The statement ends at its last pattern element, not at the newline that terminates it
+        return Decomposition(target=identifier, pattern=pattern, location=terminator)
+
+    def __parse_decomposition_pattern(self, *terminators: str) -> DecompPattern:
+        """
+        Parse the elements of a decomposition pattern, stopping before a terminator without consuming it.
+
+        `EOL` and `EOF` always stop it, on top of whatever is passed. For a statement that is the end of it; for a condition
+        it means the `{` never arrived, and `__parse_block` is the one that says so.
+        """
+
         pattern: DecompPattern = []
 
-        while self.__token.type not in {"EOL", "EOF"}:
+        while self.__token.type not in {"EOL", "EOF", "}", *terminators}:
             match self.__token.type:
                 case "IDENTIFIER":
                     pattern.append(self.__parse_identifier())
@@ -211,13 +303,9 @@ class Parser:
                     pattern.append(self.__parse_decomposition_wildcard())
 
                 case _:
-                    raise ParserError(f"Unexpected token {self.__token.type} while parsing decomposition statement", self.__span)
+                    raise ParserError(f"Unexpected token {self.__token.type} while parsing decomposition pattern", self.__span)
 
-        terminator = self.__span_from(start)
-        self.__consume_token("EOL", "EOF")
-
-        # The statement ends at its last pattern element, not at the newline that terminates it
-        return Decomposition(target=identifier, pattern=pattern, location=terminator)
+        return pattern
 
     def __parse_decomposition_wildcard(self) -> Wildcard:
         span = self.__span
@@ -317,7 +405,7 @@ class Parser:
         expression = self.__parse_expression()
 
         span = self.__span_from(start)
-        self.__consume_token("EOL", "EOF")
+        self.__consume_statement_terminator()
 
         return Assignment(target=identifier, expression=expression, location=span)
 
@@ -328,7 +416,7 @@ class Parser:
         expression = self.__parse_expression()
 
         span = self.__span_from(start)
-        self.__consume_token("EOL", "EOF")
+        self.__consume_statement_terminator()
 
         return Return(expression=expression, location=span)
 

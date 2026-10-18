@@ -20,6 +20,8 @@ _SOURCES = [
     pytest.param("// a header\n\n!in 2\nret input[0]\n", id="comments, blank lines and a directive"),
     pytest.param("a = 1; b = true; ret 'x'", id="semicolon-separated statements"),
     pytest.param('x = "multi\nline\nliteral"\nret x', id="a literal containing newlines"),
+    pytest.param('if flag {\n  ret "yes"\n} else {\n  ret "no"\n}\n', id="an if with an else"),
+    pytest.param('if email -> user "@" * { ret user }', id="a conditional decomposition on one line"),
     pytest.param("", id="an empty source"),
 ]
 
@@ -134,6 +136,20 @@ def test_a_keyword_is_matched_before_the_identifier_that_contains_it():
 
     assert [token.type for token in tokens_of("ret")] == ["RETURN", "EOF"]
     assert [token.type for token in tokens_of("retry")] == ["IDENTIFIER", "EOF"]
+
+
+def test_the_control_flow_keywords_are_matched_before_identifiers():
+    """`if` and `else` are subject to the same ordering rule, so a name that merely starts with one stays a name."""
+
+    assert [token.type for token in tokens_of("if")] == ["IF", "EOF"]
+    assert [token.type for token in tokens_of("else")] == ["ELSE", "EOF"]
+
+    assert [token.type for token in tokens_of("iffy")] == ["IDENTIFIER", "EOF"]
+    assert [token.type for token in tokens_of("elsewhere")] == ["IDENTIFIER", "EOF"]
+
+
+def test_braces_are_their_own_tokens():
+    assert [token.type for token in tokens_of("{}")] == ["{", "}", "EOF"]
 
 
 def test_unknown_syntax_is_quoted_from_where_it_failed():

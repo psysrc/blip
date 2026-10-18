@@ -9,9 +9,11 @@ from bliplib.ir import (
     BooleanLiteral,
     Concatenation,
     Decomposition,
+    DecompTest,
     Directives,
     FixedDirective,
     Identifier,
+    If,
     Index,
     IntegerLiteral,
     ListLiteral,
@@ -38,11 +40,11 @@ def __get_located_nodes(node: object, depth: int = 0) -> Generator[tuple[int, Lo
         yield depth, node
         depth += 1
 
-    for plural in ("statements", "operands", "elements", "pattern"):
+    for plural in ("statements", "operands", "elements", "pattern", "body", "otherwise"):
         for child in getattr(node, plural, None) or []:
             yield from __get_located_nodes(child, depth)
 
-    for singular in ("target", "expression", "index", "input", "output", "directives"):
+    for singular in ("target", "expression", "index", "input", "output", "directives", "condition"):
         child = getattr(node, singular, None)
         if child is not None:
             yield from __get_located_nodes(child, depth)
@@ -274,6 +276,8 @@ def test_a_repeated_directive_replaces_the_earlier_one(parser: Parser):
         pytest.param("!in raw\n!out 1\n\nret raw\n", id="directives, blank lines and a comment-free header"),
         pytest.param('// header\n\nret input[0] " and " input[1]\n', id="indexing and concatenation after a comment"),
         pytest.param("a = 1; b = true; ret 'x'", id="semicolon-separated statements"),
+        pytest.param('flag = true\nif flag {\n  ret "yes"\n}\nret "no"\n', id="an if with a boolean condition"),
+        pytest.param('e = "a@b"\nif e -> user "@" * {\n  ret user\n} else {\n  ret "none"\n}\n', id="a conditional decomposition"),
     ],
 )
 def test_every_node_span_slices_back_to_the_source_it_came_from(parser: Parser, blip_code: str):
@@ -290,6 +294,8 @@ def test_every_node_span_slices_back_to_the_source_it_came_from(parser: Parser, 
         pytest.param('name = "bob"\nret name\n', id="an assignment and a return"),
         pytest.param('email -> username "@" *\nret username\n', id="a decomposition with a wildcard"),
         pytest.param('ret input[0] " and " input[1]\n', id="indexing and concatenation"),
+        pytest.param('flag = true\nif flag {\n  ret "yes"\n}\nret "no"\n', id="an if with a boolean condition"),
+        pytest.param('e = "a@b"\nif e -> user "@" * {\n  ret user\n} else {\n  ret "none"\n}\n', id="a conditional decomposition"),
     ],
 )
 def test_a_node_span_contains_the_spans_of_its_children(parser: Parser, blip_code: str):
@@ -371,3 +377,110 @@ def test_the_parser_leaves_every_type_unset(parser: Parser):
     assert isinstance(assignment, Assignment)
     assert assignment.target.blip_type is None
     assert assignment.expression.blip_type is None
+
+
+def test_an_if_with_a_boolean_condition_parses(parser: Parser):
+    program = parser.parse('flag = true\nif flag {\n  ret "yes"\n}\n')
+
+    assert program.statements[1] == If(
+        condition=Identifier(name="flag"),
+        body=[Return(expression=StringLiteral(value="yes"))],
+        otherwise=None,
+    )
+
+
+def test_an_if_with_an_else_parses(parser: Parser):
+    program = parser.parse('flag = true\nif flag {\n  ret "yes"\n} else {\n  ret "no"\n}\n')
+
+    assert program.statements[1] == If(
+        condition=Identifier(name="flag"),
+        body=[Return(expression=StringLiteral(value="yes"))],
+        otherwise=[Return(expression=StringLiteral(value="no"))],
+    )
+
+
+def test_a_conditional_decomposition_parses(parser: Parser):
+    """The `->` after the condition is what tells a decomposition test from an ordinary expression."""
+
+    program = parser.parse('e = "a@b"\nif e -> user "@" * {\n  ret user\n}\n')
+
+    assert program.statements[1] == If(
+        condition=DecompTest(
+            target=Identifier(name="e"),
+            pattern=[Identifier(name="user"), StringLiteral(value="@"), Wildcard()],
+        ),
+        body=[Return(expression=Identifier(name="user"))],
+        otherwise=None,
+    )
+
+
+def test_an_absent_else_is_distinct_from_an_empty_one(parser: Parser):
+    """`None` means the program wrote no `else`; an empty list means it wrote one that does nothing."""
+
+    without = parser.parse("flag = true\nif flag { }\n").statements[1]
+    with_empty = parser.parse("flag = true\nif flag { } else { }\n").statements[1]
+
+    assert isinstance(without, If)
+    assert isinstance(with_empty, If)
+
+    assert without.otherwise is None
+    assert with_empty.otherwise == []
+
+
+def test_an_empty_block_parses(parser: Parser):
+    program = parser.parse("flag = true\nif flag {\n}\n")
+
+    assert program.statements[1] == If(condition=Identifier(name="flag"), body=[], otherwise=None)
+
+
+def test_ifs_nest(parser: Parser):
+    program = parser.parse('flag = true\nif flag {\n  if flag {\n    ret "deep"\n  }\n}\n')
+
+    assert program.statements[1] == If(
+        condition=Identifier(name="flag"),
+        body=[If(condition=Identifier(name="flag"), body=[Return(expression=StringLiteral(value="deep"))], otherwise=None)],
+        otherwise=None,
+    )
+
+
+@pytest.mark.parametrize(
+    "blip_code",
+    [
+        pytest.param('flag = true\nif flag { ret "yes" } else { ret "no" }\n', id="a whole if on one line"),
+        pytest.param('flag = true\nif flag {\n  ret "yes" }\n', id="a closing brace on the last statement's line"),
+        pytest.param('flag = true\nx = "a.b"\nif flag { x -> head "." tail }\nret head\n', id="a decomposition last in a block"),
+        pytest.param('flag = true\nif flag { y = "z" }\nret y\n', id="an assignment last in a block"),
+    ],
+)
+def test_a_closing_brace_terminates_the_statement_before_it(parser: Parser, blip_code: str):
+    """A block ends unambiguously, so the last statement in one needs no newline after it."""
+
+    parser.parse(blip_code)
+
+
+def test_an_else_branch_may_follow_the_closing_brace_on_the_same_line(parser: Parser):
+    """An `if` consumes no terminator of its own, which is what lets `} else {` work."""
+
+    parser.parse('flag = true\nif flag {\n  ret "yes"\n} else {\n  ret "no"\n}\n')
+
+
+@pytest.mark.parametrize(
+    "blip_code",
+    [
+        pytest.param('flag = true\nif flag\n  ret "yes"\n', id="a block that never opens"),
+        pytest.param('flag = true\nif flag {\n  ret "yes"\n', id="a block that never closes"),
+        pytest.param('else {\n  ret "yes"\n}\n', id="an else with no if"),
+        pytest.param('if {\n  ret "yes"\n}\n', id="an if with no condition"),
+        pytest.param('flag = true\nif flag { ret "yes" } else\n', id="an else with no block"),
+    ],
+)
+def test_a_malformed_if_raises_parser_error(parser: Parser, blip_code: str):
+    with pytest.raises(ParserError):
+        parser.parse(blip_code)
+
+
+def test_only_a_variable_can_be_decomposed_in_a_condition(parser: Parser):
+    """The same restriction the decomposition statement has: the target is a name, not an arbitrary expression."""
+
+    with pytest.raises(ParserError, match="Only a variable can be decomposed"):
+        parser.parse('if input[0] -> user "@" * {\n  ret user\n}\n')

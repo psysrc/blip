@@ -26,6 +26,7 @@ from bliplib.ir.nodes import (
     Directives,
     FixedDirective,
     Identifier,
+    If,
     Index,
     IntegerLiteral,
     ListLiteral,
@@ -107,6 +108,9 @@ class Analyser:
 
             case Decomposition():
                 self.__analyse_decomposition(statement)
+
+            case If():
+                raise SemanticError("'if' statements are not analysed yet", statement.location)
 
     def __analyse_return(self, statement: Return) -> None:
         """

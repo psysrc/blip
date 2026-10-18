@@ -14,6 +14,7 @@ from bliplib.ir import (
     Directive,
     FixedDirective,
     Identifier,
+    If,
     Index,
     IntegerLiteral,
     ListLiteral,
@@ -123,6 +124,9 @@ class Interpreter:
             case Decomposition():
                 self.__interpret_decomposition(statement)
                 return None
+
+            case If():
+                raise InterpreterError("'if' statements are not interpreted yet")
 
     def __interpret_assignment(self, statement: Assignment) -> None:
         self.__variables[statement.target.name] = self.__interpret_expression(statement.expression)

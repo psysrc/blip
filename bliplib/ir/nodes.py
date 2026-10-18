@@ -295,6 +295,8 @@ class Return(Located):
 
 @dataclass
 class Decomposition(Located):
+    """A decomposition statement."""
+
     target: Identifier
     pattern: DecompPattern
 
@@ -313,6 +315,74 @@ class Decomposition(Located):
             "identifier": self.target.to_dict(),
             "pattern": [element.to_dict() for element in self.pattern],
         }
+
+
+@dataclass
+class DecompTest(Located):
+    """A decomposition used as an `if` condition, which yields a boolean instead of failing."""
+
+    target: Identifier
+    pattern: DecompPattern
+
+    @classmethod
+    def from_dict(cls, blip_ir: dict[str, Any]) -> DecompTest:
+        _validate_node(blip_ir, "decomposition_test", ("identifier", "pattern"))
+
+        return cls(
+            target=_load_identifier(blip_ir["identifier"]),
+            pattern=[_load_pattern_element(element) for element in _get_sequence(blip_ir, "pattern", "decomposition_test")],
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "type": "decomposition_test",
+            "identifier": self.target.to_dict(),
+            "pattern": [element.to_dict() for element in self.pattern],
+        }
+
+
+@dataclass
+class If(Located):
+    """
+    A conditional, with an optional `else`.
+
+    A branch is a bare `list[Statement]`, as `Program.statements` is, rather than a node of its own: nothing needs to point at
+    a branch as a whole, and an `If`'s own span already covers the keyword through the closing brace.
+
+    The `else` branch is `None` when the program wrote no `else` at all, which is distinct from an `else` whose block is empty -
+    the first binds nothing in the else case, the second is a branch that happens to do nothing. The analyser's join rule
+    cares about that difference.
+
+    It serialises under `else`, the keyword a reader of the program wrote, but the field is `otherwise`, because `else` is a
+    Python keyword and cannot name an attribute. That is the same name-versus-tag split as `ListLiteral` under `list` and a
+    `target` under `identifier`.
+    """
+
+    condition: Condition
+    body: list[Statement]
+    otherwise: list[Statement] | None = None
+
+    @classmethod
+    def from_dict(cls, blip_ir: dict[str, Any]) -> If:
+        _validate_node(blip_ir, "if", ("condition", "body"), ("else",))
+
+        return cls(
+            condition=_load_condition(blip_ir["condition"]),
+            body=[_load_statement(statement) for statement in _get_sequence(blip_ir, "body", "if")],
+            otherwise=([_load_statement(statement) for statement in _get_sequence(blip_ir, "else", "if")] if "else" in blip_ir else None),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        node: dict[str, Any] = {
+            "type": "if",
+            "condition": self.condition.to_dict(),
+            "body": [statement.to_dict() for statement in self.body],
+        }
+
+        if self.otherwise is not None:
+            node["else"] = [statement.to_dict() for statement in self.otherwise]
+
+        return node
 
 
 @dataclass
@@ -426,7 +496,8 @@ class Program:
 Value = StringLiteral | IntegerLiteral | BooleanLiteral | Identifier | Concatenation | Index | ListLiteral
 PatternElement = Identifier | StringLiteral | Wildcard
 DecompPattern = list[PatternElement]
-Statement = Assignment | Return | Decomposition
+Condition = Value | DecompTest
+Statement = Assignment | Return | Decomposition | If
 Directive = FixedDirective | RangeDirective
 
 
@@ -549,8 +620,19 @@ def _load_statement(blip_ir: object) -> Statement:
             return Return.from_dict(node)
         case "decomposition":
             return Decomposition.from_dict(node)
+        case "if":
+            return If.from_dict(node)
         case kind:
             raise IRError(f"'{kind}' is not a BlipIR statement")
+
+
+def _load_condition(blip_ir: object) -> Condition:
+    node = _as_dict(blip_ir, "an 'if' condition")
+
+    if _type_of(node, "an 'if' condition") == "decomposition_test":
+        return DecompTest.from_dict(node)
+
+    return _load_value(node)
 
 
 def _load_directive(blip_ir: object) -> Directive:
@@ -593,6 +675,12 @@ def load_statement(blip_ir: dict[str, Any]) -> Statement:
     """Load a single BlipIR statement. Raises `IRError` if it is malformed."""
 
     return _load_statement(blip_ir)
+
+
+def load_condition(blip_ir: dict[str, Any]) -> Condition:
+    """Load a single BlipIR `if` condition. Raises `IRError` if it is malformed."""
+
+    return _load_condition(blip_ir)
 
 
 def load_directive(blip_ir: dict[str, Any]) -> Directive:

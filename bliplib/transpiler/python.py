@@ -10,6 +10,7 @@ from bliplib.ir import (
     Directive,
     FixedDirective,
     Identifier,
+    If,
     Index,
     IntegerLiteral,
     ListLiteral,
@@ -273,6 +274,9 @@ def _statement(statement: Statement, output: Directive | None) -> list[ast.stmt]
 
         case Decomposition():
             return _decomposition(statement)
+
+        case If():
+            raise TranspilerError("'if' statements are not transpiled yet")
 
 
 class PythonFunction:

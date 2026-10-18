@@ -15,9 +15,11 @@ from bliplib.ir import (
     BooleanLiteral,
     Concatenation,
     Decomposition,
+    DecompTest,
     Directives,
     FixedDirective,
     Identifier,
+    If,
     Index,
     IntegerLiteral,
     IRError,
@@ -28,6 +30,7 @@ from bliplib.ir import (
     StringLiteral,
     Wildcard,
     load,
+    load_condition,
     load_directive,
     load_pattern_element,
     load_statement,
@@ -241,6 +244,48 @@ def test_an_annotation_that_cannot_be_derived_is_taken_on_trust(blip_ir: dict[st
         pytest.param({"type": "program", "statements": ["nope"]}, id="statements holds something that is not a node"),
         pytest.param({"type": "program", "statements": [], "directives": "nope"}, id="directives is not an object"),
         pytest.param({"type": "program", "statements": [{"type": "return", "expression": []}]}, id="expression is not a node"),
+        pytest.param(
+            {"type": "program", "statements": [{"type": "if", "condition": {"type": "boolean_literal", "value": True}}]},
+            id="if is missing its body",
+        ),
+        pytest.param(
+            {"type": "program", "statements": [{"type": "if", "body": []}]},
+            id="if is missing its condition",
+        ),
+        pytest.param(
+            {
+                "type": "program",
+                "statements": [{"type": "if", "condition": {"type": "boolean_literal", "value": True}, "body": {}}],
+            },
+            id="an if body is not a list",
+        ),
+        pytest.param(
+            {
+                "type": "program",
+                "statements": [{"type": "if", "condition": {"type": "boolean_literal", "value": True}, "body": [], "colour": "blue"}],
+            },
+            id="if has an unknown key",
+        ),
+        pytest.param(
+            {
+                "type": "program",
+                "statements": [
+                    {
+                        "type": "if",
+                        "condition": {"type": "decomposition", "identifier": {"type": "identifier", "name": "x"}, "pattern": []},
+                        "body": [],
+                    }
+                ],
+            },
+            id="a decomposition statement used as a condition",
+        ),
+        pytest.param(
+            {
+                "type": "program",
+                "statements": [{"type": "decomposition_test", "identifier": {"type": "identifier", "name": "x"}, "pattern": []}],
+            },
+            id="a decomposition test used as a statement",
+        ),
     ],
 )
 def test_malformed_program_raises_ir_error(blip_ir: dict[str, Any]):
@@ -347,3 +392,59 @@ def test_a_malformed_node_deep_in_the_tree_is_rejected():
 def test_statement_loader_rejects_an_unknown_kind():
     with pytest.raises(IRError):
         load_statement({"type": "nonsense"})
+
+
+def test_an_if_loads_into_the_expected_tree():
+    program = load(parsed_dict('flag = true\nif flag {\n  ret "yes"\n} else {\n  ret "no"\n}\n'))
+
+    assert program.statements[1] == If(
+        condition=Identifier(name="flag"),
+        body=[Return(expression=StringLiteral(value="yes"))],
+        otherwise=[Return(expression=StringLiteral(value="no"))],
+    )
+
+
+def test_a_decomposition_test_loads_into_the_expected_tree():
+    program = load(parsed_dict('e = "a@b"\nif e -> user "@" * {\n  ret user\n}\n'))
+
+    assert program.statements[1] == If(
+        condition=DecompTest(
+            target=Identifier(name="e"),
+            pattern=[Identifier(name="user"), StringLiteral(value="@"), Wildcard()],
+        ),
+        body=[Return(expression=Identifier(name="user"))],
+        otherwise=None,
+    )
+
+
+def test_an_absent_else_omits_the_key():
+    """`None` and an empty branch are different programs, so they must not serialise to the same thing."""
+
+    without = parsed_dict("flag = true\nif flag { }\n")["statements"][1]
+    with_empty = parsed_dict("flag = true\nif flag { } else { }\n")["statements"][1]
+
+    assert "else" not in without
+    assert with_empty["else"] == []
+
+    assert (
+        load(parsed_dict("flag = true\nif flag { }\n")).statements[1]
+        != load(parsed_dict("flag = true\nif flag { } else { }\n")).statements[1]
+    )
+
+
+def test_a_nested_if_round_trips():
+    blip_ir = parsed_dict('flag = true\nif flag {\n  if flag {\n    ret "deep"\n  }\n}\n')
+
+    assert load(blip_ir).to_dict() == blip_ir
+
+
+def test_condition_loader_rejects_an_unknown_kind():
+    with pytest.raises(IRError):
+        load_condition({"type": "nonsense"})
+
+
+def test_condition_loader_accepts_a_value_and_a_decomposition_test():
+    assert load_condition({"type": "boolean_literal", "value": True}) == BooleanLiteral(value=True)
+    assert load_condition({"type": "decomposition_test", "identifier": {"type": "identifier", "name": "x"}, "pattern": []}) == DecompTest(
+        target=Identifier(name="x"), pattern=[]
+    )
