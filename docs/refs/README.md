@@ -10,4 +10,4 @@ They are parsed automatically and executed in the unit tests, meaning they remai
 Some programs are intentionally ill-formed and do not compile. The error they raise is recorded in a `#### Error` section,
 in place of the Blip IR and executions that a working program has - see [Static Errors](static_errors.md).
 
-If you're not sure where to start, check out [Basic Programs](basic_programs.md) first.
+If you're not sure where to start, check out [Basic Programs](basic_programs.md) first. Then check out some of the more advanced features such as [Decomposition](decomposition.md).

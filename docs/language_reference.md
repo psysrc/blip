@@ -157,12 +157,26 @@ However, with a fixed number of inputs you can also directly populate variables 
 
 ## If Statements
 
-`if` statements create conditional control flow.
+`if` statements create conditional control flow. The condition is a boolean expression, and the block runs only when it is
+true. An `else` block, if there is one, runs when it is false.
 
+```plaintext
+verbose = true
+
+if verbose {
+    ret "Verbose"
+} else {
+    ret "Quiet"
+}
 ```
+
+A variable that every branch assigns is still bound after the `if`, and the branches must agree on its type. A variable that
+only one branch assigns is *not* bound afterwards, because there is a path through the `if` that never assigned it.
+
+```plaintext
 name = "Sam"
 
-if name == "Sam" {
+if name == "Sam" {   // NOT YET IMPLEMENTED: `==` and the other comparison operators are still to be designed
     ret "Superuser"
 }
 ```
@@ -192,7 +206,13 @@ if data -> "[" num "]" {
 }
 ```
 
+The names a conditional decomposition captures are bound **inside the block only**. A failed match never bound them, so there
+is no value they could hold on the path where the pattern did not fit.
+
 ## While Loops
+
+> **Not yet implemented.** `while` needs comparison operators and arithmetic, neither of which is designed yet. See the
+> [to-do list](todo.md).
 
 Blip supports `while` loops for repeated iteration with a boolean condition.
 
@@ -222,6 +242,8 @@ ret counter
 ```
 
 ## For Loops
+
+> **Not yet implemented.** See the [to-do list](todo.md).
 
 Blip supports `for` loops to iterate over lists and arbitrary ranges.
 

@@ -51,6 +51,9 @@ Program(statements, directives)
 Statement = Assignment(target: Identifier, expression: Value)
           | Return(expression: Value)
           | Decomposition(target: Identifier, pattern: DecompPattern)
+          | If(condition: Condition, body: list[Statement], otherwise: list[Statement] | None)
+
+Condition = Value | DecompTest(target: Identifier, pattern: DecompPattern)
 
 Value     = StringLiteral(value) | IntegerLiteral(value) | BooleanLiteral(value)
           | Identifier(name)
@@ -64,7 +67,17 @@ Directives(input: Directive | None, output: Directive | None)
 Directive = FixedDirective(count, names) | RangeDirective(min, max)
 ```
 
-Every `Value` carries a `blip_type` field; no other node does. `Wildcard`, the statements, the directives and `Program` itself have no type.
+Every `Value` carries a `blip_type` field; no other node does. `Wildcard`, `DecompTest`, the statements, the directives and
+`Program` itself have no type.
+
+`DecompTest` holds the same fields as `Decomposition` but is a separate node, because the two mean different things: a
+decomposition statement halts the program when the string does not fit, while a test reports that as `false` and lets the
+`else` branch run. Keeping them apart means neither can reach the other's position — `DecompTest` is not a `Statement` and
+`Decomposition` is not a `Condition` — and the type checker enforces that rather than a convention doing so.
+
+A branch is a bare `list[Statement]`, as a program's own statements are. `otherwise` is `None` when there was no `else` at
+all, which is distinct from an `else` whose block is empty; the join rule below depends on the difference. It serialises
+under the key `else`, since `else` is a Python keyword and cannot name a field.
 
 ## Type annotations in BlipIR
 
@@ -170,6 +183,8 @@ Three details matter to anyone working on the analyser:
 | `assignment`                                             | binds the name to the expression's type                             |
 | `decomposition`                                          | target must be `STRING`; binds every pattern identifier as `STRING` |
 | `return`                                                 | expression must be `STRING` or `List(STRING)`                       |
+| `if`                                                     | condition unifies with `BOOLEAN`; each branch analysed in its own scope |
+| `decomposition_test`                                     | target must be `STRING`; binds every pattern identifier as `STRING`, inside the guarded block only |
 | built-in `input`                                         | `List(STRING)`                                                      |
 | `!in username email`                                     | binds each name as `STRING`                                         |
 
@@ -192,6 +207,27 @@ iteration over loop bodies.
 `input` is **reserved**. It is always bound to `List(STRING)`, and rebinding it — by assignment, by decomposition, or by naming it in an input
 directive — is a `SemanticError`.
 
+### Blocks
+
+The environment is a **stack of scopes**, innermost last. A lookup searches outwards; a name being bound for the first time
+goes into the innermost scope. Those two together are the whole of block scoping:
+
+- A name a block invents is popped with the block.
+- A name that already existed is found in an outer scope, so assigning it **unifies** rather than binding again. There is no
+  shadowing, which is what keeps one Blip name to one target-language variable.
+
+On top of that, an `if` **joins** its branches. A name that *every* branch bound is bound after the `if`, with the two types
+unified — so a hole one branch left open can still be closed by the other, and a genuine disagreement is a `SemanticError`.
+A name only one branch bound is not bound afterwards, because the other path never set it. An `if` with no `else` has a path
+that binds nothing at all, so nothing a lone block binds survives it.
+
+The names a `decomposition_test` captures are bound in the guarded block only. That is forced rather than chosen: on the path
+where the pattern did not fit, there is no text for the capture to hold.
+
+The body of a loop will be analysed **once**, with a variable assigned in it keeping the type it had before the loop. Loops
+are not implemented yet, but the rule follows from monomorphism, and is what keeps this a single forward pass with no
+fixpoint iteration.
+
 ## Static versus runtime errors
 
 The boundary is:
@@ -212,6 +248,9 @@ Examples:
 | Decomposition pattern capturing a name twice      | Static  |
 | Empty literal in a decomposition pattern          | Static  |
 | Empty list whose element type is never determined | Static  |
+| An `if` condition that is not a boolean           | Static  |
+| Use of a name only some branches of an `if` bound | Static  |
+| Branches of an `if` that disagree on a type       | Static  |
 | Decomposition pattern failure                     | Runtime |
 | Index out of bounds                               | Runtime |
 | Input / output directive arity                    | Runtime |

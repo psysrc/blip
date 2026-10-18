@@ -247,3 +247,111 @@ SemanticError
 2 | x -> "" rest
   |      ^^
 ```
+
+## Non-Boolean Condition
+
+An `if` branches on a boolean, so any other type is a semantic error.
+
+#### Blip code
+
+```blip
+if "Sam" {
+    ret "Superuser"
+}
+```
+
+#### Error
+
+```text
+SemanticError
+<stdin>:1:4: semantic error: an 'if' condition must be a boolean: expected 'boolean', found 'string'
+  |
+1 | if "Sam" {
+  |    ^^^^^
+```
+
+## A Capture Used After Its Block
+
+The names a conditional decomposition captures are bound inside the block it guards, and nowhere else.
+
+#### Blip code
+
+```blip
+!in 1
+
+email = input[0]
+
+if email -> name "@" domain {
+    ret name
+}
+
+ret domain
+```
+
+#### Error
+
+```text
+SemanticError
+<stdin>:9:5: semantic error: 'domain' is used but never bound
+  |
+9 | ret domain
+  |     ^^^^^^
+```
+
+## A Variable Bound In Only One Branch
+
+A variable has to be bound in every path that reaches its use.
+
+#### Blip code
+
+```blip
+flag = true
+
+if flag {
+    label = "yes"
+}
+
+ret label
+```
+
+#### Error
+
+```text
+SemanticError
+<stdin>:7:5: semantic error: 'label' is used but never bound
+  |
+7 | ret label
+  |     ^^^^^
+```
+
+## Branches That Disagree On A Type
+
+Variables are monomorphic, so the branches that bind them have to agree on what type they have.
+
+#### Blip code
+
+```blip
+flag = true
+
+if flag {
+    label = "yes"
+} else {
+    label = 0
+}
+
+ret label
+```
+
+#### Error
+
+```text
+SemanticError
+<stdin>:6:5: semantic error: 'label' is bound in both branches of this 'if', so the two types must agree: expected 'string', found 'integer'
+  |
+6 |     label = 0
+  |     ^^^^^
+<stdin>:4:5: note: 'label' was bound as 'string' here
+  |
+4 |     label = "yes"
+  |     ^^^^^
+```
