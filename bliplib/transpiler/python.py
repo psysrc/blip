@@ -1,4 +1,5 @@
 import ast
+from collections.abc import Sequence
 
 from bliplib.decomposition import describe_pattern, pattern_captures, pattern_regex
 from bliplib.errors import TranspilerError
@@ -7,6 +8,8 @@ from bliplib.ir import (
     BooleanLiteral,
     Concatenation,
     Decomposition,
+    DecompPattern,
+    DecompTest,
     Directive,
     FixedDirective,
     Identifier,
@@ -30,7 +33,8 @@ from bliplib.transpiler.interface import Transpiler
 _INPUT = "_blip_input"
 
 # Scratch name holding the result of the last decomposition. Each one assigns it afresh and reads it back immediately, so
-# reusing the name is safe.
+# reusing the name is safe - including for a decomposition nested inside the block another one guards, because the outer
+# captures are all bound before the block that could reassign this runs.
 _MATCH = "_blip_match"
 
 # Scratch name holding the value a `ret` produced, so that an output directive can measure it before it is handed back. Only
@@ -225,44 +229,116 @@ def _return(statement: Return, output: Directive | None) -> list[ast.stmt]:
     ]
 
 
-def _decomposition(statement: Decomposition) -> list[ast.stmt]:
+def _decomposition_match(target: Identifier, pattern: DecompPattern) -> ast.stmt:
     """
-    Lower a Blip decomposition into a Python regex match.
+    The `re.fullmatch` both forms of decomposition begin with.
 
     The pattern is static, so the regex is built here at transpile time and only the match itself happens at run time.
     """
 
-    pattern = statement.pattern
-    target = _python_name(statement.target.name)
-
     matched = ast.Call(
         func=ast.Attribute(value=_load("re"), attr="fullmatch", ctx=ast.Load()),
-        args=[ast.Constant(value=pattern_regex(pattern)), _load(target)],
+        args=[ast.Constant(value=pattern_regex(pattern)), _load(_python_name(target.name))],
         keywords=[ast.keyword(arg="flags", value=ast.Attribute(value=_load("re"), attr="DOTALL", ctx=ast.Load()))],
     )
 
-    failed = ast.Compare(left=_load(_MATCH), ops=[ast.Is()], comparators=[ast.Constant(value=None)])
-    message = f"Decomposition failed: '{statement.target.name}' does not match the pattern '{describe_pattern(pattern)}'"
+    return ast.Assign(targets=[_store(_MATCH)], value=matched)
 
-    statements: list[ast.stmt] = [
-        ast.Assign(targets=[_store(_MATCH)], value=matched),
-        ast.If(test=failed, body=[_raise(message)], orelse=[]),
-    ]
 
-    # Binding every capture only after the match has been checked is what makes a failed decomposition leave the variables alone
+def _match_is(comparison: ast.cmpop) -> ast.expr:
+    """A test of the last match against `None`, which is how the regex module reports a failure."""
+
+    return ast.Compare(left=_load(_MATCH), ops=[comparison], comparators=[ast.Constant(value=None)])
+
+
+def _capture_bindings(pattern: DecompPattern) -> list[ast.stmt]:
+    """
+    Read each captured group out of the match and into the variable that named it.
+
+    Emitted only where the match is already known to have succeeded, which is what makes a failed decomposition leave the
+    variables as they were - for a statement, which raises instead, and for a condition, whose `else` branch then runs with
+    nothing bound.
+    """
+
+    bindings: list[ast.stmt] = []
+
     for name in pattern_captures(pattern):
         captured = ast.Call(
             func=ast.Attribute(value=_load(_MATCH), attr="group", ctx=ast.Load()),
             args=[ast.Constant(value=name)],
             keywords=[],
         )
-        statements.append(ast.Assign(targets=[_store(_python_name(name))], value=captured))
+        bindings.append(ast.Assign(targets=[_store(_python_name(name))], value=captured))
 
-    return statements
+    return bindings
+
+
+def _decomposition(statement: Decomposition) -> list[ast.stmt]:
+    """Lower a Blip decomposition statement, which halts the program when the string does not fit the pattern."""
+
+    pattern = statement.pattern
+    message = f"Decomposition failed: '{statement.target.name}' does not match the pattern '{describe_pattern(pattern)}'"
+
+    return [
+        _decomposition_match(statement.target, pattern),
+        ast.If(test=_match_is(ast.Is()), body=[_raise(message)], orelse=[]),
+        *_capture_bindings(pattern),
+    ]
+
+
+def _lower(statements: Sequence[Statement], output: Directive | None) -> list[ast.stmt]:
+    """Lower a run of Blip statements, flattening the several Python statements that some of them each become."""
+
+    return [node for statement in statements for node in _statement(statement, output)]
+
+
+def _block(lowered: list[ast.stmt]) -> list[ast.stmt]:
+    """A Python block, which unlike in Blip, cannot be empty."""
+
+    return lowered or [ast.Pass()]
+
+
+def _if(statement: If, output: Directive | None) -> list[ast.stmt]:
+    """Lower a Blip `if` into a Python `if`."""
+
+    orelse = _lower(statement.otherwise or [], output)
+
+    match statement.condition:
+        case DecompTest() as test:
+            succeeded = _block([*_capture_bindings(test.pattern), *_lower(statement.body, output)])
+
+            return [
+                _decomposition_match(test.target, test.pattern),
+                ast.If(test=_match_is(ast.IsNot()), body=succeeded, orelse=orelse),
+            ]
+
+        case condition:
+            return [ast.If(test=_expression(condition), body=_block(_lower(statement.body, output)), orelse=orelse)]
+
+
+def _needs_regex(statements: Sequence[Statement]) -> bool:
+    """Whether anything in these statements is a decomposition, at any depth."""
+
+    for statement in statements:
+        match statement:
+            case Decomposition():
+                return True
+
+            case If():
+                if isinstance(statement.condition, DecompTest):
+                    return True
+
+                if _needs_regex(statement.body) or _needs_regex(statement.otherwise or []):
+                    return True
+
+            case _:
+                continue
+
+    return False
 
 
 def _statement(statement: Statement, output: Directive | None) -> list[ast.stmt]:
-    """Lower one Blip statement. A decomposition or a checked `ret` becomes several Python statements; an assignment becomes one."""
+    """Lower one Blip statement. A decomposition, an `if` or a checked `ret` becomes several Python statements; an assignment one."""
 
     match statement:
         case Assignment():
@@ -276,7 +352,7 @@ def _statement(statement: Statement, output: Directive | None) -> list[ast.stmt]
             return _decomposition(statement)
 
         case If():
-            raise TranspilerError("'if' statements are not transpiled yet")
+            return _if(statement, output)
 
 
 class PythonFunction:
@@ -295,18 +371,20 @@ class PythonFunction:
 
         body: list[ast.stmt] = []
 
-        if any(isinstance(statement, Decomposition) for statement in self.__program.statements):
+        if _needs_regex(self.__program.statements):
             body += ast.parse(_DECOMPOSITION_IMPORT).body
 
         if declared_input is not None:
             body += _arity_guards(_load(_INPUT), "input", declared_input)
             body += _input_bindings(declared_input)
 
-        for statement in self.__program.statements:
-            body += _statement(statement, declared_output)
+        body += _lower(self.__program.statements, declared_output)
 
         # A Blip program that can run off the end never returned a value, which is an error at execution time rather than a
         # static one. An empty program is just the simplest case of that.
+        #
+        # The test is syntactic, so a program ending in an `if` whose every branch returns still gets this raise appended,
+        # unreachable. Knowing better means definite-return analysis, which `docs/todo.md` keeps as its own feature.
         if not self.__program.statements or not isinstance(self.__program.statements[-1], Return):
             body.append(_raise(_NO_RETURN_MESSAGE))
 
