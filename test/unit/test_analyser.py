@@ -5,7 +5,7 @@ The reference programs supply the conformance check: every one of them must anal
 a type, and the type inferred for what a program returns must agree with the output its `#### Execution` table records.
 """
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 
 import pytest
 
@@ -15,11 +15,15 @@ from bliplib.ir import (
     Assignment,
     Concatenation,
     Decomposition,
+    DecompPattern,
+    DecompTest,
     Identifier,
+    If,
     Index,
     ListLiteral,
     Program,
     Return,
+    Statement,
     Value,
     Wildcard,
 )
@@ -38,7 +42,18 @@ def __analyse_source(source: str) -> Program:
 def __values_of(program: Program) -> Iterator[Value]:
     """Every value node in the program, which is exactly the set of nodes that must end up with a type."""
 
-    for statement in program.statements:
+    yield from __values_in_statements(program.statements)
+
+
+def __values_in_statements(statements: Sequence[Statement]) -> Iterator[Value]:
+    """
+    The same walk over a list of statements, so that it reaches inside a block as well as the program.
+
+    An `if` that this failed to recurse into would not fail any test - it would quietly shrink what the invariant below is
+    checking, which is the more expensive kind of wrong.
+    """
+
+    for statement in statements:
         match statement:
             case Assignment():
                 yield from __values_within(statement.target)
@@ -49,10 +64,27 @@ def __values_of(program: Program) -> Iterator[Value]:
 
             case Decomposition():
                 yield from __values_within(statement.target)
+                yield from __values_in_pattern(statement.pattern)
 
-                for element in statement.pattern:
-                    if not isinstance(element, Wildcard):
-                        yield from __values_within(element)
+            case If():
+                match statement.condition:
+                    case DecompTest() as test:
+                        yield from __values_within(test.target)
+                        yield from __values_in_pattern(test.pattern)
+
+                    case condition:
+                        yield from __values_within(condition)
+
+                yield from __values_in_statements(statement.body)
+                yield from __values_in_statements(statement.otherwise or [])
+
+
+def __values_in_pattern(pattern: DecompPattern) -> Iterator[Value]:
+    """A wildcard captures nothing and binds no name, so it is the one pattern element with no type to check."""
+
+    for element in pattern:
+        if not isinstance(element, Wildcard):
+            yield from __values_within(element)
 
 
 def __values_within(value: Value) -> Iterator[Value]:
@@ -379,3 +411,143 @@ def test_an_undetermined_type_has_a_friendly_error_message():
     error = __semantic_error('x = []\nret "ok"\n')
 
     assert str(error) == "cannot infer the type of a list: no constraint determines it"
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        pytest.param('flag = true\nif flag {\n  ret "yes"\n}\nret "no"\n', id="a boolean condition"),
+        pytest.param('e = "a@b"\nif e -> user "@" * {\n  ret user\n} else {\n  ret "none"\n}\n', id="a conditional decomposition"),
+        pytest.param('flag = true\nif flag {\n  if flag {\n    ret "deep"\n  }\n}\nret "no"\n', id="nested ifs"),
+        pytest.param('flag = true\nif flag { x = ["a"] } else { x = [] }\nret x\n', id="a join that closes a hole"),
+    ],
+)
+def test_every_value_inside_an_if_gets_a_type(source: str):
+    """Invariant 1 again, for values a block holds - the walk above has to reach them for this to mean anything."""
+
+    values = list(__values_of(__analyse_source(source)))
+
+    assert values, "the walk found no values at all, so this would pass vacuously"
+    assert all(value.blip_type is not None for value in values), f"untyped values in: {source}"
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        pytest.param('if "hello" {\n  ret "yes"\n}\n', id="a string"),
+        pytest.param("n = 3\nif n {\n  ret 'yes'\n}\n", id="an integer"),
+        pytest.param("if input {\n  ret 'yes'\n}\n", id="a list of strings"),
+    ],
+)
+def test_a_condition_that_is_not_a_boolean_is_rejected(source: str):
+    assert "must be a boolean" in str(__semantic_error(source))
+
+
+def test_a_condition_is_annotated_with_its_type():
+    program = __analyse_source("flag = true\nif flag { ret 'yes' }\nret 'no'\n")
+    conditional = program.statements[1]
+
+    assert isinstance(conditional, If)
+    assert isinstance(conditional.condition, Identifier)
+    assert conditional.condition.blip_type == Scalar.BOOLEAN
+
+
+def test_a_condition_that_is_an_unresolved_hole_is_made_boolean():
+    """Constraining the condition is a unification, not a comparison, so a hole in the condition gets closed by it."""
+
+    program = __analyse_source("x = []\nif x[0] { ret 'yes' }\nret 'no'\n")
+    assignment = program.statements[0]
+
+    assert isinstance(assignment, Assignment)
+    assert assignment.target.blip_type == List(Scalar.BOOLEAN)
+
+
+def test_a_capture_is_not_bound_after_the_block_it_guards():
+    """A failed match binds nothing, so the names a conditional decomposition captures cannot outlive its block."""
+
+    error = __semantic_error('e = "a@b"\nif e -> user "@" * {\n  ret "then"\n}\nret user\n')
+
+    assert "'user' is used but never bound" in str(error)
+
+
+def test_a_name_bound_in_only_one_branch_is_not_bound_afterwards():
+    error = __semantic_error('flag = true\nif flag { x = "a" }\nret x\n')
+
+    assert "'x' is used but never bound" in str(error)
+
+
+def test_a_name_bound_in_every_branch_is_bound_afterwards():
+    program = __analyse_source('flag = true\nif flag { x = "a" } else { x = "b" }\nret x\n')
+    returned = program.statements[2]
+
+    assert isinstance(returned, Return)
+    assert returned.expression.blip_type == Scalar.STRING
+
+
+def test_an_if_without_an_else_binds_nothing_afterwards():
+    """There is no join to make without an `else`: one path through the `if` binds nothing at all."""
+
+    error = __semantic_error('flag = true\nif flag { x = "a" } else { y = "b" }\nret x\n')
+
+    assert "'x' is used but never bound" in str(error)
+
+
+def test_branches_that_bind_the_same_name_to_different_types_are_rejected():
+    """The caret lands on the `else` branch's binding and the note on the body's, so both ends of the conflict are named."""
+
+    source = 'flag = true\nif flag { x = "a" } else { x = 1 }\nret x\n'
+    error = __semantic_error(source)
+
+    assert "bound in both branches" in str(error)
+
+    assert __get_span_from_error(source, error) == "x"
+    assert error.location is not None
+    assert error.location.offset == source.rindex("x =")
+
+    (note,) = error.notes
+    assert note.location is not None
+    assert note.location.offset == source.index("x =")
+
+
+def test_a_join_unifies_rather_than_compares():
+    """An empty list in one branch is still `list[?]`, so the other branch is what settles its element type."""
+
+    program = __analyse_source('flag = true\nif flag { x = [] } else { x = ["a"] }\nret x\n')
+    returned = program.statements[2]
+
+    assert isinstance(returned, Return)
+    assert returned.expression.blip_type == List(Scalar.STRING)
+
+
+def test_a_name_from_an_outer_scope_is_not_shadowed_by_a_branch():
+    """Assigning inside a branch unifies with the existing binding, so the monomorphic rule still applies."""
+
+    error = __semantic_error('x = "a"\nflag = true\nif flag { x = 1 }\nret x\n')
+
+    assert "cannot assign to 'x'" in str(error)
+
+
+def test_input_stays_reserved_inside_a_branch():
+    error = __semantic_error('flag = true\nif flag { input = "x" }\nret "ok"\n')
+
+    assert "reserved" in str(error)
+
+
+def test_a_decomposition_condition_must_target_a_string():
+    error = __semantic_error("n = 3\nif n -> head '.' tail { ret 'yes' }\n")
+
+    assert "only a string can be decomposed" in str(error)
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        pytest.param("x = 'a.b'\nif x -> first second { ret 'yes' }\n", id="adjacent captures"),
+        pytest.param("x = 'a.b'\nif x -> dup ',' dup { ret 'yes' }\n", id="a name captured twice"),
+        pytest.param("x = 'a.b'\nif x -> '' rest { ret 'yes' }\n", id="an empty literal"),
+    ],
+)
+def test_the_pattern_rules_apply_to_a_condition_as_well(source: str):
+    """The rules belong to the pattern, not to the statement, so a condition is held to all of them too."""
+
+    __semantic_error(source)

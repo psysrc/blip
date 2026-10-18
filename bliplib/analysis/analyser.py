@@ -13,7 +13,7 @@ stored on a node - `blip_type` cannot hold one - so a node's type is either abse
 from collections.abc import Sequence
 from itertools import pairwise
 
-from bliplib.analysis.environment import INPUT, Environment
+from bliplib.analysis.environment import INPUT, Binding, Environment
 from bliplib.analysis.types import InferredType, Var, describe_inferred_type
 from bliplib.analysis.unification import Unifier
 from bliplib.errors import SemanticError
@@ -23,6 +23,7 @@ from bliplib.ir.nodes import (
     Concatenation,
     Decomposition,
     DecompPattern,
+    DecompTest,
     Directives,
     FixedDirective,
     Identifier,
@@ -110,7 +111,7 @@ class Analyser:
                 self.__analyse_decomposition(statement)
 
             case If():
-                raise SemanticError("'if' statements are not analysed yet", statement.location)
+                self.__analyse_if(statement)
 
     def __analyse_return(self, statement: Return) -> None:
         """
@@ -137,21 +138,99 @@ class Analyser:
     def __analyse_decomposition(self, statement: Decomposition) -> None:
         """Decomposition takes a string apart, so its target is a string and every name it captures is a string."""
 
-        target = self.__infer_type(statement.target)
-        self.__constrain_type(
-            target,
-            Scalar.STRING,
-            "only a string can be decomposed",
-            statement.target.location,
-            self.__binding_note(statement.target.name),
-        )
-
-        self.__check_pattern_literals_are_not_empty(statement.pattern)
-        self.__check_pattern_adjacency(statement.pattern)
-        self.__check_pattern_captures_are_distinct(statement.pattern)
+        self.__check_decomposition(statement.target, statement.pattern)
 
         for element in statement.pattern:
             self.__analyse_pattern_element(element)
+
+    def __check_decomposition(self, target: Identifier, pattern: DecompPattern) -> None:
+        """
+        Everything true of a decomposition whether it stands as a statement or guards an `if`: the target is a string, and
+        the pattern is one some input could actually satisfy.
+
+        Binding the captures is deliberately not part of this. A statement binds them where it stands, while a condition
+        binds them inside the block it guards - so the caller decides, once the right scope exists.
+        """
+
+        self.__constrain_type(
+            self.__infer_type(target),
+            Scalar.STRING,
+            "only a string can be decomposed",
+            target.location,
+            self.__binding_note(target.name),
+        )
+
+        self.__check_pattern_literals_are_not_empty(pattern)
+        self.__check_pattern_adjacency(pattern)
+        self.__check_pattern_captures_are_distinct(pattern)
+
+    def __analyse_if(self, statement: If) -> None:
+        """
+        Analyse a conditional: its condition, then each branch in a scope of its own.
+
+        The condition is checked before either scope is opened, because it is evaluated where the `if` stands. A decomposition
+        test is the exception only in where its captures land - they belong to the block the test guards, since a failed
+        match never binds them.
+        """
+
+        condition = statement.condition
+
+        match condition:
+            case DecompTest():
+                self.__check_decomposition(condition.target, condition.pattern)
+
+            case _:
+                self.__constrain_type(
+                    self.__infer_type(condition),
+                    Scalar.BOOLEAN,
+                    "an 'if' condition must be a boolean",
+                    condition.location,
+                    self.__binding_note_for(condition),
+                )
+
+        with self.__environment.child_scope() as from_body:
+            if isinstance(condition, DecompTest):
+                for element in condition.pattern:
+                    self.__analyse_pattern_element(element)
+
+            for inner in statement.body:
+                self.__analyse_statement(inner)
+
+        from_else: dict[str, Binding] = {}
+
+        if statement.otherwise is not None:
+            with self.__environment.child_scope() as from_else:
+                for inner in statement.otherwise:
+                    self.__analyse_statement(inner)
+
+        self.__join_branches(from_body, from_else)
+
+    def __join_branches(self, from_body: dict[str, Binding], from_else: dict[str, Binding]) -> None:
+        """
+        Bind the names that every branch bound, and only those.
+
+        A name only one branch bound does not exist after the `if`, because the other path leaves it unset - and an `if` with
+        no `else` has a path that binds nothing at all, so nothing survives it. A name both branches bound does exist, and
+        the two types have to agree. That agreement is a unification rather than a comparison, so a hole one branch left
+        open can still be closed by the other.
+
+        The body's bindings are iterated rather than the intersection of the two, so that a program with several conflicts
+        always reports the same one.
+        """
+
+        for name, bound in from_body.items():
+            if name not in from_else:
+                continue
+
+            self.__constrain_type(
+                from_else[name].inferred,
+                bound.inferred,
+                f"'{name}' is bound in both branches of this 'if', so the two types must agree",
+                from_else[name].location,
+                self.__note_for_binding(name, bound),
+            )
+
+            self.__environment.bind(name, bound.inferred, bound.location)
 
     def __check_pattern_literals_are_not_empty(self, pattern: DecompPattern) -> None:
         """Literals in a pattern cannot be empty.
@@ -231,7 +310,7 @@ class Analyser:
         # it is the expression on the right, which is the part a reader needs to look at.
         location = location if location is not None else identifier.location
 
-        existing = self.__environment.get_bound_type(identifier.name)
+        existing = self.__environment.get_binding(identifier.name)
 
         if existing is None:
             self.__environment.bind(identifier.name, inferred, identifier.location)
@@ -242,12 +321,12 @@ class Analyser:
 
             self.__constrain_type(
                 inferred,
-                existing,
+                existing.inferred,
                 f"cannot assign to '{identifier.name}'",
                 location,
                 self.__binding_note(identifier.name),
             )
-            bound = existing
+            bound = existing.inferred
 
         self.__record(identifier, bound)
 
@@ -355,15 +434,24 @@ class Analyser:
         outcome rather than a guess.
         """
 
-        location = self.__environment.get_bound_location(name)
+        binding = self.__environment.get_binding(name)
 
-        if location is None:
+        return self.__note_for_binding(name, binding) if binding is not None else []
+
+    def __note_for_binding(self, name: str, binding: Binding) -> list[Note]:
+        """
+        The same note, for a binding held in hand rather than looked up.
+
+        A branch's bindings have left the environment by the time the join compares them, so the join has only the
+        `Binding` itself to describe.
+        """
+
+        if binding.location is None:
             return []
 
-        inferred = self.__environment.get_bound_type(name)
-        described = describe_inferred_type(self.__unifier.resolve(inferred)) if inferred is not None else "something"
+        described = describe_inferred_type(self.__unifier.resolve(binding.inferred))
 
-        return [Note(location, f"'{name}' was bound as '{described}' here")]
+        return [Note(binding.location, f"'{name}' was bound as '{described}' here")]
 
     def __binding_note_for(self, value: Value) -> list[Note]:
         """The same note, when the offending expression may or may not turn out to be a plain variable."""

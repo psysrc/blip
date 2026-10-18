@@ -2,6 +2,8 @@
 Implements the environment: the variables in scope and the type each one has.
 """
 
+from collections.abc import Generator
+from contextlib import contextmanager
 from dataclasses import dataclass
 
 from bliplib.analysis.types import InferredType
@@ -29,42 +31,62 @@ class Binding:
 
 class Environment:
     """
-    A single flat scope.
+    A stack of scopes, innermost last.
 
-    Blip has no block constructs implemented yet, so one global scope is all that is needed. The analysis design settles how `if`,
-    loops and conditional decomposition will bind names when they land, which is why this is a class rather than a bare dict:
-    adding a scope stack later should preferably not disturb its callers.
+    A lookup searches outwards from the innermost scope, and a new name is bound in the innermost one. The two together are
+    what makes a block's bindings local to it: a name the block invents is popped with the block, while a name that already
+    existed is found in an outer scope and so is never shadowed by a new binding.
+
+    The outermost scope is the program's own, and holds `input` from the start.
     """
 
     def __init__(self):
-        self.__variables: dict[str, Binding] = {INPUT: Binding(inferred=List(Scalar.STRING))}
+        self.__scopes: list[dict[str, Binding]] = [{INPUT: Binding(inferred=List(Scalar.STRING))}]
+
+    @contextmanager
+    def child_scope(self) -> Generator[dict[str, Binding], None, None]:
+        """
+        Open a scope for the duration of the block, and yield the mapping its own bindings land in.
+
+        The mapping outlives the scope on purpose: an `if` has to ask what each of its branches bound *after* that branch has
+        been analysed, to decide which of those names survive the join. Popping the scope only takes it out of the search
+        path; it does not empty what was collected.
+        """
+
+        scope: dict[str, Binding] = {}
+        self.__scopes.append(scope)
+
+        try:
+            yield scope
+
+        finally:
+            self.__scopes.pop()
 
     def lookup(self, name: str, location: Span | None = None) -> InferredType:
         """Return the type bound to a name, or raise if the name is not bound. `location` is where the name was used."""
 
-        if name not in self.__variables:
+        binding = self.get_binding(name)
+
+        if binding is None:
             raise SemanticError(f"'{name}' is used but never bound", location)
 
-        return self.__variables[name].inferred
+        return binding.inferred
 
-    def get_bound_type(self, name: str) -> InferredType | None:
-        """Return the type bound to a name, or `None` if it is not bound. Does not raise."""
+    def get_binding(self, name: str) -> Binding | None:
+        """What a name is bound to and where, searching outwards from the innermost scope. `None` if it is not bound."""
 
-        binding = self.__variables.get(name)
+        for scope in reversed(self.__scopes):
+            binding = scope.get(name)
 
-        return binding.inferred if binding is not None else None
+            if binding is not None:
+                return binding
 
-    def get_bound_location(self, name: str) -> Span | None:
-        """Where a name was bound, or `None` if it is unbound or was bound before any source existed."""
-
-        binding = self.__variables.get(name)
-
-        return binding.location if binding is not None else None
+        return None
 
     def bind(self, name: str, inferred: InferredType, location: Span | None = None) -> None:
-        """Bind a name to a type for the first time."""
+        """Bind a name to a type in the innermost scope, for the first time."""
 
         if name == INPUT:
             raise SemanticError(f"'{INPUT}' is reserved and cannot be bound", location)
 
-        self.__variables[name] = Binding(inferred=inferred, location=location)
+        self.__scopes[-1][name] = Binding(inferred=inferred, location=location)
