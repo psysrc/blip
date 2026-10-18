@@ -382,8 +382,7 @@ if data -> "[" num "]" {
 A variable assigned in *every* branch is still bound after the `if`.
 
 Assign it in only one branch and it is not bound afterwards, because there is a path through the `if` that never set it. An
-`if` with no `else` always has such a path, so nothing a lone block binds survives it. Both of those are compile errors where
-the name is used - see [Static Errors](static_errors.md).
+`if` with no `else` always has such a path, so nothing a lone block binds survives it.
 
 #### Blip code
 

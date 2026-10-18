@@ -34,7 +34,7 @@ The markdown files in `docs/refs/` are parsed at test time by `test/common/ref_p
 
 Those parsed programs are then run against the parser, the interpreter, and each transpiler.
 
-**So: adding or changing a language feature means editing the documentation.** A new reference program in `docs/refs/` is immediately picked up by the parser, interpreter and transpiler test suites. A reference program that compiles needs `#### Blip code`, `#### Blip IR` and an `#### Execution` table; follow `docs/refs/basic_programs.md`. One that is *meant* to be rejected has a `#### Error` section instead of those last two, naming the error class and, beneath it, the diagnostic the error renders into - caret, notes and all. That rendering is compared exactly, so **rewording an error message means updating `docs/refs/static_errors.md`**. Follow that file.
+**So: adding or changing a language feature means editing the documentation.** A new reference program in `docs/refs/` is immediately picked up by the parser, interpreter and transpiler test suites. A reference program that compiles needs `#### Blip code`, `#### Blip IR` and an `#### Execution` table; follow `docs/refs/basic_programs.md`. One that is *meant* to be rejected has a `#### Error` section instead of those last two, naming the error class and, beneath it, the diagnostic the error renders into - caret, notes and all. That rendering is compared exactly, so **rewording an error message might mean updating the `docs/refs/` area**.
 
 Write unit tests in `test/unit/` only for things reference programs can't express — internal helpers, error paths, malformed IR.
 
