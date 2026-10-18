@@ -511,6 +511,132 @@ ret label " " input[0]
 |-----|------|
 |`["x"]`|`["yes x"]`|
 
+## A Variable Bound In Only One Branch
+
+A variable has to be bound in every path that reaches its use.
+In this example, if `flag` were false, then `label` would never be bound.
+
+#### Blip code
+
+```blip
+flag = true
+
+if flag {
+    label = "yes"
+}
+
+ret label
+```
+
+#### Error
+
+```text
+SemanticError
+<stdin>:7:5: semantic error: 'label' is used but never bound
+  |
+7 | ret label
+  |     ^^^^^
+```
+
+## A Variable Bound Before The Branch
+
+A variable assigned before an `if` branch remains bound after the `if`.
+
+In this example, `label` inside the `if` blocks refer to the `label` declared in the outer scope.
+There is no shadowing of variables.
+
+#### Blip code
+
+```blip
+flag = true
+
+label = "no"
+
+if flag {
+    label = "yes"
+}
+
+ret label
+```
+
+#### Blip IR
+
+<details>
+<summary><i>Expand...</i></summary>
+
+```json
+{
+    "type": "program",
+    "statements": [
+        {
+            "type": "assignment",
+            "identifier": {
+                "type": "identifier",
+                "blip_type": "boolean",
+                "name": "flag"
+            },
+            "expression": {
+                "type": "boolean_literal",
+                "blip_type": "boolean",
+                "value": true
+            }
+        },
+        {
+            "type": "assignment",
+            "identifier": {
+                "type": "identifier",
+                "blip_type": "string",
+                "name": "label"
+            },
+            "expression": {
+                "type": "string_literal",
+                "blip_type": "string",
+                "value": "no"
+            }
+        },
+        {
+            "type": "if",
+            "condition": {
+                "type": "identifier",
+                "blip_type": "boolean",
+                "name": "flag"
+            },
+            "body": [
+                {
+                    "type": "assignment",
+                    "identifier": {
+                        "type": "identifier",
+                        "blip_type": "string",
+                        "name": "label"
+                    },
+                    "expression": {
+                        "type": "string_literal",
+                        "blip_type": "string",
+                        "value": "yes"
+                    }
+                }
+            ]
+        },
+        {
+            "type": "return",
+            "expression": {
+                "type": "identifier",
+                "blip_type": "string",
+                "name": "label"
+            }
+        }
+    ]
+}
+```
+
+</details>
+
+#### Execution
+
+|Input|Output|
+|-----|------|
+|`[]`|`["yes"]`|
+
 ## Nested Conditionals
 
 Blocks can nest, so a decomposition can be tried on something an outer decomposition captured.
@@ -702,3 +828,57 @@ ret ["no directory"]
 |`["docs/notes.txt"]`|`["dir", "docs", "stem", "notes"]`|
 |`["docs/notes.md"]`|`["dir", "docs"]`|
 |`["notes.txt"]`|`["no directory"]`|
+
+## Conditions Must Be Booleans
+
+An `if` branches on a boolean, so any other type is a semantic error.
+
+#### Blip code
+
+```blip
+if "Sam" {
+    ret "Superuser"
+}
+```
+
+#### Error
+
+```text
+SemanticError
+<stdin>:1:4: semantic error: an 'if' condition must be a boolean: expected 'boolean', found 'string'
+  |
+1 | if "Sam" {
+  |    ^^^^^
+```
+
+## Branches That Disagree On A Type
+
+Variables are monomorphic, so the branches that bind them have to agree on what type they have.
+
+#### Blip code
+
+```blip
+flag = true
+
+if flag {
+    label = "yes"
+} else {
+    label = 0
+}
+
+ret label
+```
+
+#### Error
+
+```text
+SemanticError
+<stdin>:6:5: semantic error: 'label' is bound in both branches of this 'if', so the two types must agree: expected 'string', found 'integer'
+  |
+6 |     label = 0
+  |     ^^^^^
+<stdin>:4:5: note: 'label' was bound as 'string' here
+  |
+4 |     label = "yes"
+  |     ^^^^^
+```

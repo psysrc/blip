@@ -505,3 +505,90 @@ SemanticError
 1 | count = 5
   | ^^^^^
 ```
+
+## Ambiguous Decomposition Patterns
+
+Captures and wildcards in a decomposition pattern must be separated by string literals,
+otherwise it's ambiguous which part of the string belongs to which capture/wildcard.
+
+#### Blip code
+
+```blip
+x = "hello world"
+x -> first second
+
+ret first
+```
+
+#### Error
+
+```text
+SemanticError
+<stdin>:2:6: semantic error: ambiguous decomposition pattern: the capture 'first' is followed by the capture 'second'
+  |
+2 | x -> first second
+  |      ^^^^^
+<stdin>:2:12: note: the capture 'second' follows it, with nothing in between
+  |
+2 | x -> first second
+  |            ^^^^^^
+```
+
+## Duplicate capture names in decomposition pattern
+
+A decomposition pattern captures each name at most once.
+
+`x -> dup "," dup` looks as though it might assert that both halves of the string are equal, but it doesn't, the captures are independent.
+
+Note that this rule only applies to named captures within the same pattern.
+Two separate decomposition statements can capture using the same names, just not two instances of the same name within the same pattern.
+
+#### Blip code
+
+```blip
+x = "a,b"
+x -> dup "," dup
+
+ret dup
+```
+
+#### Error
+
+```text
+SemanticError
+<stdin>:2:14: semantic error: a decomposition pattern cannot capture 'dup' more than once
+  |
+2 | x -> dup "," dup
+  |              ^^^
+<stdin>:2:6: note: 'dup' is already captured here
+  |
+2 | x -> dup "," dup
+  |      ^^^
+```
+
+## Empty Decomposition Literal
+
+A string literal in a decomposition pattern cannot be empty.
+
+An empty literal matches at every position, so it says nothing about the string. Worse, it slips a pattern past the rule that
+captures must be separated: `x -> first "" second` separates the two captures with a literal that cannot tell them apart, so it
+would leave `first` empty for every input, while the identical `x -> first second` is rejected outright.
+
+#### Blip code
+
+```blip
+x = input[0]
+x -> "" rest
+
+ret rest
+```
+
+#### Error
+
+```text
+SemanticError
+<stdin>:2:6: semantic error: a decomposition pattern cannot contain an empty string literal
+  |
+2 | x -> "" rest
+  |      ^^
+```
