@@ -44,12 +44,7 @@ from bliplib.source import Note, Span
 
 
 def analyse(program: Program) -> Program:
-    """
-    Give every value in the program a type, and return the same program.
-
-    Raises `SemanticError` on the first problem found. Nothing is written onto the tree unless the whole program analyses, so a
-    rejected program is never left half-annotated.
-    """
+    """Perform static analysis on the program and return the same program. Raises `SemanticError` on the first problem found."""
 
     return Analyser().analyse(program)
 
