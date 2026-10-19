@@ -89,3 +89,29 @@ pinned, for every back end, by execution rather than by regex.
 
 Each transpiler should ideally build a tree of small node classes and serialise into source code at the end.
 For example, the Python back end (`bliplib/transpiler/python.py`) uses the stdlib `ast` module: nodes expose `node()` returning an `ast` node, and `ast.unparse` handles escaping, quoting, operator precedence and indentation. Static scaffolding (function signature, imports, `main()`) is written as ordinary Python source and run through `ast.parse` since none of it derives from BlipIR; hand-built `ast` nodes are reserved for what does.
+
+## Docstrings
+
+Docstring should be short, to the point, and only talk about the function itself.
+
+Here is a bad example. The docstring below discusses other functions in the file and is way too verbose.
+
+```python
+# Bad example
+def read_source(file: str) -> str:
+    """
+    Read a Blip source file, or report why it could not be read and exit.
+
+    This cannot go through `fail()`: that renders a span against the source text, and there is no source text yet. An
+    unreadable file is also not a `BlipError` - nothing about the program is wrong, the file just is not there - so it is
+    reported as the plain message an operating system error deserves.
+    """
+```
+
+Here is a good example of the same function:
+
+```python
+# Good example
+def read_source(file: str) -> str:
+    """Read a Blip source file, or report why it could not be read and exit."""
+```
