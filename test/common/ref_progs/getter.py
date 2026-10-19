@@ -3,7 +3,15 @@ from pathlib import Path
 from test.common.ref_progs.classes import ReferenceProgram
 from test.common.ref_progs.parser import ReferenceParser
 
+REF_PROGRAM_DIR = Path("docs/refs")
+
 __reference_programs: list[ReferenceProgram] | None = None
+
+
+def get_reference_program_files() -> list[Path]:
+    """The markdown files holding reference programs."""
+
+    return sorted(path for path in REF_PROGRAM_DIR.glob("*.md") if path.name != "README.md")
 
 
 def get_reference_programs() -> list[ReferenceProgram]:
@@ -11,11 +19,7 @@ def get_reference_programs() -> list[ReferenceProgram]:
     if __reference_programs is None:
         __reference_programs = []
 
-        ref_program_dir = Path("docs/refs")
-        for ref_prog_file in ref_program_dir.glob("*.md"):
-            if ref_prog_file.name == "README.md":
-                continue
-
+        for ref_prog_file in get_reference_program_files():
             markdown_text = ref_prog_file.read_text()
 
             found_programs = ReferenceParser(markdown_text).get_reference_programs()
