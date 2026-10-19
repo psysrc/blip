@@ -206,8 +206,27 @@ if data -> "[" num "]" {
 }
 ```
 
-The names a conditional decomposition captures are bound **inside the block only**. A failed match never bound them, so there
-is no value they could hold on the path where the pattern did not fit.
+Just as a decomposition statement can capture strings in the identifiers it names, so can conditional decomposition.
+
+Decompositions can introduce new identifier names without needing them to be previously bound.
+See the `num` identifier in the previous example.
+
+New names introduced during conditional decomposition are bound **inside the conditional block only** (assuming the decomposition succeeds).
+If decomposition fails, nothing is captured and no new identifiers are introduced.
+
+Names that are **already bound before the `if`** are overwritten instead, and the captured value outlives the block. On a
+failed match nothing is bound at all, so the variable still holds whatever it held before — which is how a decomposition
+supplies a value when the pattern fits and leaves a default in place when it does not:
+
+```plaintext
+label = "unknown"
+
+line = input[0]
+
+if line -> "name:" label { }
+
+ret label  // the captured text, or "unknown" if the pattern did not fit
+```
 
 ## While Loops
 

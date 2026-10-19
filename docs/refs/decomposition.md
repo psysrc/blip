@@ -725,3 +725,115 @@ if data -> "[" num "]" {
 |`["[123]"]`|`["found number: 123"]`|
 |`["abc"]`|`["not a bracketed number"]`|
 |`["[]"]`|`["found number: "]`|
+
+## Capturing Variables Bound In The Outer Scope
+
+A capture assigns to the variable it names, just as `=` does. Where that variable was already bound before the `if`, the
+capture writes to it, and the new value outlives the block.
+
+A failed match binds nothing at all, so the variable still holds what it held before the `if` was reached. That is what makes
+the pattern below a way of saying "use the captured text if it was there, and keep the default otherwise".
+
+The `if` block is empty because the capture is the whole of its effect.
+
+#### Blip code
+
+```blip
+label = "unknown"
+
+line = input[0]
+
+if line -> "name:" label { }
+
+ret label
+```
+
+#### Blip IR
+
+<details>
+<summary><i>Expand...</i></summary>
+
+```json
+{
+    "type": "program",
+    "statements": [
+        {
+            "type": "assignment",
+            "identifier": {
+                "type": "identifier",
+                "blip_type": "string",
+                "name": "label"
+            },
+            "expression": {
+                "type": "string_literal",
+                "blip_type": "string",
+                "value": "unknown"
+            }
+        },
+        {
+            "type": "assignment",
+            "identifier": {
+                "type": "identifier",
+                "blip_type": "string",
+                "name": "line"
+            },
+            "expression": {
+                "type": "index",
+                "blip_type": "string",
+                "identifier": {
+                    "type": "identifier",
+                    "blip_type": "list[string]",
+                    "name": "input"
+                },
+                "index": {
+                    "type": "integer_literal",
+                    "blip_type": "integer",
+                    "value": 0
+                }
+            }
+        },
+        {
+            "type": "if",
+            "condition": {
+                "type": "decomposition_test",
+                "identifier": {
+                    "type": "identifier",
+                    "blip_type": "string",
+                    "name": "line"
+                },
+                "pattern": [
+                    {
+                        "type": "string_literal",
+                        "blip_type": "string",
+                        "value": "name:"
+                    },
+                    {
+                        "type": "identifier",
+                        "blip_type": "string",
+                        "name": "label"
+                    }
+                ]
+            },
+            "body": []
+        },
+        {
+            "type": "return",
+            "expression": {
+                "type": "identifier",
+                "blip_type": "string",
+                "name": "label"
+            }
+        }
+    ]
+}
+```
+
+</details>
+
+#### Execution
+
+|Input|Output|
+|-----|------|
+|`["name:bob"]`|`["bob"]`|
+|`["name:"]`|`[""]`|
+|`["nothing"]`|`["unknown"]`|

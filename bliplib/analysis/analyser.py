@@ -163,9 +163,9 @@ class Analyser:
         """
         Analyse a conditional: its condition, then each branch in a scope of its own.
 
-        The condition is checked before either scope is opened, because it is evaluated where the `if` stands. A decomposition
-        test is the exception only in where its captures land - they belong to the block the test guards, since a failed
-        match never binds them.
+        The condition is checked before either scope is opened, because it is evaluated where the `if` stands.
+        A decomposition test is a slight exception: new captures go in the block's scope, whilst previously-bound
+        names from the outer scope are simply assigned to.
         """
 
         condition = statement.condition
