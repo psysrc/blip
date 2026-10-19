@@ -132,7 +132,7 @@ def test_a_diagnostic_names_the_file_it_was_read_from(tmp_path: Path):
     result = run_blip_on_file(["--check"], str(source))
 
     assert result.returncode != 0
-    assert result.stderr.startswith(source)
+    assert result.stderr.startswith(str(source))
 
 
 def test_a_missing_file_is_reported_rather_than_raised(tmp_path: Path):

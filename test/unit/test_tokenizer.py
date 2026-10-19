@@ -10,7 +10,7 @@ from itertools import pairwise
 import pytest
 
 from bliplib.errors import TokenizerError
-from bliplib.parser.tokenizer import Token, Tokenizer
+from bliplib.parser.tokenizer import Token, Tokenizer, TokenKind
 from bliplib.source import Span
 
 _SOURCES = [
@@ -169,13 +169,13 @@ def test_a_span_is_not_part_of_a_tokens_identity():
 
 
 def test_token_renders_in_expected_format():
-    token = Token("IDENTIFIER", "foo", location=Span(offset=0, length=0))
+    token = Token(TokenKind.IDENTIFIER, "foo", location=Span(offset=0, length=0))
 
     assert str(token) == "IDENTIFIER['foo']"
 
 
 def test_token_containing_newlines_renders_correctly():
-    token = Token("EOL", "\n", location=Span(offset=0, length=0))
+    token = Token(TokenKind.EOL, "\n", location=Span(offset=0, length=0))
 
     assert str(token) == "EOL['\\n']"
 

@@ -27,7 +27,7 @@ from bliplib.ir import (
 )
 from bliplib.source import Span
 
-from .tokenizer import Token, Tokenizer
+from .tokenizer import Token, Tokenizer, TokenKind
 
 
 class Parser:
@@ -119,7 +119,7 @@ class Parser:
 
         return start.covering(self.__consumed_span)
 
-    def __consume_token(self, *token_types: str) -> str:
+    def __consume_token(self, *token_types: TokenKind) -> str:
         """
         Consume the next token in the stream.
         If the token type does not match one of the provided token types, a `ParserError` is raised.
@@ -127,8 +127,8 @@ class Parser:
         """
 
         if self.__token.type not in token_types:
-            actual_token_type = self.__token.type
-            raise ParserError(f"Failed to consume token (expected one of '{token_types}', got '{actual_token_type}')", self.__span)
+            expected = ", ".join(f"'{token_type}'" for token_type in token_types)
+            raise ParserError(f"Failed to consume token (expected one of {expected}, got '{self.__token.type}')", self.__span)
 
         token_value = self.__token.value
         self.__consumed_span = self.__token.location
@@ -143,21 +143,21 @@ class Parser:
 
         # Parse optional top-level directives (e.g. !in / !out).
         # TODO: Current a repeated directive replaces the earlier one. In future, repeated directives should be an error.
-        while self.__token.type in {"EOL", "DIRECTIVE_IN", "DIRECTIVE_OUT"}:
-            if self.__token.type == "EOL":
-                self.__consume_token("EOL")
+        while self.__token.type in {TokenKind.EOL, TokenKind.DIRECTIVE_IN, TokenKind.DIRECTIVE_OUT}:
+            if self.__token.type == TokenKind.EOL:
+                self.__consume_token(TokenKind.EOL)
                 continue
 
             start = self.__span
 
-            if self.__token.type == "DIRECTIVE_IN":
-                self.__consume_token("DIRECTIVE_IN")
+            if self.__token.type == TokenKind.DIRECTIVE_IN:
+                self.__consume_token(TokenKind.DIRECTIVE_IN)
                 declared_input = self.__parse_directive_body(start)
             else:
-                self.__consume_token("DIRECTIVE_OUT")
+                self.__consume_token(TokenKind.DIRECTIVE_OUT)
                 declared_output = self.__parse_directive_body(start)
 
-            self.__consume_token("EOL", "EOF")
+            self.__consume_token(TokenKind.EOL, TokenKind.EOF)
 
         statements = self.__parse_statements()
 
@@ -166,7 +166,7 @@ class Parser:
 
         return Program(statements=statements, directives=directives)
 
-    def __parse_statements(self, *terminators: str) -> list[Statement]:
+    def __parse_statements(self, *terminators: TokenKind) -> list[Statement]:
         """
         Parse statements until a terminator is at the head of the stream, leaving the terminator unconsumed.
 
@@ -176,18 +176,18 @@ class Parser:
 
         statements: list[Statement] = []
 
-        while self.__token.type != "EOF" and self.__token.type not in terminators:
+        while self.__token.type != TokenKind.EOF and self.__token.type not in terminators:
             match self.__token.type:
-                case "EOL":
-                    self.__consume_token("EOL")
+                case TokenKind.EOL:
+                    self.__consume_token(TokenKind.EOL)
 
-                case "IDENTIFIER":
+                case TokenKind.IDENTIFIER:
                     statements.append(self.__parse_ambiguous_identifier_statement())
 
-                case "RETURN":
+                case TokenKind.RETURN:
                     statements.append(self.__parse_return_statement())
 
-                case "IF":
+                case TokenKind.IF:
                     statements.append(self.__parse_if_statement())
 
                 case _:
@@ -204,17 +204,17 @@ class Parser:
         block needs no newline after it - but that brace belongs to the block, so it is left for `__parse_block` to take.
         """
 
-        if self.__token.type == "}":
+        if self.__token.type == TokenKind.RIGHT_BRACE:
             return
 
-        self.__consume_token("EOL", "EOF")
+        self.__consume_token(TokenKind.EOL, TokenKind.EOF)
 
     def __parse_block(self) -> list[Statement]:
         """Parse a braced block, consuming both braces."""
 
-        self.__consume_token("{")
-        statements = self.__parse_statements("}")
-        self.__consume_token("}")
+        self.__consume_token(TokenKind.LEFT_BRACE)
+        statements = self.__parse_statements(TokenKind.RIGHT_BRACE)
+        self.__consume_token(TokenKind.RIGHT_BRACE)
 
         return statements
 
@@ -228,15 +228,15 @@ class Parser:
         """
 
         start = self.__span
-        self.__consume_token("IF")
+        self.__consume_token(TokenKind.IF)
 
         condition = self.__parse_condition()
         body = self.__parse_block()
 
         otherwise: list[Statement] | None = None
 
-        if self.__token.type == "ELSE":
-            self.__consume_token("ELSE")
+        if self.__token.type == TokenKind.ELSE:
+            self.__consume_token(TokenKind.ELSE)
             otherwise = self.__parse_block()
 
         return If(condition=condition, body=body, otherwise=otherwise, location=self.__span_from(start))
@@ -247,14 +247,14 @@ class Parser:
         start = self.__span
         expression = self.__parse_expression()
 
-        if self.__token.type != "->":
+        if self.__token.type != TokenKind.ARROW:
             return expression
 
         if not isinstance(expression, Identifier):
             raise ParserError("Only a variable can be decomposed", expression.location)
 
-        self.__consume_token("->")
-        pattern = self.__parse_decomposition_pattern("{")
+        self.__consume_token(TokenKind.ARROW)
+        pattern = self.__parse_decomposition_pattern(TokenKind.LEFT_BRACE)
 
         # The condition ends at its last pattern element, not at the brace that opens the block
         return DecompTest(target=expression, pattern=pattern, location=self.__span_from(start))
@@ -264,16 +264,16 @@ class Parser:
         identifier = self.__parse_identifier()
 
         match self.__token.type:
-            case "=":
+            case TokenKind.ASSIGN:
                 return self.__parse_assignment_statement(identifier, start)
-            case "->":
+            case TokenKind.ARROW:
                 return self.__parse_decomposition_statement(identifier, start)
             case _:
                 err = f"Unexpected token {self.__token} while parsing ambiguous identifier statement"
                 raise ParserError(err, self.__span)
 
     def __parse_decomposition_statement(self, identifier: Identifier, start: Span) -> Decomposition:
-        self.__consume_token("->")
+        self.__consume_token(TokenKind.ARROW)
 
         pattern = self.__parse_decomposition_pattern()
 
@@ -283,7 +283,7 @@ class Parser:
         # The statement ends at its last pattern element, not at the newline that terminates it
         return Decomposition(target=identifier, pattern=pattern, location=terminator)
 
-    def __parse_decomposition_pattern(self, *terminators: str) -> DecompPattern:
+    def __parse_decomposition_pattern(self, *terminators: TokenKind) -> DecompPattern:
         """
         Parse the elements of a decomposition pattern, stopping before a terminator without consuming it.
 
@@ -293,13 +293,13 @@ class Parser:
 
         pattern: DecompPattern = []
 
-        while self.__token.type not in {"EOL", "EOF", "}", *terminators}:
+        while self.__token.type not in {TokenKind.EOL, TokenKind.EOF, TokenKind.RIGHT_BRACE, *terminators}:
             match self.__token.type:
-                case "IDENTIFIER":
+                case TokenKind.IDENTIFIER:
                     pattern.append(self.__parse_identifier())
-                case "STRING_LITERAL":
+                case TokenKind.STRING_LITERAL:
                     pattern.append(self.__parse_string_literal())
-                case "*":
+                case TokenKind.STAR:
                     pattern.append(self.__parse_decomposition_wildcard())
 
                 case _:
@@ -309,25 +309,25 @@ class Parser:
 
     def __parse_decomposition_wildcard(self) -> Wildcard:
         span = self.__span
-        self.__consume_token("*")
+        self.__consume_token(TokenKind.STAR)
 
         return Wildcard(location=span)
 
     def __parse_identifier(self) -> Identifier:
         span = self.__span
-        identifier = self.__consume_token("IDENTIFIER")
+        identifier = self.__consume_token(TokenKind.IDENTIFIER)
 
         return Identifier(name=identifier, location=span)
 
     def __parse_expression(self) -> Value:
         match self.__token.type:
-            case "INTEGER_LITERAL":
+            case TokenKind.INTEGER_LITERAL:
                 return self.__parse_integer_literal()
-            case "BOOLEAN_LITERAL":
+            case TokenKind.BOOLEAN_LITERAL:
                 return self.__parse_boolean_literal()
-            case "IDENTIFIER" | "STRING_LITERAL":
+            case TokenKind.IDENTIFIER | TokenKind.STRING_LITERAL:
                 return self.__parse_ambiguous_possible_concatenation()
-            case "[":
+            case TokenKind.LEFT_BRACKET:
                 return self.__parse_list()
             case _:
                 err = f"Unexpected token {self.__token} while parsing primary expression"
@@ -335,15 +335,15 @@ class Parser:
 
     def __parse_list(self) -> ListLiteral:
         start = self.__span
-        self.__consume_token("[")
+        self.__consume_token(TokenKind.LEFT_BRACKET)
 
         elements: list[Value] = []
-        while self.__token.type != "]":
+        while self.__token.type != TokenKind.RIGHT_BRACKET:
             elements.append(self.__parse_expression())
-            if self.__token.type == ",":
-                self.__consume_token(",")
+            if self.__token.type == TokenKind.COMMA:
+                self.__consume_token(TokenKind.COMMA)
 
-        self.__consume_token("]")
+        self.__consume_token(TokenKind.RIGHT_BRACKET)
 
         # From the opening bracket to the closing one, so that an empty `[]` still has something to point at
         return ListLiteral(elements=elements, location=self.__span_from(start))
@@ -352,11 +352,11 @@ class Parser:
         start = self.__span
         primary_expressions: list[Value] = []
 
-        while self.__token.type in {"IDENTIFIER", "STRING_LITERAL"}:
+        while self.__token.type in {TokenKind.IDENTIFIER, TokenKind.STRING_LITERAL}:
             match self.__token.type:
-                case "IDENTIFIER":
+                case TokenKind.IDENTIFIER:
                     primary_expressions.append(self.__parse_ambiguous_identifier_or_index_primary_expression())
-                case "STRING_LITERAL":
+                case TokenKind.STRING_LITERAL:
                     primary_expressions.append(self.__parse_string_literal())
                 case _:
                     err = f"Unexpected token {self.__token} while parsing possible concatenation"
@@ -371,36 +371,36 @@ class Parser:
         start = self.__span
         identifier = self.__parse_identifier()
 
-        if self.__token.type == "[":
+        if self.__token.type == TokenKind.LEFT_BRACKET:
             return self.__parse_index(identifier, start)
         else:
             return identifier
 
     def __parse_index(self, identifier: Identifier, start: Span) -> Index:
-        self.__consume_token("[")
+        self.__consume_token(TokenKind.LEFT_BRACKET)
 
         index: Value
 
         match self.__token.type:
-            case "INTEGER_LITERAL":
+            case TokenKind.INTEGER_LITERAL:
                 index = self.__parse_integer_literal()
-            case "IDENTIFIER":
+            case TokenKind.IDENTIFIER:
                 index = self.__parse_identifier()
             case _:
                 raise ParserError(f"Unexpected token {self.__token} while parsing index", self.__span)
 
-        self.__consume_token("]")
+        self.__consume_token(TokenKind.RIGHT_BRACKET)
 
         return Index(target=identifier, index=index, location=self.__span_from(start))
 
     def __parse_integer_literal(self) -> IntegerLiteral:
         span = self.__span
-        literal_int = self.__consume_token("INTEGER_LITERAL")
+        literal_int = self.__consume_token(TokenKind.INTEGER_LITERAL)
 
         return IntegerLiteral(value=int(literal_int), location=span)
 
     def __parse_assignment_statement(self, identifier: Identifier, start: Span) -> Assignment:
-        self.__consume_token("=")
+        self.__consume_token(TokenKind.ASSIGN)
 
         expression = self.__parse_expression()
 
@@ -411,7 +411,7 @@ class Parser:
 
     def __parse_return_statement(self) -> Return:
         start = self.__span
-        self.__consume_token("RETURN")
+        self.__consume_token(TokenKind.RETURN)
 
         expression = self.__parse_expression()
 
@@ -431,14 +431,14 @@ class Parser:
         # 5) '..'                                 => range bounded at neither end
         # 6) IDENTIFIER IDENTIFIER ...            => fixed named
 
-        if self.__token.type == "INTEGER_LITERAL":
-            lower = int(self.__consume_token("INTEGER_LITERAL"))
+        if self.__token.type == TokenKind.INTEGER_LITERAL:
+            lower = int(self.__consume_token(TokenKind.INTEGER_LITERAL))
 
-            if self.__token.type == "..":
-                self.__consume_token("..")
+            if self.__token.type == TokenKind.RANGE:
+                self.__consume_token(TokenKind.RANGE)
 
-                if self.__token.type == "INTEGER_LITERAL":
-                    upper = int(self.__consume_token("INTEGER_LITERAL"))
+                if self.__token.type == TokenKind.INTEGER_LITERAL:
+                    upper = int(self.__consume_token(TokenKind.INTEGER_LITERAL))
                 else:
                     upper = None
 
@@ -446,20 +446,20 @@ class Parser:
 
             return FixedDirective(count=lower, location=self.__span_from(start))
 
-        if self.__token.type == "..":
-            self.__consume_token("..")
+        if self.__token.type == TokenKind.RANGE:
+            self.__consume_token(TokenKind.RANGE)
 
-            if self.__token.type == "INTEGER_LITERAL":
-                upper = int(self.__consume_token("INTEGER_LITERAL"))
+            if self.__token.type == TokenKind.INTEGER_LITERAL:
+                upper = int(self.__consume_token(TokenKind.INTEGER_LITERAL))
 
                 return RangeDirective(min=None, max=upper, location=self.__span_from(start))
 
             return RangeDirective(min=None, max=None, location=self.__span_from(start))
 
-        if self.__token.type == "IDENTIFIER":
+        if self.__token.type == TokenKind.IDENTIFIER:
             names = []
-            while self.__token.type == "IDENTIFIER":
-                names.append(self.__consume_token("IDENTIFIER"))
+            while self.__token.type == TokenKind.IDENTIFIER:
+                names.append(self.__consume_token(TokenKind.IDENTIFIER))
 
             return FixedDirective(count=len(names), names=names, location=self.__span_from(start))
 
@@ -467,13 +467,13 @@ class Parser:
 
     def __parse_string_literal(self) -> StringLiteral:
         span = self.__span
-        literal_text = self.__consume_token("STRING_LITERAL")
+        literal_text = self.__consume_token(TokenKind.STRING_LITERAL)
 
         # The span covers the quotes, which the value does not: a caret under a literal should include its delimiters
         return StringLiteral(value=literal_text[1:-1], location=span)
 
     def __parse_boolean_literal(self) -> BooleanLiteral:
         span = self.__span
-        literal_text = self.__consume_token("BOOLEAN_LITERAL")
+        literal_text = self.__consume_token(TokenKind.BOOLEAN_LITERAL)
 
         return BooleanLiteral(value=literal_text == "true", location=span)
