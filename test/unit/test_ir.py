@@ -448,3 +448,15 @@ def test_condition_loader_accepts_a_value_and_a_decomposition_test():
     assert load_condition({"type": "decomposition_test", "identifier": {"type": "identifier", "name": "x"}, "pattern": []}) == DecompTest(
         target=Identifier(name="x"), pattern=[]
     )
+
+
+def test_a_concatenation_with_no_operands_raises_ir_error():
+    with pytest.raises(IRError):
+        load_value({"type": "concatenation", "operands": []})
+
+
+def test_a_concatenation_with_one_operand_is_still_loadable():
+    concatenation = load_value({"type": "concatenation", "operands": [{"type": "string_literal", "value": "a"}]})
+
+    assert isinstance(concatenation, Concatenation)
+    assert len(concatenation.operands) == 1

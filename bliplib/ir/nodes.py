@@ -212,8 +212,14 @@ class Concatenation(ValueNode):
     @classmethod
     def from_dict(cls, blip_ir: dict[str, Any]) -> Concatenation:
         _validate_node(blip_ir, "concatenation", ("operands",), ANNOTATED)
+
+        operands = _get_sequence(blip_ir, "operands", "concatenation")
+
+        if not operands:
+            raise IRError("A 'concatenation' node must have at least one operand")
+
         return cls(
-            operands=[_load_value(operand) for operand in _get_sequence(blip_ir, "operands", "concatenation")],
+            operands=[_load_value(operand) for operand in operands],
             blip_type=_get_blip_type(blip_ir, "concatenation"),
         )
 
