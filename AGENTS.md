@@ -90,11 +90,13 @@ pinned, for every back end, by execution rather than by regex.
 Each transpiler should ideally build a tree of small node classes and serialise into source code at the end.
 For example, the Python back end (`bliplib/transpiler/python.py`) uses the stdlib `ast` module: nodes expose `node()` returning an `ast` node, and `ast.unparse` handles escaping, quoting, operator precedence and indentation. Static scaffolding (function signature, imports, `main()`) is written as ordinary Python source and run through `ast.parse` since none of it derives from BlipIR; hand-built `ast` nodes are reserved for what does.
 
-## Docstrings
+## Docstrings and Comments
 
-Docstring should be short, to the point, and only talk about the function itself.
+Docstrings and comments should be short, to the point, and only talk about the immediate code local to that docstring/comment.
+Docstrings and comments should never explain how the "old code" used to work.
 
 Here is a bad example. The docstring below discusses other functions in the file and is way too verbose.
+It also starts talking about what the old code used to do before this function existed - pointless.
 
 ```python
 # Bad example
@@ -105,10 +107,12 @@ def read_source(file: str) -> str:
     This cannot go through `fail()`: that renders a span against the source text, and there is no source text yet. An
     unreadable file is also not a `BlipError` - nothing about the program is wrong, the file just is not there - so it is
     reported as the plain message an operating system error deserves.
+
+    The call sites used to do this calculation manually, meaning a change had to be copied everywhere each time.
     """
 ```
 
-Here is a good example of the same function:
+Here is a good example of the same function. Short, simple, local to the code it sits near, and doesn't talk about the "old code".
 
 ```python
 # Good example
