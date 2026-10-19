@@ -29,6 +29,17 @@ def fail(source_map: SourceMap, error_type: str, err: BlipError) -> NoReturn:
     sys.exit(1)
 
 
+def read_source(file: str) -> str:
+    """Read a Blip source file, or report why it could not be read and exit."""
+
+    try:
+        return Path(file).read_text()
+
+    except OSError as err:
+        print(f"Error: cannot read '{file}': {err.strerror or err}", file=sys.stderr)
+        sys.exit(1)
+
+
 def main():
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument("file", help="Path of the Blip file to use")
@@ -60,7 +71,7 @@ def main():
         blip_code = sys.stdin.read()
     else:
         path = args.file
-        blip_code = Path(args.file).read_text()
+        blip_code = read_source(args.file)
 
     source_map = SourceMap(blip_code, path=path)
 

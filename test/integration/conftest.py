@@ -12,8 +12,19 @@ def run_blip(blip_args: list[str], stdin: str) -> subprocess.CompletedProcess:
     Returns the results of the program execution (`subprocess.CompletedProcess`).
     """
 
-    prog_args = [blip_binary, "-"] + blip_args
+    prog_args = [blip_binary, "-", *blip_args]
     return subprocess.run(prog_args, input=stdin, text=True, capture_output=True, check=False)
+
+
+def run_blip_on_file(blip_args: list[str], blip_file: str) -> subprocess.CompletedProcess:
+    """
+    Run the Blip CLI tool with the provided arguments and a file on disk.
+
+    Returns the results of the program execution (`subprocess.CompletedProcess`).
+    """
+
+    prog_args = [blip_binary, blip_file, *blip_args]
+    return subprocess.run(prog_args, text=True, capture_output=True, check=False)
 
 
 @pytest.fixture(scope="session", autouse=True)

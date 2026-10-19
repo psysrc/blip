@@ -3,10 +3,11 @@ Integration tests for the `blip` CLI.
 """
 
 import json
+from pathlib import Path
 
 import pytest
 
-from test.integration.conftest import run_blip
+from test.integration.conftest import run_blip, run_blip_on_file
 
 LEXICAL_ERROR = "first = 1\nsecond = \u00a35\nret first\n"
 SYNTAX_ERROR = 'a = "x"\nb = = "y"\n'
@@ -101,3 +102,56 @@ def test_a_type_conflict_is_reported_at_both_sites():
 
     assert '\n1 | x = "a"\n' in result.stderr
     assert "\n2 | x = 1\n" in result.stderr
+
+
+def test_an_unknown_transpiler_is_reported_as_a_diagnostic():
+    result = run_blip(["--transpile", "matlab"], GOOD)
+
+    assert result.returncode != 0
+    assert "transpiler error" in result.stderr
+    assert "matlab" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_a_program_is_read_from_a_file_on_disk(tmp_path: Path):
+    source = tmp_path / "prog.blip"
+    source.write_text(GOOD)
+
+    result = run_blip_on_file(["--interpret"], str(source))
+
+    assert result.returncode == 0
+    assert json.loads(result.stdout) == ["ok"]
+
+
+def test_a_diagnostic_names_the_file_it_was_read_from(tmp_path: Path):
+    """Piped input is named `<stdin>`; a program read from a path has to be named by that path."""
+
+    source = tmp_path / "bad.blip"
+    source.write_text(SEMANTIC_ERROR)
+
+    result = run_blip_on_file(["--check"], str(source))
+
+    assert result.returncode != 0
+    assert result.stderr.startswith(source)
+
+
+def test_a_missing_file_is_reported_rather_than_raised(tmp_path: Path):
+    """There is no source text to render a diagnostic against yet, but it still must not be a traceback."""
+
+    missing = tmp_path / "nope.blip"
+
+    result = run_blip_on_file(["--check"], str(missing))
+
+    assert result.returncode != 0
+    assert "nope.blip" in result.stderr
+    assert "No such file or directory" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+def test_a_directory_given_in_place_of_a_file_is_reported(tmp_path: Path):
+    """Reading this fails with a different `OSError`, so the handler cannot be keyed on the missing-file case alone."""
+
+    result = run_blip_on_file(["--check"], str(tmp_path))
+
+    assert result.returncode != 0
+    assert "Traceback" not in result.stderr
