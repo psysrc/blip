@@ -9,14 +9,10 @@ from bliplib.errors import TokenizerError
 from bliplib.source import Span
 
 # Patterns are tried in order and the first match wins, so a keyword has to come before the identifier pattern that would
-# match it too, and `\n` has to come before the whitespace pattern that would swallow it.
+# match it too. `\n` is an `EOL` rather than trivia, so the trivia pattern excludes it outright rather than relying on being
+# tried second: it is greedy, and a run of spaces beginning before a newline would otherwise swallow the newline with them.
 #
-# None of them is `^`-anchored, which is load-bearing rather than tidiness. They are matched with `pattern.match(source,
-# offset)` against the whole source instead of against a slice of what is left, and `^` only matches at a real line start -
-# so an anchored pattern fails at every non-zero offset, with or without `re.MULTILINE`. `match()` anchors at the offset by
-# definition, and leaves the rest of the string visible, which is what lets a trailing `\b` still see what follows it.
-#
-# A token type of `None` marks trivia: the match advances the offset and yields no token.
+# A token type of `None` is trivia: the match advances the offset but yields no token. This is for whitespace and comments.
 _TOKEN_PATTERNS: tuple[tuple[re.Pattern[str], str | None], ...] = tuple(
     (re.compile(pattern), token_type)
     for pattern, token_type in (
@@ -24,7 +20,7 @@ _TOKEN_PATTERNS: tuple[tuple[re.Pattern[str], str | None], ...] = tuple(
         (r"//.*", None),  # Single-line comments (ignore)
         (r"\n", "EOL"),
         (r";", "EOL"),
-        (r"\s", None),  # Non-EOL Whitespace (ignore)
+        (r"[^\S\n]+", None),  # Non-EOL Whitespace (ignore)
         (r"->", "->"),
         (r"<-", "<-"),
         (r"=", "="),
@@ -96,21 +92,33 @@ class Tokenizer:
         return token_to_return
 
     def __get_next_token_from_stream(self) -> Token:
-        if self.__source_is_exhausted():
-            return Token(type="EOF", value="", location=Span(offset=self.__offset, length=0))
+        """Scan up to the next real token."""
+
+        while not self.__source_is_exhausted():
+            token = self.__scan_one()
+
+            if token is not None:
+                return token
+
+        return Token(type="EOF", value="", location=Span(offset=self.__offset, length=0))
+
+    def __scan_one(self) -> Token | None:
+        """Consume the next pattern, return its token or `None` if it was trivia (comments/whitespace), and advance the offset."""
 
         for pattern, token_type in _TOKEN_PATTERNS:
             match = pattern.match(self.__source, self.__offset)
 
-            if match:
-                token_value = match.group()
-                start = self.__offset
-                self.__offset += len(token_value)
+            if match is None:
+                continue
 
-                if token_type:
-                    return Token(type=token_type, value=token_value, location=Span(offset=start, length=len(token_value)))
+            token_value = match.group()
+            start = self.__offset
+            self.__offset += len(token_value)
 
-                return self.__get_next_token_from_stream()
+            if token_type is None:
+                return None
+
+            return Token(type=token_type, value=token_value, location=Span(offset=start, length=len(token_value)))
 
         unknown = self.__source[self.__offset : self.__offset + _UNKNOWN_SYNTAX_CONTEXT].partition("\n")[0]
         raise TokenizerError(f"Unknown syntax near characters '{unknown}'", Span(offset=self.__offset, length=len(unknown)))

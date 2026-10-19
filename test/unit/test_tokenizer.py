@@ -178,3 +178,41 @@ def test_token_containing_newlines_renders_correctly():
     token = Token("EOL", "\n", location=Span(offset=0, length=0))
 
     assert str(token) == "EOL['\\n']"
+
+
+@pytest.mark.parametrize(
+    "trivia",
+    [
+        pytest.param(" " * 5000, id="a long run of spaces"),
+        pytest.param("\t" * 5000, id="a long run of tabs"),
+        pytest.param("# comment\n" * 5000, id="a long run of comments"),
+        pytest.param(" \t" * 5000, id="a long run of mixed whitespace"),
+    ],
+)
+def test_a_long_run_of_trivia_does_not_exhaust_the_stack(trivia: str):
+    """
+    How much trivia separates two tokens is unbounded, so skipping it must not cost stack.
+
+    Skipping by recursion made a perfectly well-formed program with enough indentation or enough comments in it raise
+    `RecursionError` from inside the tokenizer.
+    """
+
+    tokens = tokens_of(f"ret{trivia}'ok'")
+
+    assert [token.type for token in tokens if token.type != "EOL"] == ["RETURN", "STRING_LITERAL", "EOF"]
+
+
+def test_a_run_of_whitespace_does_not_swallow_the_newline_that_ends_it():
+    """Trivia is matched greedily, so it has to exclude `\\n` outright rather than rely on `EOL` being tried first."""
+
+    tokens = tokens_of("ret   \n'ok'")
+
+    assert [token.type for token in tokens] == ["RETURN", "EOL", "STRING_LITERAL", "EOF"]
+
+
+def test_a_carriage_return_is_trivia_but_the_newline_after_it_is_not():
+    """A CRLF source still has to produce exactly one `EOL` per line."""
+
+    tokens = tokens_of("ret\r\n'ok'\r\n")
+
+    assert [token.type for token in tokens] == ["RETURN", "EOL", "STRING_LITERAL", "EOL", "EOF"]
