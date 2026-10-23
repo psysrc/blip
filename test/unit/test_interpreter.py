@@ -12,9 +12,17 @@ import pytest
 from bliplib.analysis import analyse
 from bliplib.errors import InterpreterError, SemanticError
 from bliplib.interpreter import Interpreter
-from bliplib.ir import If, IntegerLiteral, Program, Return, StringLiteral
-from bliplib.ir.types import Scalar
+from bliplib.ir import BooleanLiteral, Identifier, If, Index, IntegerLiteral, Program, Return, StringLiteral, Value
+from bliplib.ir.types import List, Scalar
 from bliplib.parser import Parser
+
+
+def _index_into_input(position: Value) -> Program:
+    """`ret input[position]`, built by hand because the analyser would not let these positions through."""
+
+    target = Identifier(name="input", blip_type=List(Scalar.STRING))
+
+    return Program(statements=[Return(expression=Index(target=target, index=position, blip_type=Scalar.STRING))])
 
 
 def interpret(blip_code: str, input_strings: list[str]) -> list[str]:
@@ -101,3 +109,21 @@ def test_a_condition_that_is_not_a_boolean_never_reaches_the_interpreter():
 
     with pytest.raises(InterpreterError, match="Expected a boolean condition"):
         Interpreter(program).run([])
+
+
+def test_a_boolean_index_is_an_error():
+    """A `bool` is an `int` to Python, so `true` would otherwise select element 1."""
+
+    program = _index_into_input(BooleanLiteral(value=True, blip_type=Scalar.BOOLEAN))
+
+    with pytest.raises(InterpreterError, match="Expected an int"):
+        Interpreter(program).run(["a", "b"])
+
+
+def test_a_negative_index_is_an_error():
+    """Python would count back from the end of the list."""
+
+    program = _index_into_input(IntegerLiteral(value=-1, blip_type=Scalar.INTEGER))
+
+    with pytest.raises(InterpreterError, match="out of bounds"):
+        Interpreter(program).run(["a", "b"])

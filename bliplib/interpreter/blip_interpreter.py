@@ -242,10 +242,11 @@ class Interpreter:
             raise InterpreterError(f"Expected a list here, but got {type(indexed).__name__}")
 
         position = self.__interpret_expression(value.index)
-        if not isinstance(position, int) and not isinstance(position, bool):
+        # `bool` is a subclass of `int`, so it has to be excluded explicitly
+        if not isinstance(position, int) or isinstance(position, bool):
             raise InterpreterError(f"Expected an int here, but got {type(position).__name__}")
 
-        if position >= len(indexed):
+        if not 0 <= position < len(indexed):
             raise InterpreterError(f"Index out of bounds (list has {len(indexed)} elements, index is {position})")
 
         return indexed[position]
