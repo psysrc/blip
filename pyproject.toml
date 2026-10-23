@@ -24,11 +24,15 @@ pre-commit = "^4.7.0"
 pyinstaller = "^6.22.3"
 markdown-it-py = "^4.2.0"
 ty = "^0.0.89"
+pytest-xdist = "^3.8.0"
+filelock = "^4.2.4"
 
 [tool.pytest.ini_options]
 # Put the repository root on sys.path, so that `test.common` always resolves to this project's
 # test package and never to the standard library's `test` package, which some Python builds ship.
 pythonpath = ["."]
+# Run tests across every CPU; `-n 0` runs them serially, e.g. for `--pdb`.
+addopts = "-n auto"
 
 [tool.ruff]
 line-length = 140

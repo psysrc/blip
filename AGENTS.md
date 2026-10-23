@@ -59,6 +59,8 @@ poetry run ruff format
 
 Integration tests are slow-ish: the session-scoped autouse fixture in `test/integration/conftest.py` runs `./build.sh`, which invokes PyInstaller to produce `./build/bin/blip`, and the tests then drive that binary as a subprocess. Prefer `pytest test/unit/` while iterating.
 
+Tests run in parallel across every CPU via `pytest-xdist` (`addopts = "-n auto"` in `pyproject.toml`). The build fixture holds a file lock so only one worker builds the binary. Pass `-n 0` to run serially, e.g. with `--pdb`.
+
 CI (`.github/workflows/build.yml`) runs unit tests with coverage, integration tests, `ty check`, `ruff check` and `ruff format --check` — all five must pass. `.pre-commit-config.yaml` runs the same checks bar the integration tests.
 
 ## Code conventions
