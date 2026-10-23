@@ -9,9 +9,9 @@ import pytest
 
 from test.integration.conftest import run_blip, run_blip_on_file
 
-LEXICAL_ERROR = "first = 1; second = \u00a35; ret first"
-SYNTAX_ERROR = 'a = "x"; b = = "y"; '
-SEMANTIC_ERROR = 'x = "a"; x = 1; ret x'
+LEXICAL_ERROR = "first = 1\nsecond = \u00a35\nret first"
+SYNTAX_ERROR = 'a = "x"\nb = = "y"\n'
+SEMANTIC_ERROR = 'x = "a"\nx = 1\nret x'
 GOOD = 'ret "ok"'
 
 
