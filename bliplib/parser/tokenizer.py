@@ -21,10 +21,8 @@ class TokenKind(StrEnum):
     EOF = "EOF"
 
     ARROW = "->"
-    REVERSE_ARROW = "<-"
     ASSIGN = "="
     STAR = "*"
-    PIPE = "|"
     LEFT_BRACKET = "["
     RIGHT_BRACKET = "]"
     LEFT_BRACE = "{"
@@ -58,10 +56,8 @@ _TOKEN_PATTERNS: tuple[tuple[re.Pattern[str], TokenKind | None], ...] = tuple(
         (r";", TokenKind.EOL),
         (r"[^\S\n]+", None),  # Non-EOL Whitespace (ignore)
         (r"->", TokenKind.ARROW),
-        (r"<-", TokenKind.REVERSE_ARROW),
         (r"=", TokenKind.ASSIGN),
         (r"\*", TokenKind.STAR),
-        (r"\|", TokenKind.PIPE),
         (r"\[", TokenKind.LEFT_BRACKET),
         (r"\]", TokenKind.RIGHT_BRACKET),
         (r"\{", TokenKind.LEFT_BRACE),
