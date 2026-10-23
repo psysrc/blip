@@ -328,9 +328,6 @@ class _ParseSession:
                     primary_expressions.append(self.__parse_ambiguous_identifier_or_index_primary_expression())
                 case TokenKind.STRING_LITERAL:
                     primary_expressions.append(self.__parse_string_literal())
-                case _:
-                    err = f"Unexpected token {self.__token} while parsing possible concatenation"
-                    raise ParserError(err, self.__span)
 
         if len(primary_expressions) == 1:
             return primary_expressions[0]
