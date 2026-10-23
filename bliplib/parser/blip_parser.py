@@ -27,7 +27,7 @@ from bliplib.ir import (
 )
 from bliplib.source import Span
 
-from .tokenizer import Token, Tokenizer, TokenKind
+from .tokenizer import Tokenizer, TokenKind
 
 
 class Parser:
@@ -38,11 +38,6 @@ class Parser:
     The BlipIR can then be analysed, and afterwards transpiled into a target language or directly interpreted.
     """
 
-    def __init__(self):
-        self.__tokenizer: Tokenizer | None = None
-        self.__current_token: Token | None = None
-        self.__consumed_span: Span | None = None
-
     def parse(self, source: str) -> Program:
         """
         Parse the source and return the Blip IR AST.
@@ -52,44 +47,24 @@ class Parser:
         """
 
         try:
-            self.__tokenizer = Tokenizer(source)
-            self.__current_token = self.__tokenizer.next_token()
-            self.__consumed_span = None
-
-            program = self.__parse_program()
-            return program
+            return _ParseSession(source).parse()
 
         except TokenizerError as err:
             raise ParserError(str(err), err.location) from err
 
-        finally:
-            self.__tokenizer = None
-            self.__current_token = None
-            self.__consumed_span = None
 
-    @property
-    def __stream(self) -> Tokenizer:
-        """
-        The token stream being parsed.
-        Only exists during a `parse()` call, so accessing it outside of one raises a `ParserError`.
-        """
+class _ParseSession:
+    """The state of parsing one source: a single use, made and discarded by `Parser.parse()`."""
 
-        if self.__tokenizer is None:
-            raise ParserError("No source is currently being parsed")
+    def __init__(self, source: str):
+        self.__tokenizer = Tokenizer(source)
+        self.__token = self.__tokenizer.next_token()
 
-        return self.__tokenizer
+        # Nothing has been consumed yet, so this is the empty span just before the first token.
+        self.__consumed_span = Span(offset=self.__token.location.offset, length=0)
 
-    @property
-    def __token(self) -> Token:
-        """
-        The token at the head of the stream.
-        Only exists during a `parse()` call, so accessing it outside of one raises a `ParserError`.
-        """
-
-        if self.__current_token is None:
-            raise ParserError("No source is currently being parsed")
-
-        return self.__current_token
+    def parse(self) -> Program:
+        return self.__parse_program()
 
     @property
     def __span(self) -> Span:
@@ -112,11 +87,6 @@ class Parser:
         one place that knows every span is real.
         """
 
-        if self.__consumed_span is None:
-            # Nothing has been consumed, so `start` is all there is. Unreachable while building a node, which by definition
-            # has consumed at least one token
-            return start
-
         return start.covering(self.__consumed_span)
 
     def __consume_token(self, *token_types: TokenKind) -> str:
@@ -133,7 +103,7 @@ class Parser:
         token_value = self.__token.value
         self.__consumed_span = self.__token.location
 
-        self.__current_token = self.__stream.next_token()
+        self.__token = self.__tokenizer.next_token()
 
         return token_value
 
