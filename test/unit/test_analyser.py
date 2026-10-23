@@ -176,19 +176,19 @@ def test_inferred_return_type_matches_the_recorded_output(ref: ReferenceProgram)
 @pytest.mark.parametrize(
     "source",
     [
-        pytest.param('x = "a"\nx = 1\nret x', id="reassignment changes a variable's type"),
+        pytest.param('x = "a"; x = 1; ret x', id="reassignment changes a variable's type"),
         pytest.param("ret 5", id="returning an integer"),
         pytest.param("ret true", id="returning a boolean"),
         pytest.param('ret ["a", 1]', id="a heterogeneous list"),
         pytest.param('ret [["a"]]', id="returning a nested list"),
-        pytest.param('things = []\nret "ok"', id="an empty list whose element type is never determined"),
+        pytest.param('things = []; ret "ok"', id="an empty list whose element type is never determined"),
         pytest.param("ret missing", id="an unbound identifier"),
-        pytest.param('input = "a"\nret "ok"', id="assigning to the reserved input"),
-        pytest.param('!in input\nret "ok"', id="an input directive naming the reserved input"),
-        pytest.param('x = 5\nx -> a "@" b\nret a', id="decomposing something that is not a string"),
-        pytest.param('xs = ["a"]\ni = "z"\nret xs[i]', id="indexing with a string"),
-        pytest.param('x = "a"\nret x[0]', id="indexing something that is not a list"),
-        pytest.param('n = 5\nname = "a" n\nret name', id="concatenating an integer"),
+        pytest.param('input = "a"; ret "ok"', id="assigning to the reserved input"),
+        pytest.param('!in input; ret "ok"', id="an input directive naming the reserved input"),
+        pytest.param('x = 5; x -> a "@" b; ret a', id="decomposing something that is not a string"),
+        pytest.param('xs = ["a"]; i = "z"; ret xs[i]', id="indexing with a string"),
+        pytest.param('x = "a"; ret x[0]', id="indexing something that is not a list"),
+        pytest.param('n = 5; name = "a" n; ret name', id="concatenating an integer"),
     ],
 )
 def test_bad_program_raises_semantic_error(source: str):
@@ -199,10 +199,10 @@ def test_bad_program_raises_semantic_error(source: str):
 @pytest.mark.parametrize(
     "source",
     [
-        pytest.param('x = "ab"\nx -> a b\nret a', id="two captures side by side"),
-        pytest.param('x = "ab"\nx -> * b\nret b', id="a wildcard and a capture"),
-        pytest.param('x = "ab"\nx -> a *\nret a', id="a capture and a wildcard"),
-        pytest.param('x = "ab"\nx -> "<" a b ">"\nret a', id="adjacent captures in the middle of a pattern"),
+        pytest.param('x = "ab"; x -> a b; ret a', id="two captures side by side"),
+        pytest.param('x = "ab"; x -> * b; ret b', id="a wildcard and a capture"),
+        pytest.param('x = "ab"; x -> a *; ret a', id="a capture and a wildcard"),
+        pytest.param('x = "ab"; x -> "<" a b ">"; ret a', id="adjacent captures in the middle of a pattern"),
     ],
 )
 def test_adjacent_capturing_pattern_elements_raise_semantic_error(source: str):
@@ -215,11 +215,11 @@ def test_adjacent_capturing_pattern_elements_raise_semantic_error(source: str):
 @pytest.mark.parametrize(
     "source",
     [
-        pytest.param('x = "a@b"\nx -> a "@" b\nret a', id="captures separated by a literal"),
-        pytest.param('x = "a@b"\nx -> a "@" *\nret a', id="a trailing wildcard"),
-        pytest.param('x = "a@b"\nx -> * "@" b\nret b', id="a leading wildcard"),
-        pytest.param('x = "ab"\nx -> "a" "b"\nret x', id="literals only"),
-        pytest.param('x = "ab"\nx -> a\nret a', id="a single capture taking everything"),
+        pytest.param('x = "a@b"; x -> a "@" b; ret a', id="captures separated by a literal"),
+        pytest.param('x = "a@b"; x -> a "@" *; ret a', id="a trailing wildcard"),
+        pytest.param('x = "a@b"; x -> * "@" b; ret b', id="a leading wildcard"),
+        pytest.param('x = "ab"; x -> "a" "b"; ret x', id="literals only"),
+        pytest.param('x = "ab"; x -> a; ret a', id="a single capture taking everything"),
     ],
 )
 def test_a_pattern_whose_captures_are_separated_is_accepted(source: str):
@@ -229,7 +229,7 @@ def test_a_pattern_whose_captures_are_separated_is_accepted(source: str):
 def test_a_rejected_program_is_not_left_half_annotated():
     """Types are written only once the whole program has analysed, so a rejected program carries none of them."""
 
-    program = Parser().parse('ret "fine"\nret 5')
+    program = Parser().parse('ret "fine"; ret 5')
 
     with pytest.raises(SemanticError):
         analyse(program)
@@ -240,7 +240,7 @@ def test_a_rejected_program_is_not_left_half_annotated():
 def test_an_empty_list_takes_its_type_from_how_it_is_used():
     """The showcase for unification: nothing about `[]` says what it holds, and the `ret` is what settles it."""
 
-    program = __analyse_source("things = []\nret things")
+    program = __analyse_source("things = []; ret things")
 
     assignment = program.statements[0]
     assert isinstance(assignment, Assignment)
@@ -251,7 +251,7 @@ def test_an_empty_list_takes_its_type_from_how_it_is_used():
 def test_reassignment_refines_a_hole_rather_than_rejecting_it():
     """`x = []` leaves a hole, so a later `x = ["a"]` fills it in. That is the same type becoming known, not a type changing."""
 
-    program = __analyse_source('x = []\nx = ["a"]\nret x')
+    program = __analyse_source('x = []; x = ["a"]; ret x')
 
     returned = program.statements[-1]
     assert isinstance(returned, Return)
@@ -259,7 +259,7 @@ def test_reassignment_refines_a_hole_rather_than_rejecting_it():
 
 
 def test_indexing_a_list_of_strings_gives_a_string():
-    program = __analyse_source("idx = 0\nret input[idx]")
+    program = __analyse_source("idx = 0; ret input[idx]")
 
     returned = program.statements[-1]
     assert isinstance(returned, Return)
@@ -272,7 +272,7 @@ def test_indexing_a_list_of_strings_gives_a_string():
 
 
 def test_decomposition_binds_every_captured_name_as_a_string():
-    program = __analyse_source('email = "a@b"\nemail -> user "@" *\nret user')
+    program = __analyse_source('email = "a@b"; email -> user "@" *; ret user')
 
     decomposition = program.statements[1]
     assert isinstance(decomposition, Decomposition)
@@ -283,7 +283,7 @@ def test_decomposition_binds_every_captured_name_as_a_string():
 
 
 def test_a_named_input_directive_binds_each_name_as_a_string():
-    program = __analyse_source("!in username email\nret username")
+    program = __analyse_source("!in username email; ret username")
 
     returned = program.statements[-1]
     assert isinstance(returned, Return)
@@ -299,7 +299,7 @@ def test_input_is_always_a_list_of_strings():
 
 
 def test_a_nested_list_is_well_typed_even_though_it_cannot_be_returned():
-    program = __analyse_source('x = [["a"]]\nret "ok"')
+    program = __analyse_source('x = [["a"]]; ret "ok"')
 
     assignment = program.statements[0]
     assert isinstance(assignment, Assignment)
@@ -308,30 +308,30 @@ def test_a_nested_list_is_well_typed_even_though_it_cannot_be_returned():
 
 def test_a_name_used_twice_in_one_decomposition_pattern_is_ill_formed():
     with pytest.raises(SemanticError):
-        __analyse_source('x = "abc"\nx -> dup "b" dup\nret dup')
+        __analyse_source('x = "abc"; x -> dup "b" dup; ret dup')
 
 
 def test_empty_literals_in_decomposition_are_ill_formed():
     """Empty literals don't affect the pattern, so don't allow them. Keep it simple."""
 
     with pytest.raises(SemanticError):
-        __analyse_source('x = input[0]\nx -> "" rest\nret rest')
+        __analyse_source('x = input[0]; x -> "" rest; ret rest')
 
 
 @pytest.mark.parametrize(
     ("source", "expected"),
     [
-        pytest.param('greeting = "hi"\nret name\n', "name", id="an unbound identifier"),
-        pytest.param('x = "a"\nx = 1\nret x\n', "1", id="the value whose type conflicts"),
-        pytest.param('count = 5\nret "total: " count\n', "count", id="the operand that cannot concatenate"),
-        pytest.param('ret ["a", 1]\n', "1", id="the element that breaks a list's homogeneity"),
-        pytest.param('x = []\nret "ok"\n', "[]", id="the list whose element type is never determined"),
-        pytest.param("n = 5\nn -> a '.' b\nret a\n", "n", id="a decomposition target that is not a string"),
-        pytest.param("x = 'a.b'\nx -> p '.' p\nret p\n", "p", id="the second capture of a repeated name"),
-        pytest.param("x = 'ab'\nx -> p q\nret p\n", "p", id="the first of two adjacent captures"),
-        pytest.param("x = 'a'\nx -> '' p\nret p\n", "''", id="an empty pattern literal"),
-        pytest.param('input = "x"\nret input\n', "input", id="an attempt to rebind the reserved name"),
-        pytest.param("x = []\nret x[0]\n", "x[0]", id="a return whose type could be either"),
+        pytest.param('greeting = "hi"; ret name', "name", id="an unbound identifier"),
+        pytest.param('x = "a"; x = 1; ret x', "1", id="the value whose type conflicts"),
+        pytest.param('count = 5; ret "total: " count', "count", id="the operand that cannot concatenate"),
+        pytest.param('ret ["a", 1]', "1", id="the element that breaks a list's homogeneity"),
+        pytest.param('x = []; ret "ok"', "[]", id="the list whose element type is never determined"),
+        pytest.param("n = 5; n -> a '.' b; ret a; ", "n", id="a decomposition target that is not a string"),
+        pytest.param("x = 'a.b'; x -> p '.' p; ret p; ", "p", id="the second capture of a repeated name"),
+        pytest.param("x = 'ab'; x -> p q; ret p; ", "p", id="the first of two adjacent captures"),
+        pytest.param("x = 'a'; x -> '' p; ret p; ", "''", id="an empty pattern literal"),
+        pytest.param('input = "x"; ret input', "input", id="an attempt to rebind the reserved name"),
+        pytest.param("x = []; ret x[0]; ", "x[0]", id="a return whose type could be either"),
     ],
 )
 def test_a_semantic_error_points_at_the_source_that_caused_it(source: str, expected: str):
@@ -343,11 +343,11 @@ def test_a_semantic_error_points_at_the_source_that_caused_it(source: str, expec
 @pytest.mark.parametrize(
     ("source", "note_text"),
     [
-        pytest.param('x = "a"\nx = 1\nret x\n', "x", id="where a reassigned name was first bound"),
-        pytest.param('count = 5\nret "total: " count\n', "count", id="where a non-string operand was bound"),
-        pytest.param("n = 5\nn -> a '.' b\nret a\n", "n", id="where a non-string decomposition target was bound"),
-        pytest.param("x = 'a.b'\nx -> p '.' p\nret p\n", "p", id="the first capture of a repeated name"),
-        pytest.param("x = 'ab'\nx -> p q\nret p\n", "q", id="the element that follows an ambiguous capture"),
+        pytest.param('x = "a"; x = 1; ret x', "x", id="where a reassigned name was first bound"),
+        pytest.param('count = 5; ret "total: " count', "count", id="where a non-string operand was bound"),
+        pytest.param("n = 5; n -> a '.' b; ret a; ", "n", id="where a non-string decomposition target was bound"),
+        pytest.param("x = 'a.b'; x -> p '.' p; ret p; ", "p", id="the first capture of a repeated name"),
+        pytest.param("x = 'ab'; x -> p q; ret p; ", "q", id="the element that follows an ambiguous capture"),
     ],
 )
 def test_a_two_site_error_points_at_the_other_site_too(source: str, note_text: str):
@@ -362,26 +362,26 @@ def test_a_two_site_error_points_at_the_other_site_too(source: str, note_text: s
 def test_a_conflict_note_names_the_type_the_earlier_site_bound():
     """The point of the note is that the two sites disagree, so it has to say what the earlier one decided."""
 
-    error = __semantic_error('x = "a"\nx = 1\nret x\n')
+    error = __semantic_error('x = "a"; x = 1; ret x')
 
     assert error.notes[0].message == "'x' was bound as 'string' here"
 
 
 def test_a_conflict_with_the_built_in_input_has_no_note():
-    error = __semantic_error("ret input[0] input\n")
+    error = __semantic_error("ret input[0] input; ")
 
     assert error.location is not None
     assert error.notes == ()
 
 
 def test_an_undetermined_type_names_the_value():
-    error = __semantic_error('x = []\nret "ok"\n')
+    error = __semantic_error('x = []; ret "ok"')
 
     assert "cannot infer the type of a list" in str(error)
 
 
 def test_the_return_error_reads_as_a_sentence():
-    error = __semantic_error("x = []\nret x[0]\n")
+    error = __semantic_error("x = []; ret x[0]; ")
 
     assert str(error) == "return expression has unknown type"
 
@@ -389,10 +389,10 @@ def test_the_return_error_reads_as_a_sentence():
 @pytest.mark.parametrize(
     "source",
     [
-        pytest.param('ret "total: " missing\n', id="inside a concatenation"),
-        pytest.param('ret ["a", missing]\n', id="inside a list literal"),
-        pytest.param('x = ["a"]\nret x[missing]\n', id="inside an index"),
-        pytest.param("missing -> a '.' b\nret a\n", id="as a decomposition target"),
+        pytest.param('ret "total: " missing', id="inside a concatenation"),
+        pytest.param('ret ["a", missing]', id="inside a list literal"),
+        pytest.param('x = ["a"]; ret x[missing]', id="inside an index"),
+        pytest.param("missing -> a '.' b; ret a; ", id="as a decomposition target"),
     ],
 )
 def test_unbound_identifiers_have_simple_error_messages_inside_complex_statements(source: str):
@@ -402,13 +402,13 @@ def test_unbound_identifiers_have_simple_error_messages_inside_complex_statement
 
 
 def test_a_constraint_failure_keeps_both_the_reason_and_the_detail():
-    error = __semantic_error('count = 5\nret "total: " count\n')
+    error = __semantic_error('count = 5; ret "total: " count')
 
     assert str(error) == "only strings can be concatenated: expected 'string', found 'integer'"
 
 
 def test_an_undetermined_type_has_a_friendly_error_message():
-    error = __semantic_error('x = []\nret "ok"\n')
+    error = __semantic_error('x = []; ret "ok"')
 
     assert str(error) == "cannot infer the type of a list: no constraint determines it"
 
@@ -416,10 +416,10 @@ def test_an_undetermined_type_has_a_friendly_error_message():
 @pytest.mark.parametrize(
     "source",
     [
-        pytest.param('flag = true\nif flag {\n  ret "yes"\n}\nret "no"\n', id="a boolean condition"),
-        pytest.param('e = "a@b"\nif e -> user "@" * {\n  ret user\n} else {\n  ret "none"\n}\n', id="a conditional decomposition"),
-        pytest.param('flag = true\nif flag {\n  if flag {\n    ret "deep"\n  }\n}\nret "no"\n', id="nested ifs"),
-        pytest.param('flag = true\nif flag { x = ["a"] } else { x = [] }\nret x\n', id="a join that closes a hole"),
+        pytest.param('flag = true; if flag {;   ret "yes"; }; ret "no"', id="a boolean condition"),
+        pytest.param('e = "a@b"; if e -> user "@" * {;   ret user; } else {;   ret "none"; }', id="a conditional decomposition"),
+        pytest.param('flag = true; if flag {;   if flag {;     ret "deep";   }; }; ret "no"', id="nested ifs"),
+        pytest.param('flag = true; if flag { x = ["a"] } else { x = [] }; ret x', id="a join that closes a hole"),
     ],
 )
 def test_every_value_inside_an_if_gets_a_type(source: str):
@@ -434,9 +434,9 @@ def test_every_value_inside_an_if_gets_a_type(source: str):
 @pytest.mark.parametrize(
     "source",
     [
-        pytest.param('if "hello" {\n  ret "yes"\n}\n', id="a string"),
-        pytest.param("n = 3\nif n {\n  ret 'yes'\n}\n", id="an integer"),
-        pytest.param("if input {\n  ret 'yes'\n}\n", id="a list of strings"),
+        pytest.param('if "hello" {;   ret "yes"; }', id="a string"),
+        pytest.param("n = 3; if n {;   ret 'yes'; }; ", id="an integer"),
+        pytest.param("if input {;   ret 'yes'; }; ", id="a list of strings"),
     ],
 )
 def test_a_condition_that_is_not_a_boolean_is_rejected(source: str):
@@ -444,7 +444,7 @@ def test_a_condition_that_is_not_a_boolean_is_rejected(source: str):
 
 
 def test_a_condition_is_annotated_with_its_type():
-    program = __analyse_source("flag = true\nif flag { ret 'yes' }\nret 'no'\n")
+    program = __analyse_source("flag = true; if flag { ret 'yes' }; ret 'no'; ")
     conditional = program.statements[1]
 
     assert isinstance(conditional, If)
@@ -455,7 +455,7 @@ def test_a_condition_is_annotated_with_its_type():
 def test_a_condition_that_is_an_unresolved_hole_is_made_boolean():
     """Constraining the condition is a unification, not a comparison, so a hole in the condition gets closed by it."""
 
-    program = __analyse_source("x = []\nif x[0] { ret 'yes' }\nret 'no'\n")
+    program = __analyse_source("x = []; if x[0] { ret 'yes' }; ret 'no'; ")
     assignment = program.statements[0]
 
     assert isinstance(assignment, Assignment)
@@ -465,19 +465,19 @@ def test_a_condition_that_is_an_unresolved_hole_is_made_boolean():
 def test_a_capture_is_not_bound_after_the_block_it_guards():
     """A failed match binds nothing, so the names a conditional decomposition captures cannot outlive its block."""
 
-    error = __semantic_error('e = "a@b"\nif e -> user "@" * {\n  ret "then"\n}\nret user\n')
+    error = __semantic_error('e = "a@b"; if e -> user "@" * {;   ret "then"; }; ret user')
 
     assert "'user' is used but never bound" in str(error)
 
 
 def test_a_name_bound_in_only_one_branch_is_not_bound_afterwards():
-    error = __semantic_error('flag = true\nif flag { x = "a" }\nret x\n')
+    error = __semantic_error('flag = true; if flag { x = "a" }; ret x')
 
     assert "'x' is used but never bound" in str(error)
 
 
 def test_a_name_bound_in_every_branch_is_bound_afterwards():
-    program = __analyse_source('flag = true\nif flag { x = "a" } else { x = "b" }\nret x\n')
+    program = __analyse_source('flag = true; if flag { x = "a" } else { x = "b" }; ret x')
     returned = program.statements[2]
 
     assert isinstance(returned, Return)
@@ -487,7 +487,7 @@ def test_a_name_bound_in_every_branch_is_bound_afterwards():
 def test_an_if_without_an_else_binds_nothing_afterwards():
     """There is no join to make without an `else`: one path through the `if` binds nothing at all."""
 
-    error = __semantic_error('flag = true\nif flag { x = "a" } else { y = "b" }\nret x\n')
+    error = __semantic_error('flag = true; if flag { x = "a" } else { y = "b" }; ret x')
 
     assert "'x' is used but never bound" in str(error)
 
@@ -495,7 +495,7 @@ def test_an_if_without_an_else_binds_nothing_afterwards():
 def test_branches_that_bind_the_same_name_to_different_types_are_rejected():
     """The caret lands on the `else` branch's binding and the note on the body's, so both ends of the conflict are named."""
 
-    source = 'flag = true\nif flag { x = "a" } else { x = 1 }\nret x\n'
+    source = 'flag = true; if flag { x = "a" } else { x = 1 }; ret x'
     error = __semantic_error(source)
 
     assert "bound in both branches" in str(error)
@@ -512,7 +512,7 @@ def test_branches_that_bind_the_same_name_to_different_types_are_rejected():
 def test_a_join_unifies_rather_than_compares():
     """An empty list in one branch is still `list[?]`, so the other branch is what settles its element type."""
 
-    program = __analyse_source('flag = true\nif flag { x = [] } else { x = ["a"] }\nret x\n')
+    program = __analyse_source('flag = true; if flag { x = [] } else { x = ["a"] }; ret x')
     returned = program.statements[2]
 
     assert isinstance(returned, Return)
@@ -522,19 +522,19 @@ def test_a_join_unifies_rather_than_compares():
 def test_a_name_from_an_outer_scope_is_not_shadowed_by_a_branch():
     """Assigning inside a branch unifies with the existing binding, so the monomorphic rule still applies."""
 
-    error = __semantic_error('x = "a"\nflag = true\nif flag { x = 1 }\nret x\n')
+    error = __semantic_error('x = "a"; flag = true; if flag { x = 1 }; ret x')
 
     assert "cannot assign to 'x'" in str(error)
 
 
 def test_input_stays_reserved_inside_a_branch():
-    error = __semantic_error('flag = true\nif flag { input = "x" }\nret "ok"\n')
+    error = __semantic_error('flag = true; if flag { input = "x" }; ret "ok"')
 
     assert "reserved" in str(error)
 
 
 def test_a_decomposition_condition_must_target_a_string():
-    error = __semantic_error("n = 3\nif n -> head '.' tail { ret 'yes' }\n")
+    error = __semantic_error("n = 3; if n -> head '.' tail { ret 'yes' }; ")
 
     assert "only strings can be decomposed" in str(error)
 
@@ -542,9 +542,9 @@ def test_a_decomposition_condition_must_target_a_string():
 @pytest.mark.parametrize(
     "source",
     [
-        pytest.param("x = 'a.b'\nif x -> first second { ret 'yes' }\n", id="adjacent captures"),
-        pytest.param("x = 'a.b'\nif x -> dup ',' dup { ret 'yes' }\n", id="a name captured twice"),
-        pytest.param("x = 'a.b'\nif x -> '' rest { ret 'yes' }\n", id="an empty literal"),
+        pytest.param("x = 'a.b'; if x -> first second { ret 'yes' }; ", id="adjacent captures"),
+        pytest.param("x = 'a.b'; if x -> dup ',' dup { ret 'yes' }; ", id="a name captured twice"),
+        pytest.param("x = 'a.b'; if x -> '' rest { ret 'yes' }; ", id="an empty literal"),
     ],
 )
 def test_the_pattern_rules_apply_to_a_condition_as_well(source: str):

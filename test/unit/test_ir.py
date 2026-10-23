@@ -65,7 +65,7 @@ def test_nested_program_loads_into_the_expected_tree():
 
 
 def test_every_statement_kind_loads():
-    program = load(parsed_dict('name = "bob" "@" domain\nemail -> user "@" *\nret name'))
+    program = load(parsed_dict('name = "bob" "@" domain; email -> user "@" *; ret name'))
 
     assert program == Program(
         statements=[
@@ -83,7 +83,7 @@ def test_every_statement_kind_loads():
 
 
 def test_literals_and_lists_load():
-    program = load(parsed_dict('things = ["a", 1, true]\nempty = []\nret things'))
+    program = load(parsed_dict('things = ["a", 1, true]; empty = []; ret things'))
 
     assert program.statements[0] == Assignment(
         target=Identifier(name="things"),
@@ -93,7 +93,7 @@ def test_literals_and_lists_load():
 
 
 def test_directives_load():
-    program = load(parsed_dict("!in username email\n!out 1..3\nret username"))
+    program = load(parsed_dict("!in username email; !out 1..3; ret username"))
 
     assert program.directives == Directives(input=FixedDirective(count=2, names=["username", "email"]), output=RangeDirective(min=1, max=3))
 
@@ -395,7 +395,7 @@ def test_statement_loader_rejects_an_unknown_kind():
 
 
 def test_an_if_loads_into_the_expected_tree():
-    program = load(parsed_dict('flag = true\nif flag {\n  ret "yes"\n} else {\n  ret "no"\n}\n'))
+    program = load(parsed_dict('flag = true; if flag { ret "yes" } else { ret "no" }'))
 
     assert program.statements[1] == If(
         condition=Identifier(name="flag"),
@@ -405,7 +405,7 @@ def test_an_if_loads_into_the_expected_tree():
 
 
 def test_a_decomposition_test_loads_into_the_expected_tree():
-    program = load(parsed_dict('e = "a@b"\nif e -> user "@" * {\n  ret user\n}\n'))
+    program = load(parsed_dict('e = "a@b"; if e -> user "@" * { ret user }'))
 
     assert program.statements[1] == If(
         condition=DecompTest(
@@ -420,20 +420,19 @@ def test_a_decomposition_test_loads_into_the_expected_tree():
 def test_an_absent_else_omits_the_key():
     """`None` and an empty branch are different programs, so they must not serialise to the same thing."""
 
-    without = parsed_dict("flag = true\nif flag { }\n")["statements"][1]
-    with_empty = parsed_dict("flag = true\nif flag { } else { }\n")["statements"][1]
+    without = parsed_dict("flag = true; if flag { }")["statements"][1]
+    with_empty = parsed_dict("flag = true; if flag { } else { }")["statements"][1]
 
     assert "else" not in without
     assert with_empty["else"] == []
 
     assert (
-        load(parsed_dict("flag = true\nif flag { }\n")).statements[1]
-        != load(parsed_dict("flag = true\nif flag { } else { }\n")).statements[1]
+        load(parsed_dict("flag = true; if flag { }")).statements[1] != load(parsed_dict("flag = true; if flag { } else { }")).statements[1]
     )
 
 
 def test_a_nested_if_round_trips():
-    blip_ir = parsed_dict('flag = true\nif flag {\n  if flag {\n    ret "deep"\n  }\n}\n')
+    blip_ir = parsed_dict('flag = true; if flag { if flag { ret "deep" } }')
 
     assert load(blip_ir).to_dict() == blip_ir
 

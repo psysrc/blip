@@ -119,3 +119,21 @@ Here is a good example of the same function. Short, simple, local to the code it
 def read_source(file: str) -> str:
     """Read a Blip source file, or report why it could not be read and exit."""
 ```
+
+## Blip code conventions
+
+When writing Blip code on a single line, prefer semicolons `;` to newline characters `\n` where possible.
+For example:
+
+- GOOD: `'name = "sam"; ret name'`
+- BAD:  `'name = "sam"\nret name'`
+
+Also, more generally, avoid whitespace unless it is necessary.
+For example:
+
+- GOOD: `'flag = true; if flag { if flag { ret "deep" } }'`
+- BAD:  `'flag = true\nif flag {\n  if flag {\n    ret "deep"\n  }\n}\n'`
+
+This is to aide human readability.
+
+An obvious exception to this convention is where a unit test is asserting that newlines are handled properly by the `blip` suite.
