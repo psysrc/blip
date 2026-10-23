@@ -27,10 +27,12 @@ from bliplib.ir import (
 from bliplib.ir.types import List, Scalar
 from bliplib.transpiler.interface import Transpiler
 
-# A Blip identifier must start with a letter, so a generated name beginning with an underscore cannot collide with one. That
-# matters: `input` has to be renamed because it would shadow the Python builtin, and a Blip variable of whatever name we rename
-# it to would otherwise quietly overwrite the parameter.
-_INPUT = "_blip_input"
+# Python names the generated function relies on. A Blip variable spelled the same would shadow one of them, so each is renamed
+# with a prefix beginning with an underscore - which no Blip identifier can start with, so the renamed variable cannot collide.
+_RESERVED_NAMES = frozenset({"input", "re", "len", "RuntimeError"})
+_RESERVED_PREFIX = "_blip_"
+
+_INPUT = _RESERVED_PREFIX + "input"
 
 # Scratch name holding the result of the last decomposition. Each one assigns it afresh and reads it back immediately, so
 # reusing the name is safe - including for a decomposition nested inside the block another one guards, because the outer
@@ -97,7 +99,7 @@ def _unparse(nodes: list[ast.stmt]) -> str:
 def _python_name(blip_name: str) -> str:
     """The Python name for a Blip variable."""
 
-    return _INPUT if blip_name == "input" else blip_name
+    return _RESERVED_PREFIX + blip_name if blip_name in _RESERVED_NAMES else blip_name
 
 
 def _load(name: str) -> ast.Name:
