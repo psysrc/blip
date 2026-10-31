@@ -17,13 +17,13 @@ requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^9.1.1"
-ruff = "^0.17.1"
+pytest = "^9.2.0"
+ruff = "^0.17.3"
 pytest-cov = "^7.1.0"
 pre-commit = "^4.7.0"
 pyinstaller = "^6.22.3"
 markdown-it-py = "^4.2.0"
-ty = "^0.0.90"
+ty = "^0.0.94"
 pytest-xdist = "^3.8.0"
 filelock = "^4.2.4"
 
