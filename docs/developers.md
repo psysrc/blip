@@ -35,39 +35,37 @@ To run the Blip tool:
 poetry run python3 blip.py
 ```
 
-## Unit tests
+## Test suite
 
-Pytest is used for unit testing. To run the test suite:
-
-```bash
-poetry run pytest
-```
-
-If desired, you can also get the code coverage output (the CI/CD pipeline does this):
+The full test suite consists of unit tests and integration tests. Pytest is used for both.
+`pytest-xdist` is used to let the tests run across multiple cores (this significantly speeds up the integration tests).
 
 ```bash
-poetry run pytest --cov=bliplib --cov-report=term-missing
+poetry run pytest                    # Run the full test suite
+poetry run pytest test/unit/         # Run the full test suite
+poetry run pytest test/integration/  # Run the full test suite
 ```
+
+To get a code coverage report from the unit tests:
+
+```bash
+poetry run pytest test/unit/ --cov=bliplib --cov-report=term-missing
+```
+
+Note the code coverage report does not work with the integration tests.
 
 ## Linting and Formatting
 
-Ruff is used as the linter and formatter.
-
-To lint:
+`ruff` is used for linting and formatting:
 
 ```bash
 poetry run ruff check --fix
-```
-
-To format:
-
-```bash
 poetry run ruff format
 ```
 
 ## Type Checking
 
-`ty` is used as the static type checker.
+`ty` is used for static type checking:
 
 ```bash
 poetry run ty check
