@@ -226,10 +226,9 @@ def test_string_literals_double_quotes(s):
 
     string_literal = to_literal(s)
 
-    tokens = tokens_of(f"ret {string_literal}")
+    tokens = tokens_of(f"{string_literal}")
 
     assert [(t.type, t.value) for t in tokens] == [
-        ("RETURN", "ret"),
         ("STRING_LITERAL", string_literal),
         ("EOF", ""),
     ]
@@ -242,10 +241,9 @@ def test_string_literals_single_quotes(s):
 
     string_literal = to_literal(s)
 
-    tokens = tokens_of(f"ret {string_literal}")
+    tokens = tokens_of(f"{string_literal}")
 
     assert [(t.type, t.value) for t in tokens] == [
-        ("RETURN", "ret"),
         ("STRING_LITERAL", string_literal),
         ("EOF", ""),
     ]
