@@ -72,10 +72,6 @@ class SourceMap:
         # Where each line begins. Line 1 begins at 0, and every newline begins the line after it.
         self.__line_starts = [0, *[offset + 1 for offset, character in enumerate(source) if character == "\n"]]
 
-    @property
-    def path(self) -> str:
-        return self.__path
-
     def get_line_column(self, offset: int) -> tuple[int, int]:
         """Get a (line, column) tuple of an offset into the source."""
 
