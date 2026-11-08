@@ -26,6 +26,7 @@ markdown-it-py = "^4.2.0"
 ty = "^0.0.97"
 pytest-xdist = "^3.8.0"
 filelock = "^4.2.9"
+hypothesis = "^6.170.15"
 
 [tool.pytest.ini_options]
 # Put the repository root on sys.path, so that `test.common` always resolves to this project's

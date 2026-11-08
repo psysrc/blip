@@ -8,6 +8,7 @@ is what spans need, since the parser hands them on to the IR and they are not se
 from itertools import pairwise
 
 import pytest
+from hypothesis import given, strategies
 
 from bliplib.errors import TokenizerError
 from bliplib.parser.tokenizer import Token, Tokenizer, TokenKind
@@ -216,3 +217,35 @@ def test_a_carriage_return_is_trivia_but_the_newline_after_it_is_not():
     tokens = tokens_of("ret\r\n'ok'\r\n")
 
     assert [token.type for token in tokens] == ["RETURN", "EOL", "STRING_LITERAL", "EOL", "EOF"]
+
+
+@given(strategies.text(strategies.characters(blacklist_characters='"\\')))
+def test_string_literals_double_quotes(s):
+    def to_literal(s: str) -> str:
+        return '"' + s + '"'
+
+    string_literal = to_literal(s)
+
+    tokens = tokens_of(f"ret {string_literal}")
+
+    assert [(t.type, t.value) for t in tokens] == [
+        ("RETURN", "ret"),
+        ("STRING_LITERAL", string_literal),
+        ("EOF", ""),
+    ]
+
+
+@given(strategies.text(strategies.characters(blacklist_characters="'\\")))
+def test_string_literals_single_quotes(s):
+    def to_literal(s: str) -> str:
+        return "'" + s + "'"
+
+    string_literal = to_literal(s)
+
+    tokens = tokens_of(f"ret {string_literal}")
+
+    assert [(t.type, t.value) for t in tokens] == [
+        ("RETURN", "ret"),
+        ("STRING_LITERAL", string_literal),
+        ("EOF", ""),
+    ]
