@@ -18,14 +18,14 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^9.2.0"
-ruff = "^0.17.4"
+ruff = "^0.17.5"
 pytest-cov = "^7.1.0"
 pre-commit = "^4.7.0"
 pyinstaller = "^6.22.3"
 markdown-it-py = "^4.3.0"
-ty = "^0.0.101"
+ty = "^0.0.107"
 pytest-xdist = "^3.8.0"
-filelock = "^4.2.10"
+filelock = "^4.2.12"
 hypothesis = "^6.170.15"
 
 [tool.pytest.ini_options]
